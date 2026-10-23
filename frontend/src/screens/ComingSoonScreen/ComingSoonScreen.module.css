@@ -1,0 +1,14 @@
+/* The companion picked on the previous screen (square PNG). Auto size capped
+   by max-height/max-width: keeps its aspect ratio and is never upscaled. */
+.companion {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(330px, 45vh);
+}
+
+/* Animated companion: same square canvas as the PNGs, so the same size. */
+.animated {
+  width: min(330px, 45vh);
+  height: min(330px, 45vh);
+}

@@ -1,0 +1,133 @@
+.scene {
+  --horizon: 52%;
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--color-sky) 0%, var(--color-sky-light) var(--horizon));
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.decor img {
+  position: absolute;
+  max-width: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+}
+
+/* Sky */
+.sun {
+  top: 3%;
+  right: var(--size-sun-inset);
+  width: var(--size-sun);
+}
+
+.cloud1 {
+  top: 6%;
+  left: 2%;
+  width: clamp(110px, 12vw, 190px);
+}
+.cloud2 {
+  top: 22%;
+  right: 22%;
+  width: clamp(120px, 14vw, 220px);
+}
+.cloud3 {
+  top: 30%;
+  left: -2%;
+  width: clamp(110px, 12vw, 180px);
+}
+.cloud4 {
+  top: 36%;
+  right: -1%;
+  width: clamp(80px, 8vw, 130px);
+}
+
+/* Sea (Sea.tsx): an inline SVG from the horizon down. The sand and grass
+   are drawn on top of it. */
+.sea {
+  position: absolute;
+  top: var(--horizon);
+  left: 0;
+  width: 100%;
+  height: calc(100% - var(--horizon));
+}
+
+/* Very slow side-to-side drift of the wave marks; two groups out of step. */
+.waveDriftA,
+.waveDriftB {
+  animation: wave-drift 8s ease-in-out infinite alternate;
+}
+.waveDriftB {
+  animation-duration: 9.5s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes wave-drift {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waveDriftA,
+  .waveDriftB {
+    animation: none;
+  }
+}
+
+.island {
+  top: var(--horizon);
+  left: -2%;
+  width: clamp(170px, 19vw, 300px);
+  transform: translateY(-82%);
+}
+
+.sailboat {
+  top: var(--horizon);
+  right: 3%;
+  width: clamp(60px, 6vw, 96px);
+  transform: translateY(-62%);
+}
+
+/* Shore */
+.ground {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30%;
+}
+
+/* Dock: anchored to the bottom-right corner (the SVG is drawn already cut
+   off at its right and bottom edges). ~44% of the screen tall so the far end
+   reaches the sea. Never wider than the strip the Login card leaves free for
+   the sun, so it never runs under the card. */
+.dock {
+  right: 0;
+  bottom: 0;
+  width: min(28.6vh, calc(var(--size-sun-inset) + var(--size-sun)));
+  height: auto;
+}
+
+.bush1 {
+  bottom: -2%;
+  left: -1%;
+  width: clamp(120px, 13vw, 200px);
+}
+.bush2 {
+  bottom: -3%;
+  left: 40%;
+  width: clamp(100px, 10vw, 160px);
+}

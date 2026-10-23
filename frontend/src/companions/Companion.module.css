@@ -1,0 +1,300 @@
+/*
+ * Shared companion animations: written once, used by every companion.
+ * Transforms only. Pivots come from the companion's anchors (CSS variables
+ * set in Companion.tsx): bottom center = the feet, so it bounces from the ground.
+ *
+ *   Idle (always)          .idle bounce 4px / 2.5s, shadow breathes with it
+ *   [data-move=hop]        crouch, hop, squash on landing
+ *   [data-move=wiggle]     wiggle-dance: rock +/-8 degrees
+ *   [data-move=turn]       turn around: small hop + horizontal flip and back
+ *
+ * Layers, outside in: .idle > .move > .spin > .squash > image.
+ * Move lengths must match MOVE_MS in Companion.tsx.
+ */
+
+.wrap {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.root {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.root:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.idle,
+.move,
+.spin,
+.squash {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: var(--feet-x) var(--feet-y); /* bottom center of the companion */
+}
+
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Soft shadow under the feet. */
+.shadow {
+  position: absolute;
+  left: calc(var(--feet-x) - 16%);
+  top: calc(var(--feet-y) - 2.6%);
+  width: 32%;
+  height: 5.2%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(70, 45, 30, 0.3), rgba(70, 45, 30, 0));
+}
+
+/* ---- Idle: 4px bounce, 2.5s ---------------------------------------------------- */
+
+.idle {
+  animation: companion-idle 2.5s ease-in-out infinite;
+}
+.shadow {
+  animation: shadow-idle 2.5s ease-in-out infinite;
+}
+
+@keyframes companion-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes shadow-idle {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.94);
+  }
+}
+
+/* ---- Hop (0.9s): crouch, hop, squash on landing ------------------------------- */
+
+.root[data-move='hop'] .move {
+  animation: hop-up 0.9s ease-in-out;
+}
+.root[data-move='hop'] .squash {
+  animation: hop-squash 0.9s ease-out;
+}
+.root[data-move='hop'] .shadow {
+  animation: shadow-hop 0.9s ease-in-out;
+}
+
+@keyframes hop-up {
+  0%,
+  15% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-20%);
+  }
+  72%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes hop-squash {
+  0% {
+    transform: scale(1, 1);
+  }
+  12% {
+    transform: scale(1.1, 0.88); /* crouch */
+  }
+  24% {
+    transform: scale(0.94, 1.08); /* stretch on take-off */
+  }
+  66% {
+    transform: scale(1, 1);
+  }
+  78% {
+    transform: scale(1.16, 0.84); /* squash on landing */
+  }
+  90% {
+    transform: scale(0.97, 1.03);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes shadow-hop {
+  0%,
+  15%,
+  72%,
+  100% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.55); /* smaller while in the air */
+  }
+  78% {
+    transform: scale(1.12);
+  }
+}
+
+/* ---- Wiggle-dance (1.6s): rock +/-8 degrees ------------------------------------- */
+
+.root[data-move='wiggle'] .move {
+  animation: wiggle 1.6s ease-in-out;
+}
+.root[data-move='wiggle'] .shadow {
+  animation: shadow-wiggle 1.6s ease-in-out;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  12.5%,
+  62.5% {
+    transform: rotate(8deg) translateY(-2%);
+  }
+  37.5%,
+  87.5% {
+    transform: rotate(-8deg) translateY(-2%);
+  }
+  25%,
+  50%,
+  75% {
+    transform: rotate(0deg) translateY(0);
+  }
+}
+
+@keyframes shadow-wiggle {
+  0%,
+  25%,
+  50%,
+  75%,
+  100% {
+    transform: scale(1);
+  }
+  12.5%,
+  37.5%,
+  62.5%,
+  87.5% {
+    transform: scale(0.9, 1);
+  }
+}
+
+/* ---- Turn around (0.8s): small hop while flipping to face the other way and back,
+        slight squash on landing. The flip pivots on the feet (bottom center). ---- */
+
+.root[data-move='turn'] .move {
+  animation: turn-hop 0.8s ease-in-out;
+}
+.root[data-move='turn'] .spin {
+  animation: turn-flip 0.8s ease-in-out;
+}
+.root[data-move='turn'] .squash {
+  animation: turn-squash 0.8s ease-out;
+}
+.root[data-move='turn'] .shadow {
+  animation: shadow-turn 0.8s ease-in-out;
+}
+
+@keyframes turn-hop {
+  0%,
+  12% {
+    transform: translateY(0);
+  }
+  42% {
+    transform: translateY(-10%);
+  }
+  74%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes turn-flip {
+  0%,
+  12% {
+    transform: scaleX(1);
+  }
+  36%,
+  48% {
+    transform: scaleX(-1);
+  }
+  72%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes turn-squash {
+  0% {
+    transform: scale(1, 1);
+  }
+  10% {
+    transform: scale(1.06, 0.94); /* little crouch */
+  }
+  22% {
+    transform: scale(0.97, 1.04);
+  }
+  74% {
+    transform: scale(1, 1);
+  }
+  84% {
+    transform: scale(1.1, 0.9); /* slight squash on landing */
+  }
+  93% {
+    transform: scale(0.98, 1.02);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes shadow-turn {
+  0%,
+  12%,
+  74%,
+  100% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(0.75);
+  }
+  84% {
+    transform: scale(1.08);
+  }
+}
+
+/* Reduced motion: idle bounce only. */
+@media (prefers-reduced-motion: reduce) {
+  .root[data-move] .move,
+  .root[data-move] .spin,
+  .root[data-move] .squash,
+  .root[data-move] .shadow {
+    animation: none;
+  }
+}

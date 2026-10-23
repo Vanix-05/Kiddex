@@ -1,0 +1,45 @@
+.logo {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: rotate(-6deg);
+  user-select: none;
+}
+
+.word {
+  font-family: var(--font-display);
+  /* Scales with both width and height, so the logo stays big but still
+     leaves room for the card on short laptop screens.
+     --logo-scale lets a screen shrink it further if needed. */
+  font-size: calc(var(--logo-scale, 1) * clamp(4.5rem, min(13.5vw, 18vh), 10.5rem));
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--color-logo-orange);
+  -webkit-text-stroke: 0.13em var(--color-logo-outline);
+  paint-order: stroke fill;
+  text-shadow: 0 0.06em 0 var(--color-logo-shadow);
+}
+
+.tagline {
+  margin: 6px 0 0 0.6em;
+  font-family: var(--font-display);
+  font-size: calc(var(--logo-scale, 1) * clamp(1.5rem, min(3.6vw, 4.5vh), 2.7rem));
+  font-weight: 500;
+  color: var(--color-text);
+  letter-spacing: 0.04em;
+  word-spacing: 0.3em;
+}
+
+.small .word {
+  font-size: calc(var(--logo-scale, 1) * clamp(3rem, 5.5vw, 4.4rem));
+  -webkit-text-stroke-width: calc(var(--logo-scale, 1) * 12px);
+}
+
+.small .tagline {
+  font-size: calc(var(--logo-scale, 1) * clamp(1.05rem, 1.6vw, 1.3rem));
+}
+
+.dot {
+  font-weight: 700;
+}

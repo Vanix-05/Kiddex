@@ -1,0 +1,25 @@
+.sign {
+  position: relative;
+  width: 190px;
+}
+
+.sign img {
+  width: 100%;
+}
+
+.text {
+  position: absolute;
+  top: 18%;
+  left: 8%;
+  right: 8%;
+  height: 66%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  transform: rotate(-4deg);
+}

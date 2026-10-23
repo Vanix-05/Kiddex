@@ -1,0 +1,401 @@
+/*
+ * Otter rig animations: transforms only.
+ *
+ * Units are the SVG's own (the PNG's 5000 x 5000 canvas), so each
+ * transform-origin is a point on the otter. "Left/right" = as seen on screen.
+ *
+ *   Idle (always):     sway + bob, belly breathing, arm swing, head nod, blink
+ *   [data-move=wave]   right arm up and waves 3 times, head tilts
+ *   [data-move=dance]  body sways, arms swing, legs step in turn
+ *   [data-move=jump]   crouch, happy jump straight up with both arms raised, squash on landing
+ *
+ * Move lengths must match MOVE_MS in OtterRig.tsx.
+ */
+
+.root {
+  display: block;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.root:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible; /* room for the hop */
+}
+
+.svg g {
+  transform-box: view-box;
+}
+
+/* Pivots (PNG pixels) */
+.bob,
+.squash {
+  transform-origin: 2500px 4650px; /* feet */
+}
+.move {
+  transform-origin: 2500px 3030px; /* middle of the otter, for the spin */
+}
+.body {
+  transform-origin: 2500px 3970px;
+}
+.belly {
+  transform-origin: 2500px 3300px;
+}
+.head {
+  transform-origin: 2500px 2605px; /* neck */
+}
+.eyes {
+  transform-origin: 2500px 1770px; /* eye line */
+}
+.armLeft {
+  transform-origin: 2090px 2683px; /* left shoulder */
+}
+.armRight {
+  transform-origin: 2910px 2683px; /* right shoulder */
+}
+.legLeft {
+  transform-origin: 2157px 3970px; /* left hip */
+}
+.legRight {
+  transform-origin: 2843px 3970px; /* right hip */
+}
+
+/* ---- Idle (always on) ----------------------------------------------------- */
+
+.bob {
+  animation: otter-idle 3.2s ease-in-out infinite;
+}
+.belly {
+  animation: otter-breathe 3.2s ease-in-out infinite;
+}
+.head {
+  animation: otter-nod 3.2s ease-in-out infinite;
+}
+.armLeft {
+  animation: otter-arm-idle-left 3.2s ease-in-out infinite;
+}
+.armRight {
+  animation: otter-arm-idle-right 3.2s ease-in-out infinite;
+}
+.eyes.blink {
+  animation: otter-blink 200ms ease-in-out;
+}
+
+/* Sway side to side while bobbing (~4 px up at full size). */
+@keyframes otter-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-60px) rotate(2.5deg);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-60px) rotate(-2.5deg);
+  }
+}
+
+@keyframes otter-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  25%,
+  75% {
+    transform: scale(1.025, 1.035);
+  }
+}
+
+@keyframes otter-nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-2deg);
+  }
+  75% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes otter-arm-idle-left {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(5deg);
+  }
+  75% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes otter-arm-idle-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(3deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes otter-blink {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.08);
+  }
+}
+
+/* ---- Wave (1.8s) ------------------------------------------------------------ */
+
+.root[data-move='wave'] .armRight {
+  animation: otter-wave-arm 1.8s ease-in-out;
+}
+.root[data-move='wave'] .head {
+  animation: otter-wave-head 1.8s ease-in-out;
+}
+
+/* Arm up and out to the side (clear of the face), then 3 waves. */
+@keyframes otter-wave-arm {
+  0% {
+    transform: rotate(0deg);
+  }
+  16% {
+    transform: rotate(-116deg);
+  }
+  27% {
+    transform: rotate(-98deg);
+  }
+  38% {
+    transform: rotate(-122deg);
+  }
+  49% {
+    transform: rotate(-98deg);
+  }
+  60% {
+    transform: rotate(-122deg);
+  }
+  71% {
+    transform: rotate(-98deg);
+  }
+  82% {
+    transform: rotate(-114deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes otter-wave-head {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  16%,
+  82% {
+    transform: rotate(-6deg);
+  }
+}
+
+/* ---- Dance (2.4s: two 1.2s steps) ------------------------------------------- */
+
+.root[data-move='dance'] .move {
+  animation: otter-sway 1.2s ease-in-out 2;
+}
+.root[data-move='dance'] .armLeft {
+  animation: otter-swing-left 1.2s ease-in-out 2;
+}
+.root[data-move='dance'] .armRight {
+  animation: otter-swing-right 1.2s ease-in-out 2;
+}
+.root[data-move='dance'] .legLeft {
+  animation: otter-step-left 1.2s ease-in-out 2;
+}
+.root[data-move='dance'] .legRight {
+  animation: otter-step-right 1.2s ease-in-out 2;
+}
+
+@keyframes otter-sway {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(7deg) translateY(-40px);
+  }
+  75% {
+    transform: rotate(-7deg) translateY(-40px);
+  }
+}
+
+@keyframes otter-swing-left {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(38deg);
+  }
+  75% {
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes otter-swing-right {
+  0%,
+  50%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(12deg);
+  }
+  75% {
+    transform: rotate(-38deg);
+  }
+}
+
+@keyframes otter-step-left {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-140px) rotate(10deg);
+  }
+}
+
+@keyframes otter-step-right {
+  0%,
+  50%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-140px) rotate(-10deg);
+  }
+}
+
+/* ---- Jump (1.3s): straight up, no spin -------------------------------------- */
+
+.root[data-move='jump'] .move {
+  animation: otter-jump 1.3s ease-in-out;
+}
+.root[data-move='jump'] .squash {
+  animation: otter-jump-squash 1.3s ease-out;
+}
+.root[data-move='jump'] .armLeft {
+  animation: otter-cheer-left 1.3s ease-in-out;
+}
+.root[data-move='jump'] .armRight {
+  animation: otter-cheer-right 1.3s ease-in-out;
+}
+.root[data-move='jump'] .head {
+  animation: otter-jump-head 1.3s ease-in-out;
+}
+
+@keyframes otter-jump {
+  0%,
+  16% {
+    transform: translateY(0);
+  }
+  42% {
+    transform: translateY(-520px); /* top of the jump */
+  }
+  66%,
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes otter-jump-squash {
+  0% {
+    transform: scale(1, 1);
+  }
+  13% {
+    transform: scale(1.08, 0.9); /* crouch */
+  }
+  24% {
+    transform: scale(0.95, 1.07); /* stretch on take-off */
+  }
+  60% {
+    transform: scale(1, 1);
+  }
+  72% {
+    transform: scale(1.14, 0.86); /* squash on landing */
+  }
+  86% {
+    transform: scale(0.97, 1.04);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+/* Both arms up in a cheer (out to the sides, clear of the face). */
+@keyframes otter-cheer-left {
+  0%,
+  12%,
+  100% {
+    transform: rotate(0deg);
+  }
+  32%,
+  62% {
+    transform: rotate(112deg);
+  }
+  80% {
+    transform: rotate(20deg);
+  }
+}
+
+@keyframes otter-cheer-right {
+  0%,
+  12%,
+  100% {
+    transform: rotate(0deg);
+  }
+  32%,
+  62% {
+    transform: rotate(-112deg);
+  }
+  80% {
+    transform: rotate(-20deg);
+  }
+}
+
+@keyframes otter-jump-head {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: translateY(-30px) rotate(0deg);
+  }
+}
