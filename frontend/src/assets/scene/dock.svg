@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 400">
+  <!-- Generated: angled wooden dock. Near end on the sand (bottom-right,
+       cut off by the screen edge), far end out on the sea. -->
+  <path d="M189.3 494.8 L14.7 124.1 L85.3 79.9 L348.7 393.2 Z" fill="#3E6E8C" opacity="0.14"/>
+
+  <!-- Far-right posts sit behind the deck; only their tops and bottoms show. -->
+  <g>
+    <path d="M68.1 107.4 Q87 112.4 105.9 107.4" fill="none" stroke="#E4F5FC" stroke-width="2.4" stroke-linecap="round"/><path d="M75.3 113.4 Q87 116.4 98.7 113.4" fill="none" stroke="#E4F5FC" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+    <path d="M78 60.4 L78 106.4 Q87 110.9 96 106.4 L96 60.4 Z" fill="#9A6A42" stroke="#6B4A33" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M79.5 60.4 L79.5 105.4 Q83.4 109.1 86.6 110 L86.6 60.4 Z" fill="#B7834F"/>
+    <ellipse cx="87" cy="60.4" rx="9" ry="3.8" fill="#DDB585" stroke="#6B4A33" stroke-width="2.6"/>
+    <ellipse cx="87" cy="60.4" rx="4.1" ry="1.6" fill="none" stroke="#B98656" stroke-width="1.2"/>
+  </g>
+  <g>
+    <ellipse cx="217" cy="266.5" rx="18" ry="5.4" fill="#D9BC86" opacity="0.7"/>
+    <path d="M205 207 L205 266.5 Q217 272.5 229 266.5 L229 207 Z" fill="#9A6A42" stroke="#6B4A33" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M206.5 207 L206.5 265.5 Q212.2 270.1 216.4 271.3 L216.4 207 Z" fill="#B7834F"/>
+    <ellipse cx="217" cy="207" rx="12" ry="5" fill="#DDB585" stroke="#6B4A33" stroke-width="2.6"/>
+    <ellipse cx="217" cy="207" rx="5.4" ry="2.2" fill="none" stroke="#B98656" stroke-width="1.2"/>
+  </g>
+
+  <!-- Side edge (thickness) -->
+  <path d="M195.3 468.8 L18.7 108.1 L18.7 119.1 L195.3 490.8 Z" fill="#8C5F3B" stroke="#6B4A33" stroke-width="3" stroke-linejoin="round"/>
+  <g stroke="#6F4A2E" stroke-width="1.2" opacity="0.7"><path d="M180.6 438.8 L180.6 459.9"/><path d="M166.6 410.2 L166.6 430.4"/><path d="M153.3 383 L153.3 402.4"/><path d="M140.6 357 L140.6 375.6"/><path d="M128.4 332.3 L128.4 350.1"/><path d="M116.9 308.7 L116.9 325.8"/><path d="M105.9 286.2 L105.9 302.7"/><path d="M95.4 264.8 L95.4 280.6"/><path d="M85.4 244.4 L85.4 259.6"/><path d="M75.9 225 L75.9 239.5"/><path d="M66.8 206.4 L66.8 220.4"/><path d="M58.2 188.8 L58.2 202.2"/><path d="M49.9 171.9 L49.9 184.9"/><path d="M42.1 155.9 L42.1 168.3"/><path d="M34.6 140.6 L34.6 152.6"/><path d="M27.4 126 L27.4 137.6"/></g>
+
+  <!-- Deck planks -->
+  <g>
+    <path d="M195.3 468.8 L348.7 367.2 L326.8 342 L180.6 438.8 Z" fill="#D2A26C"/>
+    <path d="M180.6 438.8 L326.8 342 L305.9 317.9 L166.6 410.2 Z" fill="#BB8552"/>
+    <path d="M166.6 410.2 L305.9 317.9 L286 295 L153.3 383 Z" fill="#C7955F"/>
+    <path d="M153.3 383 L286 295 L267.1 273.2 L140.6 357 Z" fill="#BB8552"/>
+    <path d="M140.6 357 L267.1 273.2 L249 252.4 L128.4 332.3 Z" fill="#D2A26C"/>
+    <path d="M128.4 332.3 L249 252.4 L231.8 232.6 L116.9 308.7 Z" fill="#C7955F"/>
+    <path d="M116.9 308.7 L231.8 232.6 L215.4 213.7 L105.9 286.2 Z" fill="#D2A26C"/>
+    <path d="M105.9 286.2 L215.4 213.7 L199.8 195.7 L95.4 264.8 Z" fill="#BB8552"/>
+    <path d="M95.4 264.8 L199.8 195.7 L184.9 178.5 L85.4 244.4 Z" fill="#C7955F"/>
+    <path d="M85.4 244.4 L184.9 178.5 L170.7 162.2 L75.9 225 Z" fill="#BB8552"/>
+    <path d="M75.9 225 L170.7 162.2 L157.1 146.6 L66.8 206.4 Z" fill="#D2A26C"/>
+    <path d="M66.8 206.4 L157.1 146.6 L144.2 131.7 L58.2 188.8 Z" fill="#C7955F"/>
+    <path d="M58.2 188.8 L144.2 131.7 L131.9 117.6 L49.9 171.9 Z" fill="#D2A26C"/>
+    <path d="M49.9 171.9 L131.9 117.6 L120.2 104.1 L42.1 155.9 Z" fill="#BB8552"/>
+    <path d="M42.1 155.9 L120.2 104.1 L109.1 91.2 L34.6 140.6 Z" fill="#C7955F"/>
+    <path d="M34.6 140.6 L109.1 91.2 L98.4 79 L27.4 126 Z" fill="#BB8552"/>
+    <path d="M27.4 126 L98.4 79 L85.3 63.9 L18.7 108.1 Z" fill="#D2A26C"/>
+  </g>
+  <g stroke="#8A5E3B" stroke-width="1.6" stroke-linecap="round"><path d="M180.6 438.8 L326.8 342"/><path d="M166.6 410.2 L305.9 317.9"/><path d="M153.3 383 L286 295"/><path d="M140.6 357 L267.1 273.2"/><path d="M128.4 332.3 L249 252.4"/><path d="M116.9 308.7 L231.8 232.6"/><path d="M105.9 286.2 L215.4 213.7"/><path d="M95.4 264.8 L199.8 195.7"/><path d="M85.4 244.4 L184.9 178.5"/><path d="M75.9 225 L170.7 162.2"/><path d="M66.8 206.4 L157.1 146.6"/><path d="M58.2 188.8 L144.2 131.7"/><path d="M49.9 171.9 L131.9 117.6"/><path d="M42.1 155.9 L120.2 104.1"/><path d="M34.6 140.6 L109.1 91.2"/><path d="M27.4 126 L98.4 79"/></g>
+  <path d="M195.3 468.8 L18.7 108.1 L85.3 63.9 L348.7 367.2" fill="none" stroke="#6B4A33" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Viewer-side posts, in front of the side edge -->
+  <g>
+    <path d="M1.4 151.6 Q20.3 156.6 39.2 151.6" fill="none" stroke="#E4F5FC" stroke-width="2.4" stroke-linecap="round"/><path d="M8.6 157.6 Q20.3 160.6 32 157.6" fill="none" stroke="#E4F5FC" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+    <path d="M11.3 104.6 L11.3 150.6 Q20.3 155.1 29.3 150.6 L29.3 104.6 Z" fill="#9A6A42" stroke="#6B4A33" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M12.8 104.6 L12.8 149.6 Q16.7 153.3 19.9 154.2 L19.9 104.6 Z" fill="#B7834F"/>
+    <ellipse cx="20.3" cy="104.6" rx="9" ry="3.8" fill="#DDB585" stroke="#6B4A33" stroke-width="2.6"/>
+    <ellipse cx="20.3" cy="104.6" rx="4.1" ry="1.6" fill="none" stroke="#B98656" stroke-width="1.2"/>
+  </g>
+  <g>
+    <ellipse cx="107" cy="339.5" rx="18" ry="5.4" fill="#D9BC86" opacity="0.7"/>
+    <path d="M95 280 L95 339.5 Q107 345.5 119 339.5 L119 280 Z" fill="#9A6A42" stroke="#6B4A33" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M96.5 280 L96.5 338.5 Q102.2 343.1 106.4 344.3 L106.4 280 Z" fill="#B7834F"/>
+    <ellipse cx="107" cy="280" rx="12" ry="5" fill="#DDB585" stroke="#6B4A33" stroke-width="2.6"/>
+    <ellipse cx="107" cy="280" rx="5.4" ry="2.2" fill="none" stroke="#B98656" stroke-width="1.2"/>
+  </g>
+  <g>
+    <ellipse cx="181.2" cy="500.2" rx="21.8" ry="6.5" fill="#D9BC86" opacity="0.7"/>
+    <path d="M166.7 429.4 L166.7 500.2 Q181.2 507.5 195.7 500.2 L195.7 429.4 Z" fill="#9A6A42" stroke="#6B4A33" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M168.2 429.4 L168.2 499.2 Q175.4 504.6 180.5 506 L180.5 429.4 Z" fill="#B7834F"/>
+    <ellipse cx="181.2" cy="429.4" rx="14.52" ry="6.1" fill="#DDB585" stroke="#6B4A33" stroke-width="2.6"/>
+    <ellipse cx="181.2" cy="429.4" rx="6.5" ry="2.6" fill="none" stroke="#B98656" stroke-width="1.2"/>
+  </g>
+</svg>

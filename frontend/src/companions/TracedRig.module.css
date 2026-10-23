@@ -1,0 +1,67 @@
+/*
+ * Additions to the shared rig animations (otter/OtterRig.module.css).
+ * Units are the SVG's own (the PNG's 5000 x 5000 canvas).
+ *
+ *   Idle (always): hair bounce. A small bob, twice per body bob, slightly
+ *   behind it so the hair seems to follow. Anything tagged as hair moves
+ *   with it (the girl's bow too).
+ *
+ *   Idle (always): ear twitch. Each ear (earL / earR) flicks outward now
+ *   and then, pivoting on its inner corner. The axolotl's gills reuse it. The two ears use different cycle lengths so they
+ *   twitch at different times.
+ */
+
+.hair {
+  animation: hair-bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes hair-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  35% {
+    transform: translateY(14px) scaleY(0.994);
+  }
+  70% {
+    transform: translateY(-8px) scaleY(1.003);
+  }
+}
+
+/* A quick outward flick in the first ~0.4 s of each cycle, then still. The
+   pivot is the ear's inner corner, so the flick tucks the ear's base further
+   behind the head and never opens a gap. */
+.earL {
+  animation: ear-twitch-left 4.7s ease-in-out 1.4s infinite;
+}
+.earR {
+  animation: ear-twitch-right 6.3s ease-in-out 3.1s infinite;
+}
+
+@keyframes ear-twitch-left {
+  0%,
+  9%,
+  100% {
+    transform: rotate(0deg);
+  }
+  3% {
+    transform: rotate(-5deg);
+  }
+  6% {
+    transform: rotate(-1deg);
+  }
+}
+
+@keyframes ear-twitch-right {
+  0%,
+  7%,
+  100% {
+    transform: rotate(0deg);
+  }
+  2.2% {
+    transform: rotate(5deg);
+  }
+  4.5% {
+    transform: rotate(1deg);
+  }
+}

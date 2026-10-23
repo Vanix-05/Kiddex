@@ -1,0 +1,39 @@
+.grid {
+  --grid-gap: clamp(12px, 1.6vw, 24px);
+
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: var(--grid-gap);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 14px; /* room for the scale-up, bounce and check badge */
+  list-style: none;
+}
+
+.cell {
+  display: flex;
+  min-width: 0;
+}
+
+/* Tablets */
+@media (max-width: 1023px) {
+  .grid {
+    grid-template-columns: repeat(var(--tablet-columns), minmax(0, 1fr));
+  }
+}
+
+/* Phones */
+@media (max-width: 599px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    --grid-gap: 10px;
+    padding: 12px 8px;
+  }
+}
+
+@media (max-width: 379px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

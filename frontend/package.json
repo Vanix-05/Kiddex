@@ -7,17 +7,31 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "trace:otter": "node scripts/trace-otter.mjs",
+    "rig:otter": "node --max-old-space-size=4096 scripts/rig-otter.mjs",
+    "trace:fox": "node scripts/trace-fox.mjs",
+    "rig:fox": "node --max-old-space-size=4096 scripts/rig-fox.mjs",
+    "trace:boy": "node scripts/trace-human.mjs boy",
+    "rig:boy": "node --max-old-space-size=4096 scripts/rig-human.mjs boy",
+    "trace:girl": "node scripts/trace-human.mjs girl",
+    "rig:girl": "node --max-old-space-size=4096 scripts/rig-human.mjs girl",
+    "trace:kitty": "node scripts/trace-kitty.mjs",
+    "rig:kitty": "node --max-old-space-size=4096 scripts/rig-kitty.mjs",
+    "trace:axolotl": "node scripts/trace-axolotl.mjs",
+    "rig:axolotl": "node --max-old-space-size=4096 scripts/rig-axolotl.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@visioncortex/vtracer": "1.0.0-alpha.4",
     "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",

@@ -1,0 +1,62 @@
+/*
+ * Choose Your Companion: 10 cards, 5 x 2 on laptops, 4 per row on tablets.
+ *
+ * The companion PNGs are square, and the art fills almost their full height
+ * but only 43-72% of their width. So each card's picture box is tall and
+ * narrow (--avatar-image-aspect), which gives big pictures in slim cards.
+ *
+ * Laptops (1024px+): everything fits one screen. The picture height is what's
+ * left of the screen height after the title, names and button. It is set to
+ * 1.5x the earlier sizes (160px at 720px tall, 200px at 768px), capped at
+ * 230px; narrower windows are limited by the card width instead.
+ * Tablets and phones: the page may scroll vertically (never sideways).
+ */
+
+.card {
+  --size-control-height: clamp(48px, 6vh, 58px);
+  gap: clamp(4px, 1vh, 12px);
+  padding: clamp(8px, 1.6vh, 22px) clamp(10px, 1vw, 16px) clamp(6px, 1.2vh, 16px);
+}
+
+.card h1 {
+  padding: clamp(2px, 0.5vh, 6px) clamp(20px, 2.4vw, 32px);
+  font-size: clamp(1.4rem, 3.8vh, 2.2rem);
+}
+
+.card > p {
+  margin-top: 0;
+  font-size: clamp(0.95rem, 2vh, 1.15rem);
+}
+
+.grid {
+  --avatar-image-aspect: 0.8;
+  --avatar-image-height: 210px;
+  --avatar-card-padding: 8px 8px 8px;
+  --avatar-gap: 6px;
+  --avatar-label-size: 1.1rem;
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    --avatar-image-aspect: 0.64;
+    --avatar-image-height: clamp(80px, calc(83.3vh - 440px), 230px);
+    --avatar-card-padding: clamp(3px, 0.6vh, 8px) 8px clamp(5px, 0.8vh, 10px);
+    --avatar-gap: 4px;
+    --avatar-label-size: clamp(0.95rem, 2vh, 1.15rem);
+    --grid-gap: clamp(8px, 1.2vh, 16px) clamp(8px, 0.8vw, 14px);
+    padding: 10px; /* room for the scale-up and check badge */
+  }
+}
+
+@media (max-width: 599px) {
+  .card h1 {
+    padding-inline: 16px;
+    font-size: 1.5rem;
+  }
+  .grid {
+    --avatar-image-aspect: 0.75;
+    --avatar-image-height: 170px;
+    --avatar-card-padding: 6px 4px 6px;
+    --avatar-label-size: 0.95rem;
+  }
+}

@@ -1,0 +1,60 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100svh;
+  padding: clamp(8px, 1.6vh, 16px) clamp(16px, 4vw, 48px) clamp(12px, 3vh, 32px);
+}
+
+/* The logo is tilted, so its corners and outline reach past its box. The
+   padding keeps all of it on screen (see --logo-safe below). */
+.brand {
+  --logo-safe: clamp(10px, 1.6vh, 18px);
+  align-self: flex-start;
+  padding: var(--logo-safe) 0 0 clamp(4px, 2vw, 32px);
+}
+
+.body {
+  --body-max: 760px;
+  width: 100%;
+  min-width: 0;
+  max-width: var(--body-max);
+  /* Tablets/phones: the card is nearly full width, so it starts below the
+     sun (top-right) instead of covering it. */
+  margin-top: 32px;
+}
+
+.wide .body {
+  --body-max: 1060px;
+}
+
+/*
+ * Laptops (1024px+):
+ * - The card keeps clear of the sun. The sun sits var(--size-sun-inset) from
+ *   the right edge and is var(--size-sun) wide; the card leaves that much room
+ *   (plus a gap) on BOTH sides so it stays centered.
+ * - The logo sits in the free strip on the left (mirroring the sun on the
+ *   right) instead of in its own row, so the card gets the full height. It's
+ *   small enough to always fit in that strip, and fully on screen.
+ */
+@media (min-width: 1024px) {
+  .layout {
+    position: relative;
+    justify-content: center;
+    padding-bottom: clamp(8px, 1.6vh, 16px);
+  }
+  .brand {
+    --logo-scale: 0.66;
+    --logo-safe: clamp(16px, 2.6vh, 28px);
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: var(--logo-safe) 0 0 clamp(16px, 1.8vw, 28px);
+  }
+  .body {
+    --sun-clearance: calc(var(--size-sun-inset) + var(--size-sun) + clamp(12px, 1.4vw, 24px));
+    max-width: min(var(--body-max), calc(100vw - 2 * var(--sun-clearance)));
+    margin-top: 0;
+  }
+}
