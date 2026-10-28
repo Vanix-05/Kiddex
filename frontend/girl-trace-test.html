@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- Dev-only test page (not part of the app build): PNG vs vtracer SVG. Open with `npm run dev` at /girl-trace-test.html -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Girl trace test</title>
+<style>
+  :root { --bg: #f6f3ee; --panel: #fff; --text: #3a2a22; --muted: #7a6a60; --line: #e3dbd2; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 16px 40px; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  p { margin: 0 0 16px; color: var(--muted); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  figcaption { padding: 8px 12px; border-bottom: 1px solid var(--line); font-weight: 600; }
+  figcaption span { color: var(--muted); font-weight: 400; }
+  .stage { position: relative; aspect-ratio: 1; overflow: hidden; }
+  .stage img { position: absolute; inset: 0; width: 100%; height: 100%; transform-origin: 50% 45%; }
+  .zoom .stage img { transform: scale(2.6); }
+  .checker .stage { background: repeating-conic-gradient(#e9e4dd 0 25%, #fff 0 50%) 0 0 / 24px 24px; }
+  .overlay img.top { opacity: 0.5; }
+  .diff img.top { mix-blend-mode: difference; }
+</style>
+</head>
+<body>
+  <h1>Girl: PNG vs traced SVG</h1>
+  <p>Traced with vtracer (colour, spline, high detail). The overlay should look like a single girl if the trace is accurate; in "difference" mode, black = identical.</p>
+  <div class="controls">
+    <label><input type="checkbox" id="zoom" /> Zoom on the face</label>
+    <label><input type="checkbox" id="checker" /> Checkerboard background</label>
+  </div>
+  <p id="score">Measuring match…</p>
+  <div class="grid" id="grid">
+    <figure><figcaption>PNG <span>human_girl.png</span></figcaption>
+      <div class="stage"><img src="/src/assets/companions/human_girl.png" alt="Original PNG" /></div></figure>
+    <figure><figcaption>Traced SVG <span id="svgInfo">girl-traced.svg</span></figcaption>
+      <div class="stage"><img src="/src/companions/girl/girl-traced.svg" alt="Traced SVG" /></div></figure>
+    <figure class="overlay"><figcaption>Overlay <span>SVG at 50% over PNG</span></figcaption>
+      <div class="stage"><img src="/src/assets/companions/human_girl.png" alt="" /><img class="top" src="/src/companions/girl/girl-traced.svg" alt="" /></div></figure>
+    <figure class="diff"><figcaption>Difference <span>black = same</span></figcaption>
+      <div class="stage" style="background:#fff"><img src="/src/assets/companions/human_girl.png" alt="" /><img class="top" src="/src/companions/girl/girl-traced.svg" alt="" /></div></figure>
+  </div>
+  <script>
+    const grid = document.getElementById('grid')
+    for (const id of ['zoom', 'checker']) document.getElementById(id).addEventListener('change', (e) => grid.classList.toggle(id, e.target.checked))
+    fetch('/src/companions/girl/girl-traced.svg').then((r) => r.text()).then((t) => {
+      document.getElementById('svgInfo').textContent = `${(new Blob([t]).size / 1024).toFixed(1)} KB, ${(t.match(/<path/g) || []).length} paths`
+    })
+    // Open with #zoom to start zoomed in.
+    if (location.hash === '#zoom') { document.getElementById('zoom').checked = true; grid.classList.add('zoom') }
+
+    // Pixel match: draw both at 1000 px (white background) and compare every pixel.
+    const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src })
+    Promise.all([load('/src/assets/companions/human_girl.png'), load('/src/companions/girl/girl-traced.svg')]).then(([png, svg]) => {
+      const N = 1000
+      const px = (img) => { const c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, N, N); g.drawImage(img, 0, 0, N, N); return g.getImageData(0, 0, N, N).data }
+      const a = px(png), b = px(svg)
+      let char = 0, close = 0, sum = 0
+      for (let i = 0; i < a.length; i += 4) {
+        const isChar = a[i] + a[i + 1] + a[i + 2] < 750 || b[i] + b[i + 1] + b[i + 2] < 750
+        if (!isChar) continue
+        const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2]))
+        char++; sum += d; if (d <= 24) close++
+      }
+      document.getElementById('score').textContent =
+        `Pixel match (at 1000 px, girl area only): ${(100 * close / char).toFixed(1)}% of pixels within a small colour difference; average difference ${(sum / char).toFixed(1)} / 255.`
+    })
+  </script>
+</body>
+</html>

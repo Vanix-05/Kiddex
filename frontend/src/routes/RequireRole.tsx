@@ -7,7 +7,7 @@ export function RequireRole({ role }: { role: Role }) {
   const { user } = useSession()
   const location = useLocation()
 
-  if (!user) return <Navigate to={paths.login} replace state={{ from: location }} />
+  if (!user) return <Navigate to={paths.welcome} replace state={{ from: location }} />
   if (user.role !== role) return <Navigate to={paths[user.role].home} replace />
   return <Outlet />
 }

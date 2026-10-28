@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react'
 
-export type IconName = 'user' | 'lock' | 'eye' | 'eyeOff' | 'arrowRight' | 'check'
+export type IconName = 'user' | 'lock' | 'eye' | 'eyeOff' | 'arrowRight' | 'arrowLeft' | 'check' | 'backspace'
 
 const paths: Record<IconName, ReactNode> = {
   user: (
@@ -32,6 +32,15 @@ const paths: Record<IconName, ReactNode> = {
   ),
   arrowRight: (
     <path d="M4 12h15m-6-6.5L19.5 12 13 18.5" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  arrowLeft: (
+    <path d="M20 12H5m6-6.5L4.5 12 11 18.5" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  backspace: (
+    <>
+      <path d="M8.5 5H20a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 20 19H8.5L2.5 12z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+      <path d="M11.5 9l6 6m0-6l-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </>
   ),
   check: (
     <path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />

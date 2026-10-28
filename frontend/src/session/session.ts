@@ -9,12 +9,20 @@ export interface User {
 
 export interface SessionState {
   user: User | null
-  /** The companion picked on the Choose Your Companion screen. */
+  /** The logged-in learner's companion (null = not picked yet). */
   companionId: string | null
+  /** Learner login in progress: the class code they typed... */
+  classCode: string | null
+  /** ...and the learner tile they tapped on "Who are you?". */
+  learnerId: string | null
 }
 
 export interface SessionContextValue extends SessionState {
-  logIn: (username: string, password: string) => Promise<User>
+  logInEducator: (email: string, password: string) => Promise<User>
+  /** Saves the class code. Returns false if no class has that code. */
+  enterClassCode: (code: string) => boolean
+  pickLearner: (learnerId: string) => void
+  logInLearner: (pin: string) => Promise<User>
   logOut: () => void
   setCompanion: (id: string) => void
 }

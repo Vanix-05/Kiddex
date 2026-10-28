@@ -11,14 +11,14 @@ import { SetupLayout } from '../shared/SetupLayout'
 import styles from './ComingSoonScreen.module.css'
 
 /** Placeholder for screens that aren't built yet (Register, Home, ...). */
-export function ComingSoonScreen({ title }: { title: string }) {
+export function ComingSoonScreen({ title, subtitle = 'This screen is coming soon!' }: { title: string; subtitle?: string }) {
   const navigate = useNavigate()
   const { user, companionId, logOut } = useSession()
   const companion = companions.find((c) => c.id === companionId)
 
   const handleBack = () => {
     if (user) logOut()
-    navigate(paths.login)
+    navigate(paths.welcome)
   }
 
   // Companions in the new companion system (src/companions/registry.ts) are
@@ -27,7 +27,7 @@ export function ComingSoonScreen({ title }: { title: string }) {
 
   return (
     <SetupLayout>
-      <Card title={title} subtitle="This screen is coming soon!">
+      <Card title={title} subtitle={subtitle}>
         {animatedId && <Companion id={animatedId} className={styles.animated} />}
         {companion?.id === 'otter' && <OtterRig label={companion.name} className={styles.animated} />}
         {companion && !animatedId && companion.id !== 'otter' && (

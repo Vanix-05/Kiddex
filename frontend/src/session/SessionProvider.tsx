@@ -1,21 +1,29 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { SessionContext, type SessionState, type User } from './session'
+import { findClass, findLearner } from '../mock/learners'
 
 const STORAGE_KEY = 'kiddex.session'
+
+const EMPTY: SessionState = { user: null, companionId: null, classCode: null, learnerId: null }
 
 // Keeps the mock session across page reloads during development.
 function loadSession(): SessionState {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (raw) {
-      // Older saved sessions may still have avatarId/petId; only keep what we use.
+      // Older saved sessions may have other fields; only keep what we use.
       const saved = JSON.parse(raw) as Partial<SessionState>
-      return { user: saved.user ?? null, companionId: saved.companionId ?? null }
+      return {
+        user: saved.user ?? null,
+        companionId: saved.companionId ?? null,
+        classCode: saved.classCode ?? null,
+        learnerId: saved.learnerId ?? null,
+      }
     }
   } catch {
     // Storage unavailable or corrupted: start fresh.
   }
-  return { user: null, companionId: null }
+  return EMPTY
 }
 
 function saveSession(state: SessionState) {
@@ -26,6 +34,15 @@ function saveSession(state: SessionState) {
   }
 }
 
+const fakeDelay = () => new Promise((resolve) => setTimeout(resolve, 300))
+
+/**
+ * FAKE authentication for now (see src/mock/learners.ts):
+ * - any email + password logs an educator in
+ * - any 6-character class code opens the test class
+ * - any 4-digit PIN logs the picked learner in
+ * TODO: replace with real calls to the backend auth endpoints.
+ */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>(loadSession)
 
@@ -37,28 +54,48 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const logIn = useCallback(
-    async (username: string, password: string): Promise<User> => {
-      // TODO: replace with a real call to the backend auth endpoint
-      // (e.g. POST /api/auth/login) and read the role from the response.
-      await new Promise((resolve) => setTimeout(resolve, 400))
-      if (!username.trim() || !password) {
-        throw new Error('Please enter your username and password.')
-      }
-      const user: User = { username: username.trim(), role: 'learner' }
-      update({ user })
+  const logInEducator = useCallback(
+    async (email: string, password: string): Promise<User> => {
+      await fakeDelay()
+      if (!email.trim() || !password) throw new Error('Please enter your email and password.')
+      const user: User = { username: email.trim(), role: 'educator' }
+      update({ user, companionId: null })
       return user
     },
     [update],
   )
 
-  const logOut = useCallback(() => update({ user: null, companionId: null }), [update])
+  const enterClassCode = useCallback(
+    (code: string) => {
+      const found = findClass(code)
+      if (found) update({ classCode: code.toUpperCase(), learnerId: null })
+      return !!found
+    },
+    [update],
+  )
+
+  const pickLearner = useCallback((learnerId: string) => update({ learnerId }), [update])
+
+  const logInLearner = useCallback(
+    async (pin: string): Promise<User> => {
+      await fakeDelay()
+      if (!/^\d{4}$/.test(pin)) throw new Error('Type all 4 numbers.')
+      const learner = findLearner(state.classCode, state.learnerId)
+      if (!learner) throw new Error('Please pick who you are first.')
+      const user: User = { username: learner.handle, role: 'learner' }
+      update({ user, companionId: learner.buddy })
+      return user
+    },
+    [state.classCode, state.learnerId, update],
+  )
+
+  const logOut = useCallback(() => update(EMPTY), [update])
   // TODO: save the companion choice to the backend once the API exists.
   const setCompanion = useCallback((companionId: string) => update({ companionId }), [update])
 
   const value = useMemo(
-    () => ({ ...state, logIn, logOut, setCompanion }),
-    [state, logIn, logOut, setCompanion],
+    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, logOut, setCompanion }),
+    [state, logInEducator, enterClassCode, pickLearner, logInLearner, logOut, setCompanion],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
