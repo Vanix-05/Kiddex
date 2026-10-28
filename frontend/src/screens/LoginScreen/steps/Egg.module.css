@@ -1,0 +1,41 @@
+.egg {
+  display: block;
+  overflow: visible;
+}
+
+.shadow {
+  fill: rgba(107, 74, 51, 0.14);
+}
+
+/* Rests most of the time, then a quick side-to-side wobble on its base. */
+.body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: egg-wobble 3.6s ease-in-out infinite;
+}
+
+@keyframes egg-wobble {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  76% {
+    transform: rotate(-9deg);
+  }
+  82% {
+    transform: rotate(7deg);
+  }
+  88% {
+    transform: rotate(-4deg);
+  }
+  94% {
+    transform: rotate(2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .body {
+    animation: none;
+  }
+}

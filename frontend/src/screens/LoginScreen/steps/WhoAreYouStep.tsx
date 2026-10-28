@@ -4,6 +4,7 @@ import { paths } from '../../../routes/paths'
 import { useSession } from '../../../session/session'
 import { LoginCard } from '../LoginCard'
 import { BackLink } from './shared'
+import { Egg } from './Egg'
 import styles from './steps.module.css'
 
 /** Step 4 (/learner/who): tap your own tile. */
@@ -36,11 +37,11 @@ export function WhoAreYouStep() {
                 {image ? (
                   <img src={image} alt="" className={styles.tileImage} draggable={false} />
                 ) : (
-                  <span className={styles.mystery} aria-hidden="true">
-                    ?
-                  </span>
+                  <Egg className={styles.tileEgg} />
                 )}
                 <span className={styles.tileLabel}>{learner.handle}</span>
+                {/* No buddy yet: a "NEW!" badge on the corner. */}
+                {!image && <span className={styles.newBadge}>NEW!</span>}
               </button>
             </li>
           )

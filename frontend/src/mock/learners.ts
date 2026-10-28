@@ -1,13 +1,12 @@
 import { companionArt } from '../assets/art'
 import type { CardTint } from '../data/types'
+import type { BuddyId } from '../setup/quizData'
 
 /**
  * FAKE data for the learner login flow, until the backend exists.
  * Class code BLUE42 has 6 learners; StarKid has no buddy yet (goes to /setup).
  * Any other 6-character code shows the same class (see findClass).
  */
-
-export type BuddyId = 'otter' | 'fox' | 'axolotl' | 'kitty' | 'dog'
 
 export interface MockLearner {
   id: string

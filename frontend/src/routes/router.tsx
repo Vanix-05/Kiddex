@@ -7,6 +7,11 @@ import { EducatorLoginStep } from '../screens/LoginScreen/steps/EducatorLoginSte
 import { ClassCodeStep } from '../screens/LoginScreen/steps/ClassCodeStep'
 import { WhoAreYouStep } from '../screens/LoginScreen/steps/WhoAreYouStep'
 import { PinStep } from '../screens/LoginScreen/steps/PinStep'
+import { SetupFrame } from '../screens/Setup/SetupFrame'
+import { QuizStep } from '../screens/Setup/QuizStep'
+import { RevealStep } from '../screens/Setup/RevealStep'
+import { GenderStep } from '../screens/Setup/GenderStep'
+import { PetStep } from '../screens/Setup/PlaceholderSteps'
 import { ComingSoonScreen } from '../screens/ComingSoonScreen/ComingSoonScreen'
 
 export const router = createBrowserRouter([
@@ -28,9 +33,15 @@ export const router = createBrowserRouter([
   {
     element: <RequireRole role="learner" />,
     children: [
+      // First-time setup (no buddy yet): storybook quiz -> gender -> reveal -> pet.
       {
-        path: paths.setup,
-        element: <ComingSoonScreen title="Companion Setup" subtitle="Companion setup coming soon" />,
+        element: <SetupFrame />,
+        children: [
+          { path: paths.setup.quiz, element: <QuizStep /> },
+          { path: paths.setup.gender, element: <GenderStep /> },
+          { path: paths.setup.reveal, element: <RevealStep /> },
+          { path: paths.setup.pet, element: <PetStep /> },
+        ],
       },
       { path: paths.learner.home, element: <ComingSoonScreen title="Learner Home" /> },
     ],

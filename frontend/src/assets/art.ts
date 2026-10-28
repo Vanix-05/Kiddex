@@ -18,6 +18,10 @@ import sign from './scene/sign.svg'
 // Login screen only: girl + fox in one image (371x474)
 import girlFoxLogin from './characters/girlfoxlogin.png'
 
+// Setup screens: Ollie the guide owl (428x600). A transparent, smaller copy
+// of characters/Ollie.png, whose background is solid white.
+import ollie from './characters/ollie-cutout.png'
+
 // Companions (all 5000x5000, square)
 import boy from './companions/human_boy.png'
 import girl from './companions/human_girl.png'
@@ -31,5 +35,5 @@ import raccoon from './companions/pet_raccoon.png'
 import ram from './companions/pet_ram.png'
 
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }
-export const characterArt = { girlFoxLogin }
+export const characterArt = { girlFoxLogin, ollie }
 export const companionArt = { boy, girl, axolotl, dog, fox, kitty, monkey, otter, raccoon, ram }

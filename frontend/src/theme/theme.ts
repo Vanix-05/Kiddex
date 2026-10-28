@@ -56,6 +56,10 @@ export const theme = {
     tintPeriwinkle: '#DCDDF5',
     labelPillBg: '#FFF8EE',
 
+    // Storybook setup screens
+    bookCover: '#B9764A', // book cover, around the pages
+    stickerFill: '#FFFFFF', // white fill of the bubbly sticker text
+
     // Logo
     logoOrange: '#F08A4B',
     logoOutline: '#FFF6E8',

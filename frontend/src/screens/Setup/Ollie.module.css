@@ -1,0 +1,93 @@
+.ollie {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.6vh, 16px);
+  margin: 0;
+}
+
+/* ---------- Speech bubble ---------- */
+
+.bubbleWrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.bubble {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  padding: clamp(10px, 1.6vh, 16px) clamp(14px, 1.6vw, 20px);
+  border: 3px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-card-bg);
+  box-shadow: 0 5px 0 rgba(107, 74, 51, 0.15);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2.3vh, 1.25rem);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-wrap: balance;
+  animation: bubble-in 360ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+/* Tail pointing down at Ollie: a dark triangle with a cream one on top. */
+.bubble::before,
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  border-style: solid;
+  border-color: transparent;
+  transform: translateX(-50%);
+}
+
+.bubble::before {
+  bottom: -17px;
+  border-width: 17px 13px 0;
+  border-top-color: var(--color-card-border);
+}
+
+.bubble::after {
+  bottom: -11px;
+  border-width: 12px 9px 0;
+  border-top-color: var(--color-card-bg);
+}
+
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7) translateY(8px);
+  }
+}
+
+/* ---------- Ollie ---------- */
+
+.bob {
+  animation: ollie-bob 2.8s ease-in-out infinite;
+}
+
+@keyframes ollie-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
+  }
+}
+
+.image {
+  display: block;
+  width: auto;
+  height: clamp(130px, 26vh, 240px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .bubble {
+    animation: none;
+  }
+}

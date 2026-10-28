@@ -6,6 +6,7 @@ import { paths } from '../../../routes/paths'
 import { useSession } from '../../../session/session'
 import { LoginCard } from '../LoginCard'
 import { BackLink, FormError } from './shared'
+import { Egg } from './Egg'
 import styles from './steps.module.css'
 
 const PIN_LENGTH = 4
@@ -40,7 +41,7 @@ export function PinStep() {
     try {
       await logInLearner(pin)
       // No buddy yet: pick one first.
-      navigate(learner.buddy ? paths.learner.home : paths.setup)
+      navigate(learner.buddy ? paths.learner.home : paths.setup.quiz)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setPin('')
@@ -70,7 +71,7 @@ export function PinStep() {
   return (
     <LoginCard title={`Hi, ${learner.handle}!`} subtitle="Type your secret PIN" tall>
       <span className={[styles.pinBuddy, styles[learner.tint]].join(' ')} aria-hidden="true">
-        {image ? <img src={image} alt="" draggable={false} /> : <span className={styles.pinMystery}>?</span>}
+        {image ? <img src={image} alt="" draggable={false} /> : <Egg className={styles.pinEgg} />}
       </span>
 
       <div className={styles.dots} role="img" aria-label={`${pin.length} of ${PIN_LENGTH} numbers typed`}>

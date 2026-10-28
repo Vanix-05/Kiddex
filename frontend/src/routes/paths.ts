@@ -2,8 +2,13 @@
 export const paths = {
   welcome: '/',
   register: '/register',
-  /** Companion setup, for learners with no buddy yet. */
-  setup: '/setup',
+  /** First-time setup, for learners with no buddy yet: quiz -> gender -> pet. */
+  setup: {
+    quiz: '/setup',
+    gender: '/setup/gender',
+    reveal: '/setup/reveal',
+    pet: '/setup/pet',
+  },
   learner: {
     code: '/learner/code',
     who: '/learner/who',
