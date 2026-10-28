@@ -42,31 +42,29 @@
 
 /* Keyboard focus is on the hidden radio: show it on the whole tile. */
 .tile:has(input:focus-visible) {
-  outline: 4px solid var(--color-focus-ring);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 4px;
 }
 
-/* Picked: thick orange border + ring, a check badge and a small bounce. */
+/*
+ * Picked: thick orange border + ring, a check badge and a small hop.
+ * No scaling here: a scaled tile shows the character as a resized snapshot,
+ * which looks blurry. The hop ends with no transform, so it stays crisp.
+ */
 .selected {
   border-color: var(--color-selected);
   box-shadow:
     0 0 0 4px var(--color-selected),
     0 8px 20px rgba(191, 90, 22, 0.25);
-  animation: pick-bounce 420ms cubic-bezier(0.3, 1.4, 0.5, 1) forwards;
+  animation: pick-hop 420ms ease-out;
 }
 
-@keyframes pick-bounce {
-  0% {
-    transform: scale(1);
+@keyframes pick-hop {
+  40% {
+    transform: translateY(-10px);
   }
-  45% {
-    transform: scale(1.08);
-  }
-  75% {
-    transform: scale(1.01);
-  }
-  100% {
-    transform: scale(1.03);
+  70% {
+    transform: translateY(2px);
   }
 }
 
@@ -143,6 +141,5 @@
   }
   .selected {
     animation: none;
-    transform: scale(1.03);
   }
 }

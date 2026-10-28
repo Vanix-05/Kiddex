@@ -19,7 +19,10 @@
     "trace:kitty": "node scripts/trace-kitty.mjs",
     "rig:kitty": "node --max-old-space-size=4096 scripts/rig-kitty.mjs",
     "trace:axolotl": "node scripts/trace-axolotl.mjs",
-    "rig:axolotl": "node --max-old-space-size=4096 scripts/rig-axolotl.mjs"
+    "rig:axolotl": "node --max-old-space-size=4096 scripts/rig-axolotl.mjs",
+    "rig:raccoon": "node --max-old-space-size=4096 scripts/rig-pet.mjs raccoon",
+    "rig:ram": "node --max-old-space-size=4096 scripts/rig-pet.mjs ram",
+    "rig:monkey": "node --max-old-space-size=4096 scripts/rig-pet.mjs monkey"
   },
   "dependencies": {
     "react": "^19.3.1",

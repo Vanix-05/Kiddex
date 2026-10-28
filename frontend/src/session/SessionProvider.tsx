@@ -1,10 +1,18 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { SessionContext, type SessionState, type User } from './session'
-import { findClass, findLearner } from '../mock/learners'
+import { SessionContext, type SessionState, type SetupResult, type User } from './session'
+import { findClass, findLearner, saveLearnerSetup } from '../mock/learners'
+import { isAvatar } from '../setup/avatar'
 
 const STORAGE_KEY = 'kiddex.session'
 
-const EMPTY: SessionState = { user: null, companionId: null, classCode: null, learnerId: null }
+const EMPTY: SessionState = {
+  user: null,
+  companionId: null,
+  avatar: null,
+  buddyName: null,
+  classCode: null,
+  learnerId: null,
+}
 
 // Keeps the mock session across page reloads during development.
 function loadSession(): SessionState {
@@ -16,6 +24,8 @@ function loadSession(): SessionState {
       return {
         user: saved.user ?? null,
         companionId: saved.companionId ?? null,
+        avatar: isAvatar(saved.avatar) ? saved.avatar : null,
+        buddyName: saved.buddyName ?? null,
         classCode: saved.classCode ?? null,
         learnerId: saved.learnerId ?? null,
       }
@@ -59,7 +69,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await fakeDelay()
       if (!email.trim() || !password) throw new Error('Please enter your email and password.')
       const user: User = { username: email.trim(), role: 'educator' }
-      update({ user, companionId: null })
+      update({ user, companionId: null, avatar: null, buddyName: null })
       return user
     },
     [update],
@@ -83,19 +93,31 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const learner = findLearner(state.classCode, state.learnerId)
       if (!learner) throw new Error('Please pick who you are first.')
       const user: User = { username: learner.handle, role: 'learner' }
-      update({ user, companionId: learner.buddy })
+      update({
+        user,
+        companionId: learner.buddy,
+        avatar: learner.avatar,
+        buddyName: learner.nickname || null,
+      })
       return user
     },
     [state.classCode, state.learnerId, update],
   )
 
+  const finishSetup = useCallback(
+    ({ avatar, buddy, nickname }: SetupResult) => {
+      // TODO: save to the backend once the API exists.
+      if (state.learnerId) saveLearnerSetup(state.learnerId, { avatar, buddy, nickname })
+      update({ companionId: buddy, avatar, buddyName: nickname || null })
+    },
+    [state.learnerId, update],
+  )
+
   const logOut = useCallback(() => update(EMPTY), [update])
-  // TODO: save the companion choice to the backend once the API exists.
-  const setCompanion = useCallback((companionId: string) => update({ companionId }), [update])
 
   const value = useMemo(
-    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, logOut, setCompanion }),
-    [state, logInEducator, enterClassCode, pickLearner, logInLearner, logOut, setCompanion],
+    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, finishSetup, logOut }),
+    [state, logInEducator, enterClassCode, pickLearner, logInLearner, finishSetup, logOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

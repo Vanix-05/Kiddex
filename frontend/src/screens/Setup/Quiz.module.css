@@ -13,8 +13,12 @@
   text-align: center;
   text-wrap: balance;
   transition: opacity 300ms ease;
+  /* A heading, never edited: no blinking caret, no selection. */
+  caret-color: transparent;
+  user-select: none;
 }
 
+/* Focused by code when the page turns (for screen readers): no ring needed. */
 .question:focus {
   outline: none;
 }

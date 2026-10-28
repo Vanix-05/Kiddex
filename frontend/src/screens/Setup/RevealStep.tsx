@@ -7,7 +7,7 @@ import { quizMemory } from '../../setup/quizMemory'
 import { useSetupState, type SetupState } from './setupState'
 import styles from './Reveal.module.css'
 
-const TEXT = 'you perfectly resonate with...'
+const TEXT = 'your perfect buddy is...'
 /** Each word with the position of its first letter in TEXT (for the pop-in order). */
 const WORDS = TEXT.split(' ').map((word, w, all) => ({
   word,

@@ -1,0 +1,23 @@
+/* A buddy with a picture but no rig yet: square PNG with a gentle idle bob. */
+.picture {
+  display: block;
+  aspect-ratio: 1;
+  object-fit: contain;
+  animation: idle-bob 2.6s ease-in-out infinite;
+}
+
+@keyframes idle-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .picture {
+    animation: none;
+  }
+}

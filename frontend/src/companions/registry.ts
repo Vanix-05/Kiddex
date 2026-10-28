@@ -15,12 +15,22 @@ import { KittyRig } from './kitty/KittyRig'
 import axolotlImage from '../assets/companions/pet_axolotl.png'
 import { axolotlAnchors } from './axolotl/anchors'
 import { AxolotlRig } from './axolotl/AxolotlRig'
+import raccoonImage from '../assets/companions/pet_raccoon.png'
+import { raccoonAnchors } from './raccoon/anchors'
+import { RaccoonRig } from './raccoon/RaccoonRig'
+import ramImage from '../assets/companions/pet_ram.png'
+import { ramAnchors } from './ram/anchors'
+import { RamRig } from './ram/RamRig'
+import monkeyImage from '../assets/companions/pet_monkey.png'
+import { monkeyAnchors } from './monkey/anchors'
+import { MonkeyRig } from './monkey/MonkeyRig'
 import type { CompanionDefinition } from './types'
 
 /**
  * Every companion that <Companion id="..." /> can show.
  * To add one: make a folder with its PNG and an anchors.ts, then add a line here.
- * A companion with a traced rig (fox, boy, girl, kitty, axolotl) also passes `Rig`.
+ * A companion with a traced rig (fox, boy, girl, kitty, axolotl, raccoon, ram,
+ * monkey) also passes `Rig`.
  */
 export const companionRegistry = {
   dog: { name: 'Dog', image: dogImage, anchors: dogAnchors },
@@ -29,6 +39,9 @@ export const companionRegistry = {
   girl: { name: 'Girl', image: girlImage, anchors: girlAnchors, Rig: GirlRig },
   kitty: { name: 'Kitty', image: kittyImage, anchors: kittyAnchors, Rig: KittyRig },
   axolotl: { name: 'Axolotl', image: axolotlImage, anchors: axolotlAnchors, Rig: AxolotlRig },
+  raccoon: { name: 'Raccoon', image: raccoonImage, anchors: raccoonAnchors, Rig: RaccoonRig },
+  ram: { name: 'Ram', image: ramImage, anchors: ramAnchors, Rig: RamRig },
+  monkey: { name: 'Monkey', image: monkeyImage, anchors: monkeyAnchors, Rig: MonkeyRig },
 } satisfies Record<string, CompanionDefinition>
 
 export type CompanionId = keyof typeof companionRegistry

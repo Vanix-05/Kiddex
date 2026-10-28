@@ -11,7 +11,8 @@ import { SetupFrame } from '../screens/Setup/SetupFrame'
 import { QuizStep } from '../screens/Setup/QuizStep'
 import { RevealStep } from '../screens/Setup/RevealStep'
 import { GenderStep } from '../screens/Setup/GenderStep'
-import { PetStep } from '../screens/Setup/PlaceholderSteps'
+import { PetStep } from '../screens/Setup/PetStep'
+import { LearnerHomeScreen } from '../screens/LearnerHome/LearnerHomeScreen'
 import { ComingSoonScreen } from '../screens/ComingSoonScreen/ComingSoonScreen'
 
 export const router = createBrowserRouter([
@@ -43,7 +44,7 @@ export const router = createBrowserRouter([
           { path: paths.setup.pet, element: <PetStep /> },
         ],
       },
-      { path: paths.learner.home, element: <ComingSoonScreen title="Learner Home" /> },
+      { path: paths.learner.home, element: <LearnerHomeScreen /> },
     ],
   },
 

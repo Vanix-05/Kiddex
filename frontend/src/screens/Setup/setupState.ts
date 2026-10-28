@@ -1,7 +1,8 @@
 import { useLocation } from 'react-router-dom'
+import { isAvatar, type Avatar } from '../../setup/avatar'
 import { isBuddyId, type BuddyId } from '../../setup/quizData'
 
-export type Avatar = 'boy' | 'girl'
+export type { Avatar }
 
 /** Router state passed between setup pages. Only results, never the quiz answers. */
 export interface SetupState {
@@ -14,8 +15,6 @@ export interface SetupState {
 export interface QuizResumeState {
   resumeLastQuestion: true
 }
-
-const isAvatar = (value: unknown): value is Avatar => value === 'boy' || value === 'girl'
 
 /**
  * The setup results so far. matchedBuddy is null if the page was opened

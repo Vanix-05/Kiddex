@@ -85,6 +85,49 @@
   height: clamp(130px, 26vh, 240px);
 }
 
+/* ---------- Small, perched Ollie: bubble on his left, tail pointing at him ---------- */
+
+.small {
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+}
+
+.small .bubbleWrap {
+  width: auto;
+}
+
+.small .bubble {
+  max-width: clamp(170px, 18vw, 260px);
+  padding: 8px 14px;
+  font-size: clamp(0.95rem, 2vh, 1.1rem);
+}
+
+.small .bubble::before,
+.small .bubble::after {
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  border-color: transparent;
+  transform: translateY(-50%);
+}
+
+.small .bubble::before {
+  right: -17px;
+  border-width: 11px 0 11px 17px;
+  border-left-color: var(--color-card-border);
+}
+
+.small .bubble::after {
+  right: -11px;
+  border-width: 8px 0 8px 12px;
+  border-left-color: var(--color-card-bg);
+}
+
+.small .image {
+  height: var(--ollie-small-height, clamp(70px, 12vh, 110px));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bob,
   .bubble {

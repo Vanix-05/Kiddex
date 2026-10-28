@@ -47,7 +47,9 @@ export const theme = {
     // Selection (border + check badge). The badge and scale-up mean the
     // selected state never relies on color alone.
     selected: '#BF5A16', // ≥3:1 on cream and pink card backgrounds
-    focusRing: '#2F6FB5',
+    // Keyboard focus ring: the theme's deep orange (4.2:1 on the cream cards,
+    // 3:1 on the sky), so it stays visible next to the soft orange buttons.
+    focusRing: '#BF5A16',
 
     // Option card backgrounds
     tintLavender: '#DCD6F2',

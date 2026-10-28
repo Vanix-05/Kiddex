@@ -39,6 +39,20 @@
   }
 }
 
+/* Wide stage (laptops): wider than the setup area and still centered, so the
+   right-hand column can sit under the sun. */
+@media (min-width: 1024px) {
+  .wideStage {
+    --stage-w: min(1240px, 100vw - 2 * clamp(24px, 6vw, 100px));
+    width: var(--stage-w);
+    margin-left: calc((100% - var(--stage-w)) / 2);
+  }
+
+  .wideStage .guide {
+    flex-basis: clamp(220px, 22vw, 320px);
+  }
+}
+
 /* ---------- Plain bordered box ---------- */
 
 .plainBox {

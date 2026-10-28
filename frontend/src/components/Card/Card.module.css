@@ -28,6 +28,9 @@
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
+  /* A heading, not text to edit or select: no blinking caret, no selection. */
+  caret-color: transparent;
+  user-select: none;
 }
 
 .rays {

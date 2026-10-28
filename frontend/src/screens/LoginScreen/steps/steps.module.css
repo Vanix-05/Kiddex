@@ -178,7 +178,7 @@
 }
 
 .codeBoxes .codeBox:focus-visible {
-  outline: 4px solid var(--color-focus-ring);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
   border-color: var(--color-input-border-focus);
 }

@@ -1,0 +1,25 @@
+import { TracedRig, type RigPivots } from '../TracedRig'
+import { ramParts } from './ramParts.generated'
+
+/**
+ * Joints on pet_ram.png, in PNG pixels. Ram is drawn on the same body
+ * template as the otter, fox and kitty, so the shoulders, hips, neck, eyes and
+ * feet are at the same spots (see scripts/rig-pet.mjs).
+ */
+const ramPivots: RigPivots = {
+  feet: [2500, 4650], // bottom of the feet
+  middle: [2500, 3030], // middle of the body
+  body: [2500, 3970], // hips
+  belly: [2500, 3300], // (no separate belly patch)
+  neck: [2500, 2615], // under the chin
+  eyeLine: [2500, 1775], // middle of the eyes
+  shoulderLeft: [2090, 2683],
+  shoulderRight: [2910, 2683],
+  hipLeft: [2157, 3970],
+  hipRight: [2843, 3970],
+}
+
+/** The ram companion: traced from pet_ram.png, animated with the shared rig moves. */
+export function RamRig({ className, label = 'Ram' }: { className?: string; label?: string }) {
+  return <TracedRig parts={ramParts} pivots={ramPivots} label={label} className={className} />
+}

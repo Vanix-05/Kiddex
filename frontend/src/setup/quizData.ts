@@ -12,17 +12,6 @@ export const buddyIds = ['otter', 'fox', 'kitty', 'axolotl', 'dog', 'monkey', 'r
 
 export type BuddyId = (typeof buddyIds)[number]
 
-export const buddyNames: Record<BuddyId, string> = {
-  otter: 'Otter',
-  fox: 'Fox',
-  kitty: 'Kitty',
-  axolotl: 'Axolotl',
-  dog: 'Dog',
-  monkey: 'Monkey',
-  raccoon: 'Raccoon',
-  ram: 'Ram',
-}
-
 export const isBuddyId = (id: unknown): id is BuddyId =>
   typeof id === 'string' && (buddyIds as readonly string[]).includes(id)
 

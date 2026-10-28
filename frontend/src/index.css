@@ -43,8 +43,10 @@ input {
   color: inherit;
 }
 
+/* Keyboard focus: a soft orange ring (theme focusRing) a little outside the
+   element. Outlines follow each element's rounded corners. */
 :focus-visible {
-  outline: 4px solid var(--color-focus-ring);
+  outline: 3px solid var(--color-focus-ring);
   outline-offset: 3px;
 }
 

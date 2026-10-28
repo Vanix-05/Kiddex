@@ -23,8 +23,9 @@ const AVATARS: { id: Avatar; name: string }[] = [
  */
 export function GenderStep() {
   const navigate = useNavigate()
-  const { matchedBuddy } = useSetupState()
-  const [avatar, setAvatar] = useState<Avatar | null>(null)
+  // avatar is set when coming back from the pet page.
+  const { matchedBuddy, avatar: earlierAvatar } = useSetupState()
+  const [avatar, setAvatar] = useState<Avatar | null>(earlierAvatar)
   const [turning, setTurning] = useState<TurnDirection | null>(null)
   const timer = useRef(0)
 
@@ -51,11 +52,11 @@ export function GenderStep() {
   }
 
   return (
-    <SetupStage title="Who are you?" ollieSays={avatar ? ollieGenderPicked : ollieQuizDone}>
+    <SetupStage title="This story is about…" ollieSays={avatar ? ollieGenderPicked : ollieQuizDone}>
       <StoryBook turning={turning}>
         <PageContent enter leaving={turning !== null}>
           <h2 id="gender-title" className={quizStyles.question}>
-            Who are you?
+            This story is about…
           </h2>
 
           {/* One tile on each page. A radio group underneath, so keyboards and
