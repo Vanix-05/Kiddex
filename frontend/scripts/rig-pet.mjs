@@ -1,11 +1,11 @@
 // Dev tool: cut a pet PNG into body parts and trace each part with vtracer.
 // For pets drawn on the shared body template (same torso, arms, legs, neck and
-// chin line as the otter, fox and kitty): the raccoon, ram and monkey. Same
+// chin line as the otter, fox and kitty): the raccoon, ram, monkey and dog. Same
 // method as rig-kitty.mjs, with the kitty's measured cut lines; nothing is
 // drawn by hand, every shape comes from the PNG. Ears, horns and hair tufts
 // stay part of the head, so they move with it.
 //
-// Run: npm run rig:raccoon   (or rig:ram, rig:monkey)
+// Run: npm run rig:raccoon   (or rig:ram, rig:monkey, rig:dog)
 // Writes:
 //   src/companions/<pet>/parts/<part>.svg            each traced part (for checking)
 //   src/companions/<pet>/<pet>Parts.generated.ts     the shapes used by <Pet>Rig.tsx
@@ -17,11 +17,13 @@ import vtracer from '@visioncortex/vtracer'
 
 // ---- Per-pet settings -----------------------------------------------------------
 // chinSides: how far down (box units) the head reaches at the far left/right,
-// outside the shoulders. The ram's curled horns hang lower than its chin there.
+// outside the shoulders. The ram's curled horns and the dog's floppy ears hang
+// lower than the chin there.
 const PETS = {
   raccoon: { chinSides: 440 },
   monkey: { chinSides: 440 },
   ram: { chinSides: 485 },
+  dog: { chinSides: 478 }, // ears end at about 467
 }
 
 const pet = process.argv[2]

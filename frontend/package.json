@@ -22,7 +22,8 @@
     "rig:axolotl": "node --max-old-space-size=4096 scripts/rig-axolotl.mjs",
     "rig:raccoon": "node --max-old-space-size=4096 scripts/rig-pet.mjs raccoon",
     "rig:ram": "node --max-old-space-size=4096 scripts/rig-pet.mjs ram",
-    "rig:monkey": "node --max-old-space-size=4096 scripts/rig-pet.mjs monkey"
+    "rig:monkey": "node --max-old-space-size=4096 scripts/rig-pet.mjs monkey",
+    "rig:dog": "node --max-old-space-size=4096 scripts/rig-pet.mjs dog"
   },
   "dependencies": {
     "react": "^19.3.1",

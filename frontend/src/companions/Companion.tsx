@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { companionRegistry, type CompanionId } from './registry'
 import type { CompanionDefinition } from './types'
+import type { Emotion } from './rig/emotions'
 import styles from './Companion.module.css'
+
+export type { Emotion } from './rig/emotions'
 
 type Move = 'hop' | 'wiggle' | 'turn'
 const MOVES: Move[] = ['hop', 'wiggle', 'turn']
@@ -15,15 +18,18 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 interface CompanionProps {
   id: CompanionId
   className?: string
+  /** How a traced companion feels (default calm). PNG-only companions ignore it. */
+  emotion?: Emotion
 }
 
 /**
- * Any companion in registry.ts. A companion with a traced rig (the fox) shows
- * its rig; the others are animated from their PNG (PngCompanion below).
+ * Any companion in registry.ts. A companion with a traced rig shows its rig,
+ * with an optional emotion; the others are animated from their PNG
+ * (PngCompanion below).
  */
-export function Companion({ id, className }: CompanionProps) {
+export function Companion({ id, className, emotion }: CompanionProps) {
   const def: CompanionDefinition = companionRegistry[id]
-  if (def.Rig) return <def.Rig label={def.name} className={className} />
+  if (def.Rig) return <def.Rig label={def.name} className={className} emotion={emotion} />
   return <PngCompanion def={def} className={className} />
 }
 

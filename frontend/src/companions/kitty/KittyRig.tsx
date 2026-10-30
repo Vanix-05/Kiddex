@@ -1,4 +1,4 @@
-import { TracedRig, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
 import { kittyParts } from './kittyParts.generated'
 
 /**
@@ -21,7 +21,35 @@ const kittyPivots: RigPivots = {
   hipRight: [2843, 3970],
 }
 
+/** The face, measured from the traced parts (scripts/measure-faces.mjs). */
+const kittyFace: RigFace = {
+  eyes: {
+    left: { cx: 1999, cy: 1791, rx: 155, ry: 314 },
+    right: { cx: 3001, cy: 1791, rx: 155, ry: 314 },
+  },
+  mouth: { x: 2500, y: 2277, w: 94, h: 43 },
+  cheeks: { left: [1860, 2200], right: [3140, 2200] },
+  colors: { lid: '#A3847A', outline: '#7B5062', blush: '#FF828D' }, // the dark face mask
+}
+
 /** The kitty companion: traced from pet_kitty.png, animated with the shared rig moves. */
-export function KittyRig({ className, label = 'Kitty' }: { className?: string; label?: string }) {
-  return <TracedRig parts={kittyParts} pivots={kittyPivots} label={label} className={className} />
+export function KittyRig({
+  className,
+  label = 'Kitty',
+  emotion,
+}: {
+  className?: string
+  label?: string
+  emotion?: Emotion
+}) {
+  return (
+    <TracedRig
+      parts={kittyParts}
+      pivots={kittyPivots}
+      face={kittyFace}
+      emotion={emotion}
+      label={label}
+      className={className}
+    />
+  )
 }

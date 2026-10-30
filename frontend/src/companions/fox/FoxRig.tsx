@@ -1,4 +1,4 @@
-import { TracedRig, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
 import { foxParts } from './foxParts.generated'
 
 /**
@@ -19,7 +19,35 @@ const foxPivots: RigPivots = {
   hipRight: [2843, 3970],
 }
 
-/** The fox companion: traced from pet_fox.png, animated with the otter's rig moves. */
-export function FoxRig({ className, label = 'Fox' }: { className?: string; label?: string }) {
-  return <TracedRig parts={foxParts} pivots={foxPivots} label={label} className={className} />
+/** The face, measured from the traced parts (scripts/measure-faces.mjs). */
+const foxFace: RigFace = {
+  eyes: {
+    left: { cx: 2000, cy: 1791, rx: 153, ry: 313 },
+    right: { cx: 3000, cy: 1791, rx: 153, ry: 313 },
+  },
+  mouth: { x: 2500, y: 2249, w: 156, h: 26 },
+  cheeks: { left: [1860, 2200], right: [3140, 2200] },
+  colors: { lid: '#F7BF93', outline: '#7C5263', blush: '#FF828D' },
+}
+
+/** The fox companion: traced from pet_fox.png, animated with the shared spring rig. */
+export function FoxRig({
+  className,
+  label = 'Fox',
+  emotion,
+}: {
+  className?: string
+  label?: string
+  emotion?: Emotion
+}) {
+  return (
+    <TracedRig
+      parts={foxParts}
+      pivots={foxPivots}
+      face={foxFace}
+      emotion={emotion}
+      label={label}
+      className={className}
+    />
+  )
 }

@@ -56,5 +56,16 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Dev only: every traced companion, to check the rig (not in production builds).
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/dev/companions',
+          lazy: () =>
+            import('../screens/DevCompanions/DevCompanionsScreen').then((m) => ({ Component: m.DevCompanionsScreen })),
+        },
+      ]
+    : []),
+
   { path: '*', element: <Navigate to={paths.welcome} replace /> },
 ])

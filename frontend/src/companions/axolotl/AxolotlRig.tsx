@@ -1,4 +1,4 @@
-import { TracedRig, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
 import { axolotlParts } from './axolotlParts.generated'
 
 /**
@@ -23,7 +23,35 @@ const axolotlPivots: RigPivots = {
   hipRight: [2843, 3970],
 }
 
+/** The face, measured from the traced parts (scripts/measure-faces.mjs). */
+const axolotlFace: RigFace = {
+  eyes: {
+    left: { cx: 2000, cy: 1791, rx: 153, ry: 312 },
+    right: { cx: 3000, cy: 1791, rx: 153, ry: 313 },
+  },
+  mouth: { x: 2500, y: 2198, w: 341, h: 34 },
+  cheeks: { left: [1860, 2200], right: [3140, 2200] },
+  colors: { lid: '#FED7E3', outline: '#7F5567', blush: '#F7718F' }, // deeper pink, to show on the pink face
+}
+
 /** The axolotl companion: traced from pet_axolotl.png, animated with the shared rig moves. */
-export function AxolotlRig({ className, label = 'Axolotl' }: { className?: string; label?: string }) {
-  return <TracedRig parts={axolotlParts} pivots={axolotlPivots} label={label} className={className} />
+export function AxolotlRig({
+  className,
+  label = 'Axolotl',
+  emotion,
+}: {
+  className?: string
+  label?: string
+  emotion?: Emotion
+}) {
+  return (
+    <TracedRig
+      parts={axolotlParts}
+      pivots={axolotlPivots}
+      face={axolotlFace}
+      emotion={emotion}
+      label={label}
+      className={className}
+    />
+  )
 }

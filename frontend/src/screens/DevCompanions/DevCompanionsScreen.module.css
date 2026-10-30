@@ -1,0 +1,65 @@
+.page {
+  min-height: 100vh;
+  padding: 16px;
+  background: #fdf8f1;
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.row button {
+  padding: 6px 14px;
+  border: 2px solid #7c5263;
+  border-radius: 999px;
+  background: #fff;
+  color: #7c5263;
+  font: inherit;
+  font-weight: 700;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.row button[aria-pressed='true'] {
+  background: #7c5263;
+  color: #fff;
+}
+
+.row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px;
+}
+
+.cell {
+  margin: 0;
+  text-align: center;
+}
+
+.cell figcaption {
+  margin-top: -8px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.companion {
+  width: 100%;
+}

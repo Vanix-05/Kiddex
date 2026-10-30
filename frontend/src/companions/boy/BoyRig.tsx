@@ -1,4 +1,4 @@
-import { TracedRig, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
 import { boyParts } from './boyParts.generated'
 
 /** Joints on human_boy.png, in PNG pixels (measured from the outline). */
@@ -16,7 +16,35 @@ const boyPivots: RigPivots = {
   hipRight: [2795, 3990],
 }
 
+/** The face, measured from the traced parts (scripts/measure-faces.mjs). */
+const boyFace: RigFace = {
+  eyes: {
+    left: { cx: 2000, cy: 1792, rx: 153, ry: 314 },
+    right: { cx: 3000, cy: 1792, rx: 153, ry: 314 },
+  },
+  mouth: { x: 2500, y: 2314, w: 85, h: 22 },
+  cheeks: { left: [1995, 2190], right: [3005, 2190] }, // over the drawn-in blush
+  colors: { lid: '#FEEBDC', outline: '#7C5263', blush: '#FF828D' }, // skin (set by hand: the script found the outline shape)
+}
+
 /** The boy companion: traced from human_boy.png, animated with the shared rig moves. */
-export function BoyRig({ className, label = 'Boy' }: { className?: string; label?: string }) {
-  return <TracedRig parts={boyParts} pivots={boyPivots} label={label} className={className} />
+export function BoyRig({
+  className,
+  label = 'Boy',
+  emotion,
+}: {
+  className?: string
+  label?: string
+  emotion?: Emotion
+}) {
+  return (
+    <TracedRig
+      parts={boyParts}
+      pivots={boyPivots}
+      face={boyFace}
+      emotion={emotion}
+      label={label}
+      className={className}
+    />
+  )
 }
