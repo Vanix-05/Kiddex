@@ -44,7 +44,7 @@
 }
 
 /*
- * Characters: girlfoxlogin.png (girl + fox in one image, 371x474).
+ * Characters: girl + fox (371x474), stacked from girlfox/*.png layers.
  * Never drawn taller than 474px so it stays sharp. The image has ~4.4% empty
  * space under the fox's feet, which --feet-pad cancels out so the feet touch
  * the ground line.
@@ -73,6 +73,30 @@
   /* Mouse tilt (useMouseTilt) pivots at the feet, so they stay planted.
      The feet sit just above the image's empty bottom strip (--feet-pad). */
   transform-origin: 50% calc(100% * (1 - var(--feet-pad)));
+  will-change: transform;
+  /* A box of layers now (girlfox/*.png), so it needs the art's ratio. */
+  aspect-ratio: 371 / 474;
+  flex-shrink: 0;
+}
+
+/* Every layer fills the same box, so the PNGs line up exactly. */
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Head pivots (necks), from the 371x474 art: girl (246, 236), fox (118, 345). */
+.girlHead {
+  transform-origin: 66.3% 49.8%;
+  will-change: transform;
+}
+
+.foxHead {
+  transform-origin: 31.8% 72.8%;
   will-change: transform;
 }
 
