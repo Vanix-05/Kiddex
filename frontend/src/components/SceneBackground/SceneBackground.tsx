@@ -7,7 +7,7 @@ import styles from './SceneBackground.module.css'
  * Full-screen pastel sky + beach scene behind every screen.
  * Built from separate layers so it stays balanced on both tablets and laptops.
  */
-export function SceneBackground({ children }: { children: ReactNode }) {
+export function SceneBackground({ children, decor }: { children: ReactNode; decor?: ReactNode }) {
   return (
     <div className={styles.scene}>
       <div className={styles.decor} aria-hidden="true">
@@ -23,6 +23,8 @@ export function SceneBackground({ children }: { children: ReactNode }) {
         <img src={sceneArt.dock} alt="" className={styles.dock} />
         <img src={sceneArt.bush} alt="" className={styles.bush1} />
         <img src={sceneArt.bush} alt="" className={styles.bush2} />
+        {/* Extra scenery from the page (e.g. the beach crab). Behind all content. */}
+        {decor}
       </div>
       <main className={styles.content}>{children}</main>
     </div>

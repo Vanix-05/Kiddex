@@ -1,0 +1,121 @@
+/* Fills the scene box, so % positions match the beach art on any screen. */
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.layer * {
+  pointer-events: none;
+}
+
+/* left/top (set in BeachCrab.tsx) is where the feet touch the sand. The feet
+   are at y=92 of the 120x100 viewBox, hence -92%. */
+.crab {
+  position: absolute;
+  width: 5.8%;
+  aspect-ratio: 120 / 100;
+  transform: translate(-50%, -92%);
+}
+
+.crab :global(.crabSvg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Rotating parts: origins are set inline in viewBox units. */
+.crab :global(.leg),
+.crab :global(.claw),
+.crab :global(.eye),
+.crab :global(.bob) {
+  transform-box: view-box;
+}
+
+/* Blink, all the time. */
+.crab :global(.eye) {
+  animation: blink 3.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.12);
+  }
+}
+
+/* Walking: legs wiggle, body bobs. */
+.crab[data-phase='walk'] :global(.leg.a) {
+  animation: leg-a 0.2s ease-in-out infinite alternate;
+}
+.crab[data-phase='walk'] :global(.leg.b) {
+  animation: leg-b 0.2s ease-in-out infinite alternate;
+}
+.crab[data-phase='walk'] :global(.bob) {
+  animation: bob 0.2s ease-in-out infinite alternate;
+}
+
+@keyframes leg-a {
+  from {
+    transform: rotate(-13deg);
+  }
+  to {
+    transform: rotate(13deg);
+  }
+}
+
+@keyframes leg-b {
+  from {
+    transform: rotate(13deg);
+  }
+  to {
+    transform: rotate(-13deg);
+  }
+}
+
+@keyframes bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+/* Waving both claws. */
+.crab[data-phase='wave'] :global(.claw.l) {
+  animation: wave-l 0.32s ease-in-out 4 alternate;
+}
+.crab[data-phase='wave'] :global(.claw.r) {
+  animation: wave-r 0.32s ease-in-out 4 alternate;
+}
+
+@keyframes wave-l {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(16deg);
+  }
+}
+
+@keyframes wave-r {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-16deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crab :global(*) {
+    animation: none !important;
+  }
+}

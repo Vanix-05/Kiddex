@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { SceneBackground } from '../../components/SceneBackground/SceneBackground'
 import { KiddexLogo } from '../../components/KiddexLogo/KiddexLogo'
 import { SignPost } from '../../components/SignPost/SignPost'
+import { BeachCrab } from '../../components/BeachCrab/BeachCrab'
 import { girlFoxLayers } from '../../assets/art'
 import { useMouseTilt, type LookPart } from '../../hooks/useMouseTilt'
 import styles from './LoginScreen.module.css'
@@ -75,7 +76,7 @@ export function LoginScreen() {
   const foxEyeMask = maskStyle(girlFoxLayers.foxEyeArea)
 
   return (
-    <SceneBackground>
+    <SceneBackground decor={<BeachCrab />}>
       <div className={styles.layout}>
         <header className={styles.brand}>
           <KiddexLogo />
