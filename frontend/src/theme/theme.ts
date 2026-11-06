@@ -77,6 +77,8 @@ export const theme = {
     // Notebook pages (School ID, one-time code, PIN code)
     stickyNote: '#F6EFE2', // step notes not reached yet
     stickyNoteOn: '#FFD89C', // the current step's note
+    padlockBody: '#F6C94B', // Create PIN code page
+    padlockShackle: '#C9A93A',
 
     // Ollie's flying wings (School ID transition)
     ollieWingFill: '#DCA26F',

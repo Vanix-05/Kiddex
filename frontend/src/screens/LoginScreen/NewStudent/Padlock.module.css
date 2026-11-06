@@ -1,0 +1,27 @@
+/*
+ * About 100x110 on a 900px-tall window; smaller on shorter windows so the
+ * PIN code page still fits.
+ */
+.lock {
+  display: block;
+  height: clamp(44px, calc(34vh - 173px), 110px);
+  width: auto;
+  aspect-ratio: 120 / 132;
+  overflow: visible;
+}
+
+/* Turns around the top of its right leg, so the left leg swings out. */
+.shackle {
+  transform-origin: 86px 40px;
+  transition: transform 450ms cubic-bezier(0.34, 1.7, 0.6, 1);
+}
+
+.open {
+  transform: translateY(-14px) rotate(14deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shackle {
+    transition: none;
+  }
+}

@@ -11,7 +11,9 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
+  /* Fills its parent, and grows (the page scrolls) rather than letting the
+     contents overlap if the window is too short for them. */
+  min-height: 100%;
   padding: clamp(24px, 4.6vh, 44px) clamp(20px, 4.4vh, 54px) clamp(10px, 2vh, 22px)
     calc(var(--margin-x) + clamp(16px, 3.6vh, 36px));
   border: 3px solid var(--color-card-border);
@@ -90,6 +92,10 @@
   line-height: 1.15;
 }
 
+.title.titleLong {
+  font-size: clamp(1.5rem, 4.1vh, 2.3rem);
+}
+
 /* Soft yellow highlighter stroke behind the words. */
 .highlight {
   padding: 0 0.15em;
@@ -153,6 +159,17 @@
   font-weight: 700;
 }
 
+/* Finished step: green, with a ✓ after its number. */
+.note.noteDone {
+  border-color: var(--color-new-student-button-edge);
+  background: var(--color-tint-mint);
+  color: var(--color-text);
+}
+
+.noteDone .noteNumber {
+  color: var(--color-new-student-button-edge);
+}
+
 /* Current step: orange and lifted a little. */
 .note.noteOn {
   background: var(--color-sticky-note-on);
@@ -167,7 +184,6 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  min-height: 0;
 }
 
 .footer {

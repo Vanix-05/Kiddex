@@ -7,7 +7,10 @@ const STEPS = ['School ID', 'One-time code', 'PIN code'] as const
 
 interface NotebookPageProps {
   /** Big title with the yellow highlighter stroke, e.g. "Hi, Student!". */
-  title: string
+  title: ReactNode
+  /** A longer title (e.g. "Type your PIN code"): a little smaller, so the
+      sticky notes stay beside it instead of wrapping onto their own line. */
+  longTitle?: boolean
   titleId?: string
   subtitle?: ReactNode
   /** Which sticky note is the current one (1-3). */
@@ -23,7 +26,7 @@ interface NotebookPageProps {
  * bottom. Used by the New Student steps (School ID, one-time code, PIN code).
  * It fills its parent, which sets its size and position.
  */
-export function NotebookPage({ title, titleId, subtitle, step, onBack, children, className }: NotebookPageProps) {
+export function NotebookPage({ title, longTitle = false, titleId, subtitle, step, onBack, children, className }: NotebookPageProps) {
   return (
     <div className={[styles.page, className].filter(Boolean).join(' ')}>
       <span className={styles.rings} aria-hidden="true" data-notebook-rings="">
@@ -34,7 +37,7 @@ export function NotebookPage({ title, titleId, subtitle, step, onBack, children,
 
       <header className={styles.header}>
         <div>
-          <h2 id={titleId} className={styles.title}>
+          <h2 id={titleId} className={longTitle ? `${styles.title} ${styles.titleLong}` : styles.title}>
             <span className={styles.highlight}>{title}</span>
           </h2>
           {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
@@ -42,12 +45,23 @@ export function NotebookPage({ title, titleId, subtitle, step, onBack, children,
 
         <ol className={styles.notes} aria-label="Steps">
           {STEPS.map((label, i) => {
+            // Done steps are green with a ✓, the current one orange, later ones pale.
             const current = i + 1 === step
+            const done = i + 1 < step
+            const className = current
+              ? `${styles.note} ${styles.noteOn}`
+              : done
+                ? `${styles.note} ${styles.noteDone}`
+                : styles.note
             return (
-              <li key={label} className={current ? `${styles.note} ${styles.noteOn}` : styles.note}>
-                <span className={styles.noteNumber}>{i + 1}</span>
+              <li key={label} className={className}>
+                <span className={styles.noteNumber}>
+                  {i + 1}
+                  {done && <span aria-hidden="true"> ✓</span>}
+                </span>
                 {label}
                 {current && <span className="visually-hidden"> (this step)</span>}
+                {done && <span className="visually-hidden"> (done)</span>}
               </li>
             )
           })}

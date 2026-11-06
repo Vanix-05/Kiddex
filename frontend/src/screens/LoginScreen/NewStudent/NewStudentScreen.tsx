@@ -1,44 +1,64 @@
-import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ollieLarge } from '../../../assets/art'
 import { KiddexLogo } from '../../../components/KiddexLogo/KiddexLogo'
 import { SceneBackground } from '../../../components/SceneBackground/SceneBackground'
 import { SignPost } from '../../../components/SignPost/SignPost'
-import { NotebookPage } from '../NotebookPage/NotebookPage'
 import { ChoiceNotebook, type PopupRects } from '../WelcomeStudentPopup/WelcomeStudentPopup'
-import { SchoolIdStep } from './SchoolIdStep'
-import styles from './SchoolIdScreen.module.css'
+import styles from './NewStudentScreen.module.css'
 
-/** How long the "Start here" transition runs (see SchoolIdScreen.module.css). */
+/** How long the "Start here" transition runs (see NewStudentScreen.module.css). */
 export const ENTER_MS = 1800
 /** How long Back takes to fade this page out. */
 export const LEAVE_MS = 250
+/** How long Next takes to turn the page to the next step. */
+export const TURN_MS = 700
 
-export type SchoolIdScreenMode = 'enter' | 'shown' | 'leave'
+export type Step = 1 | 2 | 3
+export type NewStudentScreenMode = 'enter' | 'shown' | 'leave'
 
-interface SchoolIdScreenProps {
+/** Ollie's speech bubble for each step. */
+const BUBBLES: Record<Step, { title: string; emoji: string; line: string }> = {
+  1: { title: 'First, your School ID!', emoji: '🪪', line: 'Look at the top of your card.' },
+  2: { title: 'Now your one-time code!', emoji: '🎟️', line: 'Your teacher gave it to you.' },
+  3: { title: 'Make your own PIN code!', emoji: '🔒', line: 'Don’t share it with anyone.' },
+}
+
+interface NewStudentScreenProps {
   /** enter = playing the transition from the popup; leave = fading out (Back). */
-  mode: SchoolIdScreenMode
+  mode: NewStudentScreenMode
   /** Where the popup's notebook and Ollie were, for the enter transition. */
   from: PopupRects | null
-  onBack: () => void
+  step: Step
+  /** While Next turns the page: the step whose page is flipping away. */
+  turningFrom: Step | null
+  /** true when the current step came back with Back (it fades in). */
+  fadedIn: boolean
+  /** Goes up on every step change: Ollie hops and his bubble pops. */
+  bounceKey: number
+  /** Draws a step's notebook page. live = false for the still copy that flips away. */
+  renderStep: (step: Step, live: boolean, titleId?: string) => ReactNode
 }
 
 /**
- * New Student, step 1 (School ID), drawn over the login screen. It has its
- * own copy of the beach scene, with Ollie standing on the left and the
- * notebook on the right. The URL doesn't change, same as the popup.
+ * The New Student steps (School ID, one-time code, PIN code), drawn over the
+ * login screen. It has its own copy of the beach scene, with Ollie standing
+ * on the left and the notebook on the right. The URL doesn't change, same as
+ * the popup. Next turns the page; Back fades to the previous step.
  *
  * Layers, bottom to top: scene, dim overlay (enter only), page (notebook +
- * Ollie), tap blocker (enter only).
+ * Ollie), tap blocker (while anything animates).
  */
-export function SchoolIdScreen({ mode, from, onBack }: SchoolIdScreenProps) {
+export function NewStudentScreen({ mode, from, step, turningFrom, fadedIn, bounceKey, renderStep }: NewStudentScreenProps) {
   const titleId = useId()
   const pageRef = useRef<HTMLDivElement>(null)
   const slotRef = useRef<HTMLDivElement>(null)
   const ollieRef = useRef<HTMLDivElement>(null)
   const blockerRef = useRef<HTMLDivElement>(null)
   const entering = mode === 'enter' && from !== null
+  // Taps and keys are ignored while the popup transition or a page turn plays.
+  const busy = mode === 'enter' || turningFrom !== null
+  const bubble = BUBBLES[step]
 
   // Enter: start the notebook and Ollie where the popup's were (FLIP). Runs
   // before the first paint, then turns the animations on.
@@ -70,9 +90,9 @@ export function SchoolIdScreen({ mode, from, onBack }: SchoolIdScreenProps) {
 
   // Keyboard focus: on the blocker while animating, then on the page.
   useEffect(() => {
-    if (mode === 'enter') blockerRef.current?.focus({ preventScroll: true })
+    if (busy) blockerRef.current?.focus({ preventScroll: true })
     else if (mode === 'shown') pageRef.current?.focus({ preventScroll: true })
-  }, [mode])
+  }, [busy, mode, step])
 
   // Tab stays on this page (the login screen is still underneath).
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -114,15 +134,10 @@ export function SchoolIdScreen({ mode, from, onBack }: SchoolIdScreenProps) {
         onKeyDown={handleKeyDown}
       >
         <div ref={slotRef} className={styles.slot}>
-          <NotebookPage
-            title="Hi, Student!"
-            titleId={titleId}
-            subtitle="Let’s set up your account."
-            step={1}
-            onBack={onBack}
-          >
-            <SchoolIdStep active={mode === 'shown'} />
-          </NotebookPage>
+          {/* The current step. Keyed by step, so Back's fade plays on each change. */}
+          <div key={step} className={fadedIn ? `${styles.stepPage} ${styles.arriveFade}` : styles.stepPage}>
+            {renderStep(step, mode === 'shown' && !busy, titleId)}
+          </div>
 
           {/* The popup's page, lying on top and flipping up out of the way. */}
           {entering && (
@@ -132,10 +147,18 @@ export function SchoolIdScreen({ mode, from, onBack }: SchoolIdScreenProps) {
               </div>
             </div>
           )}
+
+          {/* Next: the step just left, lying on top and turning up out of the way. */}
+          {turningFrom !== null && (
+            <div className={styles.turnPage} aria-hidden="true" inert>
+              <div className={styles.turnInner}>{renderStep(turningFrom, false)}</div>
+            </div>
+          )}
         </div>
 
         <div ref={ollieRef} className={styles.ollie} aria-hidden="true">
-          <div className={styles.ollieLand}>
+          {/* Remounted on each step change, so the hop plays again. */}
+          <div key={bounceKey} className={bounceKey ? `${styles.ollieLand} ${styles.hop}` : styles.ollieLand}>
             <div className={styles.ollieBob}>
               <Wing side="left" />
               <img src={ollieLarge} alt="" className={styles.ollieImg} draggable={false} />
@@ -144,16 +167,16 @@ export function SchoolIdScreen({ mode, from, onBack }: SchoolIdScreenProps) {
           </div>
         </div>
 
-        <p className={styles.bubble}>
+        <p key={step} className={bounceKey ? `${styles.bubble} ${styles.bubblePop}` : styles.bubble}>
           <strong>
-            First, your School ID! <span aria-hidden="true">🪪</span>
+            {bubble.title} <span aria-hidden="true">{bubble.emoji}</span>
           </strong>
-          <span>Look at the top of your card.</span>
+          <span>{bubble.line}</span>
         </p>
       </div>
 
-      {/* Swallows taps and keys while the transition plays (no double taps). */}
-      {mode === 'enter' && (
+      {/* Swallows taps and keys while anything animates (no double taps). */}
+      {busy && (
         <div
           ref={blockerRef}
           className={styles.blocker}

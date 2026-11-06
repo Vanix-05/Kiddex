@@ -1,118 +1,80 @@
-/* School ID step contents. Sizes scale with screen height (designed at 900px). */
+/* New Student step contents (School ID, one-time code, PIN code).
+   Sizes scale with screen height (designed at 900px). */
 
 .step {
   display: flex;
   flex: 1;
   flex-direction: column;
-  justify-content: space-evenly;
   gap: clamp(6px, 1.4vh, 14px);
-  min-height: 0;
+  /* For the digit boxes' width (100cqi = this column's width). */
+  container-type: inline-size;
 }
 
-/* ---------- Login card picture + hint ---------- */
+/* Digit boxes, number pad and Next, spread over the space that's left.
+   The gap keeps them apart even when there is no space left to spread. */
+.entry {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: clamp(8px, 1.6vh, 16px);
+}
+
+/* ---------- Hint (right under the title) ---------- */
 
 .hint {
-  display: flex;
-  align-items: center;
-  gap: clamp(20px, 4.4vh, 40px);
-  padding-top: clamp(10px, 2.2vh, 22px);
-}
-
-.card {
-  position: relative;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(3px, 0.6vh, 6px);
-  width: clamp(220px, 33vh, 300px);
-  padding: clamp(8px, 1.3vh, 12px) clamp(10px, 1.6vh, 14px) clamp(10px, 1.6vh, 14px);
-  border: 3px solid var(--color-card-border);
-  border-radius: 14px;
-  background: var(--color-input-bg);
-  box-shadow: 0 6px 0 rgba(74, 52, 38, 0.15);
-  transform: rotate(-3deg);
-}
-
-/* Orange washi tape holding the card on the page. */
-.tape {
-  position: absolute;
-  top: -14px;
-  left: 35%;
-  width: 31%;
-  height: 26px;
-  background: color-mix(in srgb, var(--color-button-bg) 55%, transparent);
-  transform: rotate(2deg);
-  clip-path: polygon(
-    0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%,
-    0 100%, 3% 75%, 0 50%, 3% 25%
-  );
-}
-
-.cardTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.cardTag {
-  padding: 1px 7px;
-  border-radius: 5px;
-  background: var(--color-logo-orange);
-  color: var(--color-text-on-dark);
-  font-family: var(--font-display);
-  font-size: clamp(0.6rem, 1.25vh, 0.72rem);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.cardName {
-  color: var(--color-text-subtle);
-  font-size: clamp(0.6rem, 1.25vh, 0.72rem);
-  font-weight: 600;
-}
-
-.cardField {
-  display: flex;
-  flex-direction: column;
-  padding: 2px 10px 3px;
-  border: 2px dashed var(--color-notebook-line);
-  border-radius: 8px;
-  opacity: 0.5;
-}
-
-.cardField small {
-  color: var(--color-text-subtle);
-  font-size: clamp(0.55rem, 1.15vh, 0.66rem);
-  font-weight: 500;
-}
-
-.cardField b {
-  font-family: var(--font-display);
-  font-size: clamp(1.05rem, 2.5vh, 1.4rem);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.15;
-}
-
-/* The School ID line: the one to look at. */
-.cardFieldOn {
-  border: 2.5px solid var(--color-title-pill-bg);
-  background: color-mix(in srgb, var(--color-title-pill-bg) 35%, var(--color-input-bg));
-  opacity: 1;
-}
-
-.hintText {
   margin: 0;
   font-size: clamp(1.05rem, 2.4vh, 1.35rem);
   font-weight: 500;
   line-height: 1.35;
 }
 
-.hintText strong {
+.hint strong {
   font-weight: 700;
 }
 
 /* ---------- Digit boxes ---------- */
+
+/* The boxes plus "Show numbers" under them (PIN code). */
+.boxArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2px, 0.6vh, 6px);
+}
+
+/* "Show numbers" under the PIN code boxes. Small to look at, but still a
+   48px tap target (the negative margins give that room back). */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--size-tap-target);
+  margin-block: -8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.9rem, 1.9vh, 1.05rem);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* A typed PIN digit, hidden. */
+.dot {
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  background: var(--color-text);
+}
 
 .boxes {
   display: flex;
@@ -130,14 +92,40 @@
 .box {
   display: grid;
   place-items: center;
-  width: clamp(42px, 6.9vh, 62px);
-  height: clamp(52px, 8.4vh, 76px);
+  /* ~70x86 on a 900px-tall screen; narrower if the 8 boxes wouldn't fit. */
+  width: min(clamp(46px, 7.8vh, 70px), calc((100cqi - 110px) / 8));
+  height: clamp(56px, 9.6vh, 86px);
   border: 3px solid var(--color-card-border);
   border-radius: 14px;
   background: var(--color-input-bg);
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vh, 2.25rem);
+  font-size: clamp(1.7rem, 4.6vh, 2.6rem);
   font-weight: 700;
+}
+
+/* PIN code: 4 big boxes (~92x100 on a 900px-tall window) and slightly
+   shorter number keys, to make room for the boxes and the padlock. */
+.large .box {
+  width: clamp(56px, calc(14vh - 34px), 92px);
+  height: clamp(60px, calc(15vh - 35px), 100px);
+  border-radius: 18px;
+  font-size: clamp(1.9rem, 5.3vh, 3rem);
+}
+
+.large .key {
+  min-height: clamp(38px, 5.6vh, 50px);
+}
+
+/* A little less space between boxes, keys and button on short windows. */
+.large .entry {
+  gap: clamp(6px, calc(2.6vh - 10px), 14px);
+}
+
+/* The padlock, centered above the boxes. */
+.art {
+  display: flex;
+  justify-content: center;
+  margin-bottom: clamp(2px, 0.6vh, 6px);
 }
 
 /* Where the next digit goes. */
@@ -173,7 +161,7 @@
 .key {
   display: grid;
   place-items: center;
-  min-height: max(var(--size-tap-target), clamp(44px, 6vh, 54px));
+  min-height: max(var(--size-tap-target), clamp(48px, 6.9vh, 62px));
   padding: 0;
   border: 2.5px solid var(--color-notebook-line);
   border-radius: 13px;
