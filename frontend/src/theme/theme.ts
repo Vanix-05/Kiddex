@@ -58,6 +58,22 @@ export const theme = {
     tintPeriwinkle: '#DCDDF5',
     labelPillBg: '#FFF8EE',
 
+    // "I'm a Teacher" button on the Welcome card (lavender)
+    teacherButtonBg: '#DEDCF5',
+    teacherButtonBgHover: '#E8E6FA',
+    teacherButtonBorder: '#A9A3E0',
+    teacherButtonEdge: '#8A83CC', // darker bottom edge
+
+    // "Welcome, Student!" notebook popup
+    notebookLine: '#EADCC9', // ruled lines on the paper
+    notebookMargin: '#EBA59B', // thin red margin line
+    tintMint: '#D6EEDC', // New Student photo
+    newStudentButton: '#3A9156', // "Start here" (white text 3.9:1, large bold)
+    newStudentButtonEdge: '#2B6E41',
+    returningButton: '#7A70CC', // "Log in" (white text 4.2:1)
+    returningButtonEdge: '#5D53B0',
+    textOnDark: '#FFFFFF',
+
     // Storybook setup screens
     bookCover: '#B9764A', // book cover, around the pages
     stickerFill: '#FFFFFF', // white fill of the bubbly sticker text

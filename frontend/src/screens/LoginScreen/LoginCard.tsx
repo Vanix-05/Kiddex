@@ -9,21 +9,25 @@ interface LoginCardProps {
   children: ReactNode
   /** Tall card (PIN keypad): gets tighter spacing on short screens. */
   tall?: boolean
+  /** Extra class for one step's own card look (e.g. the Welcome card). */
+  className?: string
+  titleMarks?: 'rays' | 'chevrons'
 }
 
 const LONG_TITLE = 11
 
 /** The card on the right of the login scene, placed and sized by LoginScreen.module.css. */
-export function LoginCard({ title, subtitle, children, tall = false }: LoginCardProps) {
+export function LoginCard({ title, subtitle, children, tall = false, className: extra, titleMarks }: LoginCardProps) {
   const className = [
     layout.card,
     title.length > LONG_TITLE && styles.longTitle,
     tall && styles.tall,
+    extra,
   ]
     .filter(Boolean)
     .join(' ')
   return (
-    <Card title={title} subtitle={subtitle} className={className}>
+    <Card title={title} subtitle={subtitle} className={className} titleMarks={titleMarks}>
       {children}
     </Card>
   )

@@ -30,6 +30,10 @@ import gfFoxEyeArea from './characters/girlfox/fox-eye-area.png'
 // Setup screens: Ollie the guide owl (428x600). A transparent, smaller copy
 // of characters/Ollie.png, whose background is solid white.
 import ollie from './characters/ollie-cutout.png'
+// The same Ollie split in two for the wave (scripts/split-ollie-wing.mjs).
+// Both are 428x600 and line up exactly with ollie-cutout.png when stacked.
+import ollieBody from './characters/ollie-body.png'
+import ollieWing from './characters/ollie-wing.png'
 
 // Companions (all 5000x5000, square)
 import boy from './companions/human_boy.png'
@@ -45,6 +49,7 @@ import ram from './companions/pet_ram.png'
 
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }
 export const characterArt = { girlFoxLogin, ollie }
+export const ollieLayers = { body: ollieBody, wing: ollieWing }
 export const girlFoxLayers = {
   body: gfBody,
   girlHead: gfGirlHead,
