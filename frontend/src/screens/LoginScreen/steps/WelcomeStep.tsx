@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { WelcomeStudentPopup } from '../WelcomeStudentPopup/WelcomeStudentPopup'
+import { StudentFlow } from '../NewStudent/StudentFlow'
 import { characterArt, companionArt } from '../../../assets/art'
 import { paths } from '../../../routes/paths'
 import { LoginCard } from '../LoginCard'
@@ -34,7 +34,7 @@ export function WelcomeStep() {
           <span className={styles.roleHint}>I have my login card</span>
         </span>
       </button>
-      {studentOpen && <WelcomeStudentPopup onClose={closeStudent} />}
+      {studentOpen && <StudentFlow onClose={closeStudent} />}
 
       <Link to={paths.educator.login} className={`${styles.roleButton} ${styles.teacher}`}>
         <span className={styles.roleIcon} aria-hidden="true">

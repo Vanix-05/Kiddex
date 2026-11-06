@@ -1,0 +1,252 @@
+/* School ID step contents. Sizes scale with screen height (designed at 900px). */
+
+.step {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-evenly;
+  gap: clamp(6px, 1.4vh, 14px);
+  min-height: 0;
+}
+
+/* ---------- Login card picture + hint ---------- */
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 4.4vh, 40px);
+  padding-top: clamp(10px, 2.2vh, 22px);
+}
+
+.card {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.6vh, 6px);
+  width: clamp(220px, 33vh, 300px);
+  padding: clamp(8px, 1.3vh, 12px) clamp(10px, 1.6vh, 14px) clamp(10px, 1.6vh, 14px);
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  box-shadow: 0 6px 0 rgba(74, 52, 38, 0.15);
+  transform: rotate(-3deg);
+}
+
+/* Orange washi tape holding the card on the page. */
+.tape {
+  position: absolute;
+  top: -14px;
+  left: 35%;
+  width: 31%;
+  height: 26px;
+  background: color-mix(in srgb, var(--color-button-bg) 55%, transparent);
+  transform: rotate(2deg);
+  clip-path: polygon(
+    0 0, 100% 0, 97% 25%, 100% 50%, 97% 75%, 100% 100%,
+    0 100%, 3% 75%, 0 50%, 3% 25%
+  );
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTag {
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--color-logo-orange);
+  color: var(--color-text-on-dark);
+  font-family: var(--font-display);
+  font-size: clamp(0.6rem, 1.25vh, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cardName {
+  color: var(--color-text-subtle);
+  font-size: clamp(0.6rem, 1.25vh, 0.72rem);
+  font-weight: 600;
+}
+
+.cardField {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 10px 3px;
+  border: 2px dashed var(--color-notebook-line);
+  border-radius: 8px;
+  opacity: 0.5;
+}
+
+.cardField small {
+  color: var(--color-text-subtle);
+  font-size: clamp(0.55rem, 1.15vh, 0.66rem);
+  font-weight: 500;
+}
+
+.cardField b {
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2.5vh, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+/* The School ID line: the one to look at. */
+.cardFieldOn {
+  border: 2.5px solid var(--color-title-pill-bg);
+  background: color-mix(in srgb, var(--color-title-pill-bg) 35%, var(--color-input-bg));
+  opacity: 1;
+}
+
+.hintText {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.4vh, 1.35rem);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.hintText strong {
+  font-weight: 700;
+}
+
+/* ---------- Digit boxes ---------- */
+
+.boxes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1.1vh, 10px);
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.1vh, 10px);
+}
+
+.box {
+  display: grid;
+  place-items: center;
+  width: clamp(42px, 6.9vh, 62px);
+  height: clamp(52px, 8.4vh, 76px);
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vh, 2.25rem);
+  font-weight: 700;
+}
+
+/* Where the next digit goes. */
+.current {
+  border-color: var(--color-button-bg);
+  background: var(--color-tint-peach);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-button-bg) 28%, transparent);
+}
+
+.empty {
+  border-color: var(--color-input-border);
+  border-style: dashed;
+  background: var(--color-card-bg);
+}
+
+.dash {
+  color: var(--color-text-subtle);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.8vh, 2.1rem);
+  font-weight: 700;
+}
+
+/* ---------- Number pad ---------- */
+
+.pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(6px, 1vh, 9px);
+  width: min(100%, 520px);
+  margin: 0 auto;
+}
+
+.key {
+  display: grid;
+  place-items: center;
+  min-height: max(var(--size-tap-target), clamp(44px, 6vh, 54px));
+  padding: 0;
+  border: 2.5px solid var(--color-notebook-line);
+  border-radius: 13px;
+  background: var(--color-input-bg);
+  box-shadow: 0 3px 0 var(--color-notebook-line);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.5vh, 1.4rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 80ms ease,
+    background-color 80ms ease;
+}
+
+.key:hover {
+  border-color: var(--color-input-border);
+}
+
+.key:active {
+  border-color: var(--color-button-bg);
+  background: var(--color-tint-peach);
+  box-shadow: none;
+  transform: translateY(3px);
+}
+
+.keySmall {
+  color: var(--color-text-subtle);
+  font-size: clamp(0.95rem, 1.9vh, 1.1rem);
+}
+
+/* ---------- Next ---------- */
+
+.next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(100%, 520px);
+  min-height: clamp(50px, 6.9vh, 62px);
+  margin: 0 auto;
+  border: 3px solid var(--color-button-border);
+  border-radius: 18px;
+  background: var(--color-button-bg);
+  box-shadow: var(--shadow-button);
+  color: var(--color-button-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.6vh, 1.45rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 80ms ease;
+}
+
+.next:hover:not(:disabled) {
+  background: var(--color-button-bg-hover);
+}
+
+.next:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--color-button-border);
+  transform: translateY(3px);
+}
+
+.next:disabled {
+  border-color: var(--color-button-disabled-bg);
+  background: var(--color-button-disabled-bg);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color-button-disabled-text) 30%, transparent);
+  color: var(--color-button-disabled-text);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key,
+  .next {
+    transition: none;
+  }
+}

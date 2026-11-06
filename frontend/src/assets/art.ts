@@ -34,6 +34,8 @@ import ollie from './characters/ollie-cutout.png'
 // Both are 428x600 and line up exactly with ollie-cutout.png when stacked.
 import ollieBody from './characters/ollie-body.png'
 import ollieWing from './characters/ollie-wing.png'
+// Big transparent Ollie, cut from Ollie.png (scripts/cutout-ollie-large.mjs).
+import ollieLargeImg from './characters/ollie-large.png'
 
 // Companions (all 5000x5000, square)
 import boy from './companions/human_boy.png'
@@ -50,6 +52,8 @@ import ram from './companions/pet_ram.png'
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }
 export const characterArt = { girlFoxLogin, ollie }
 export const ollieLayers = { body: ollieBody, wing: ollieWing }
+/** Ollie at 845x1183 (same framing as ollie-cutout.png), for when he's drawn big. */
+export const ollieLarge = ollieLargeImg
 export const girlFoxLayers = {
   body: gfBody,
   girlHead: gfGirlHead,

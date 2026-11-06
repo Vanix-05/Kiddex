@@ -1,0 +1,213 @@
+/*
+ * Spiral-notebook page, the same paper as the "Welcome, Student!" popup.
+ * Sizes are designed on a 1440x900 screen and scale with height (vh), so the
+ * whole page fits a laptop screen without scrolling.
+ */
+
+.page {
+  --margin-x: clamp(48px, 7.8vh, 72px);
+  --line: clamp(26px, 3.8vh, 36px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: clamp(24px, 4.6vh, 44px) clamp(20px, 4.4vh, 54px) clamp(10px, 2vh, 22px)
+    calc(var(--margin-x) + clamp(16px, 3.6vh, 36px));
+  border: 3px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-card-bg);
+  /* Red margin line + ruled lines. */
+  background-image:
+    linear-gradient(
+      to right,
+      transparent calc(var(--margin-x) - 1px),
+      var(--color-notebook-margin) calc(var(--margin-x) - 1px),
+      var(--color-notebook-margin) calc(var(--margin-x) + 1.5px),
+      transparent calc(var(--margin-x) + 1.5px)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 calc(var(--line) - 1.5px),
+      var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line)
+    );
+  box-shadow:
+    0 10px 0 rgba(74, 52, 38, 0.18),
+    0 22px 40px rgba(40, 30, 20, 0.25);
+  color: var(--color-text);
+}
+
+/* ---------- Spiral rings ---------- */
+
+.rings {
+  position: absolute;
+  top: clamp(-28px, -2.9vh, -18px);
+  left: 7%;
+  right: 7%;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.ring {
+  position: relative;
+  width: clamp(11px, 1.8vh, 16px);
+  height: clamp(34px, 5.6vh, 50px);
+  border: 3px solid var(--color-card-border);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--color-input-bg), var(--color-tint-peach));
+}
+
+/* The punched hole each ring goes through. */
+.ring::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-card-border);
+  opacity: 0.35;
+  transform: translateX(-50%);
+}
+
+/* ---------- Header: title + step sticky notes ---------- */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 4.6vh, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+/* Soft yellow highlighter stroke behind the words. */
+.highlight {
+  padding: 0 0.15em;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    var(--color-title-pill-bg) 50%,
+    var(--color-title-pill-bg) 92%,
+    transparent 92%
+  );
+  border-radius: 0.3em;
+}
+
+.subtitle {
+  margin: clamp(2px, 0.8vh, 8px) 0 0;
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 2.2vh, 1.25rem);
+  font-weight: 500;
+}
+
+.notes {
+  display: flex;
+  gap: clamp(6px, 1.1vh, 10px);
+  margin: 0;
+  padding: clamp(4px, 0.8vh, 8px) 0 0;
+  list-style: none;
+}
+
+/* Sticky note with a folded-looking corner (smaller radius bottom-right). */
+.note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: clamp(84px, 12.4vh, 112px);
+  min-height: clamp(46px, 6.4vh, 58px);
+  padding: 4px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 6px 6px 12px 6px;
+  background: var(--color-sticky-note);
+  box-shadow: 0 3px 0 rgba(74, 52, 38, 0.18);
+  color: var(--color-text-muted);
+  font-size: clamp(0.72rem, 1.55vh, 0.9rem);
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  transform: rotate(1.5deg);
+}
+
+.note:first-child {
+  transform: rotate(-1.5deg);
+}
+
+.note:last-child {
+  transform: rotate(-1deg);
+}
+
+.noteNumber {
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 2vh, 1.15rem);
+  font-weight: 700;
+}
+
+/* Current step: orange and lifted a little. */
+.note.noteOn {
+  background: var(--color-sticky-note-on);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--color-button-border) 40%, transparent);
+  color: var(--color-text);
+  transform: translateY(-6px) rotate(-2deg);
+}
+
+/* ---------- Body + footer ---------- */
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--size-tap-target);
+  margin-left: -10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 2vh, 1.1rem);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.help {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: clamp(0.9rem, 1.9vh, 1.05rem);
+}
+
+.help strong {
+  color: var(--color-link);
+  font-weight: 600;
+}

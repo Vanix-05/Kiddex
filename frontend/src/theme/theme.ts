@@ -74,6 +74,15 @@ export const theme = {
     returningButtonEdge: '#5D53B0',
     textOnDark: '#FFFFFF',
 
+    // Notebook pages (School ID, one-time code, PIN code)
+    stickyNote: '#F6EFE2', // step notes not reached yet
+    stickyNoteOn: '#FFD89C', // the current step's note
+
+    // Ollie's flying wings (School ID transition)
+    ollieWingFill: '#DCA26F',
+    ollieWingLine: '#A8713F',
+    ollieWingSpot: '#F6DCB6',
+
     // Storybook setup screens
     bookCover: '#B9764A', // book cover, around the pages
     stickerFill: '#FFFFFF', // white fill of the bubbly sticker text

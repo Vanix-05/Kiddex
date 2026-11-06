@@ -25,8 +25,13 @@
   animation: fadeIn 200ms ease-out both;
 }
 
-.sheet {
+/* Also on .notebook, so its copy in the page-flip transition lays out the same. */
+.sheet,
+.notebook {
   --ollie-w: clamp(84px, 14vh, 136px);
+}
+
+.sheet {
   position: relative;
   width: min(100%, 580px);
   animation: slideUp 300ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
@@ -294,6 +299,18 @@
 .photo:active .cta {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--cta-edge);
+}
+
+/* "Start here" pressing down, at the start of the School ID transition. */
+.ctaPressing {
+  animation: ctaPress 250ms ease both;
+}
+
+@keyframes ctaPress {
+  50% {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--cta-edge);
+  }
 }
 
 /* Mini login card in the New Student photo. */
@@ -571,6 +588,19 @@
   96% {
     transform: translateY(-2px);
   }
+}
+
+/* Back from the School ID page: the popup just fades in quickly, with no
+   slide, pop-in or greeting wave (hovering Ollie still waves). */
+.noIntro {
+  animation-duration: 250ms;
+}
+
+.noIntro .sheet,
+.noIntro .ollie,
+.noIntro .waveIntro,
+.noIntro .bubble {
+  animation: none;
 }
 
 /* Reduce motion: everything shows right away, nothing moves. */

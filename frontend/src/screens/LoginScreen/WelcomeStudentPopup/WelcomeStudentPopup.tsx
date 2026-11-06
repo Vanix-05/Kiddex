@@ -1,11 +1,21 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type MouseEvent, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { companionArt, ollieLayers } from '../../../assets/art'
 import { Icon } from '../../../components/Icon/Icon'
 import styles from './WelcomeStudentPopup.module.css'
 
+/** Where the popup's notebook and Ollie are on screen when "Start here" is tapped. */
+export interface PopupRects {
+  notebook: DOMRect
+  ollie: DOMRect
+}
+
 interface WelcomeStudentPopupProps {
   onClose: () => void
+  /** "Start here": gets the popup's layout, so the next page can grow out of it. */
+  onStartNewStudent: (rects: PopupRects) => void
+  /** false = coming back from the School ID page: a quick fade, no pop-in or wave. */
+  intro?: boolean
 }
 
 /**
@@ -14,9 +24,11 @@ interface WelcomeStudentPopupProps {
  * Ollie pops onto its corner and waves. Back, ✕, Esc or a tap on the dark
  * overlay closes it.
  */
-export function WelcomeStudentPopup({ onClose }: WelcomeStudentPopupProps) {
+export function WelcomeStudentPopup({ onClose, onStartNewStudent, intro = true }: WelcomeStudentPopupProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const notebookRef = useRef<HTMLDivElement>(null)
+  const ollieArtRef = useRef<HTMLDivElement>(null)
   const firstCardRef = useRef<HTMLButtonElement>(null)
 
   // Start on the suggested choice, so Enter right away means "New Student".
@@ -50,75 +62,105 @@ export function WelcomeStudentPopup({ onClose }: WelcomeStudentPopupProps) {
     if (e.target === e.currentTarget) onClose()
   }
 
+  const handleStart = () => {
+    if (!notebookRef.current || !ollieArtRef.current) return
+    onStartNewStudent({
+      notebook: notebookRef.current.getBoundingClientRect(),
+      ollie: ollieArtRef.current.getBoundingClientRect(),
+    })
+  }
+
   return createPortal(
-    <div className={styles.overlay} onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
+    <div
+      className={intro ? styles.overlay : `${styles.overlay} ${styles.noIntro}`}
+      onClick={handleOverlayClick}
+      onKeyDown={handleKeyDown}
+    >
       <div ref={dialogRef} className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <div className={styles.notebook}>
-          <Rings />
-
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
-            <span aria-hidden="true">✕</span>
-          </button>
-
-          <h2 id={titleId} className={styles.title}>
-            <span className={styles.highlight}>Welcome, Student!</span>
-          </h2>
-          <p className={styles.question}>Is this your first time on KIDDEX?</p>
-
-          <div className={styles.choices}>
-            <button
-              ref={firstCardRef}
-              type="button"
-              className={`${styles.photo} ${styles.newStudent}`}
-              onClick={() => {
-                // TODO: go to the School ID step of the New Student flow (not built yet).
-              }}
-            >
-              <span className={styles.tape} aria-hidden="true" />
-              <span className={styles.picture} aria-hidden="true">
-                <MiniLoginCard />
-              </span>
-              <span className={styles.cardTitle}>New Student</span>
-              <span className={styles.cta}>
-                Start here <Icon name="arrowRight" size={18} />
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.photo} ${styles.returning}`}
-              onClick={() => {
-                // TODO: go to the Returning Student login (School ID + PIN code, not built yet).
-              }}
-            >
-              <span className={styles.tape} aria-hidden="true" />
-              <span className={styles.picture} aria-hidden="true">
-                <span className={styles.buddyHead}>
-                  <img src={companionArt.fox} alt="" draggable={false} />
-                </span>
-              </span>
-              <span className={styles.cardTitle}>Returning Student</span>
-              <span className={styles.cta}>
-                Log in <Icon name="arrowRight" size={18} />
-              </span>
-            </button>
-          </div>
-
-          <div className={styles.footer}>
-            <button type="button" className={styles.back} onClick={onClose}>
-              <Icon name="arrowLeft" size={18} />
-              Back
-            </button>
-            <p className={styles.help}>
-              No card? <strong>Ask your teacher</strong> <span aria-hidden="true">🙋</span>
-            </p>
-          </div>
-        </div>
-
-        <WavingOllie />
+        <ChoiceNotebook
+          notebookRef={notebookRef}
+          titleId={titleId}
+          firstCardRef={firstCardRef}
+          onStart={handleStart}
+          onClose={onClose}
+        />
+        <WavingOllie artRef={ollieArtRef} />
       </div>
     </div>,
     document.body,
+  )
+}
+
+interface ChoiceNotebookProps {
+  notebookRef?: Ref<HTMLDivElement>
+  titleId?: string
+  firstCardRef?: Ref<HTMLButtonElement>
+  onStart?: () => void
+  onClose?: () => void
+  /** Copy used by the page-flip transition: "Start here" plays its press. */
+  pressingStart?: boolean
+}
+
+/**
+ * The popup's notebook page (without Ollie). Also drawn, as a still copy,
+ * on top of the School ID page while it flips away.
+ */
+export function ChoiceNotebook({ notebookRef, titleId, firstCardRef, onStart, onClose, pressingStart }: ChoiceNotebookProps) {
+  return (
+    <div ref={notebookRef} className={styles.notebook}>
+      <Rings />
+
+      <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
+        <span aria-hidden="true">✕</span>
+      </button>
+
+      <h2 id={titleId} className={styles.title}>
+        <span className={styles.highlight}>Welcome, Student!</span>
+      </h2>
+      <p className={styles.question}>Is this your first time on KIDDEX?</p>
+
+      <div className={styles.choices}>
+        <button ref={firstCardRef} type="button" className={`${styles.photo} ${styles.newStudent}`} onClick={onStart}>
+          <span className={styles.tape} aria-hidden="true" />
+          <span className={styles.picture} aria-hidden="true">
+            <MiniLoginCard />
+          </span>
+          <span className={styles.cardTitle}>New Student</span>
+          <span className={pressingStart ? `${styles.cta} ${styles.ctaPressing}` : styles.cta}>
+            Start here <Icon name="arrowRight" size={18} />
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.photo} ${styles.returning}`}
+          onClick={() => {
+            // TODO: go to the Returning Student login (School ID + PIN code, not built yet).
+          }}
+        >
+          <span className={styles.tape} aria-hidden="true" />
+          <span className={styles.picture} aria-hidden="true">
+            <span className={styles.buddyHead}>
+              <img src={companionArt.fox} alt="" draggable={false} />
+            </span>
+          </span>
+          <span className={styles.cardTitle}>Returning Student</span>
+          <span className={styles.cta}>
+            Log in <Icon name="arrowRight" size={18} />
+          </span>
+        </button>
+      </div>
+
+      <div className={styles.footer}>
+        <button type="button" className={styles.back} onClick={onClose}>
+          <Icon name="arrowLeft" size={18} />
+          Back
+        </button>
+        <p className={styles.help}>
+          No card? <strong>Ask your teacher</strong> <span aria-hidden="true">🙋</span>
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -149,7 +191,7 @@ function MiniLoginCard() {
  * and then just bobs now and then. Hover or tap him to wave again.
  * The wing is its own layer (ollie-wing.png) on top of ollie-body.png.
  */
-function WavingOllie() {
+function WavingOllie({ artRef }: { artRef: Ref<HTMLDivElement> }) {
   // 0 = the greeting wave (waits for the pop-in); each hover/tap adds 1 and
   // remounts the wing so its wave animation plays again from the start.
   const [waves, setWaves] = useState(0)
@@ -161,7 +203,7 @@ function WavingOllie() {
         Hoo’s here today? <span aria-hidden="true">🦉</span>
       </p>
       <div className={styles.ollieBob} aria-hidden="true">
-        <div className={styles.ollieArt}>
+        <div ref={artRef} className={styles.ollieArt}>
           <img src={ollieLayers.body} alt="" className={styles.ollieLayer} draggable={false} />
           <img
             key={waves}
