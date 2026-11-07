@@ -37,6 +37,9 @@ export interface SessionContextValue extends SessionState {
   enterClassCode: (code: string) => boolean
   pickLearner: (learnerId: string) => void
   logInLearner: (pin: string) => Promise<User>
+  /** New Student flow (School ID + one-time code + new PIN code): logs them in
+      with no buddy yet, so the first-time setup (quiz) comes next. Fake for now. */
+  logInNewStudent: (schoolId: string) => void
   /** Saves the setup picks to the learner (mock for now) and the session. */
   finishSetup: (result: SetupResult) => void
   logOut: () => void

@@ -104,6 +104,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [state.classCode, state.learnerId, update],
   )
 
+  // TODO: replace with the backend call that checks the School ID + one-time
+  // code and saves the new PIN code.
+  const logInNewStudent = useCallback(
+    (schoolId: string) => {
+      const user: User = { username: schoolId, role: 'learner' }
+      update({ user, companionId: null, avatar: null, buddyName: null, classCode: null, learnerId: null })
+    },
+    [update],
+  )
+
   const finishSetup = useCallback(
     ({ avatar, buddy, nickname }: SetupResult) => {
       // TODO: save to the backend once the API exists.
@@ -116,8 +126,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const logOut = useCallback(() => update(EMPTY), [update])
 
   const value = useMemo(
-    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, finishSetup, logOut }),
-    [state, logInEducator, enterClassCode, pickLearner, logInLearner, finishSetup, logOut],
+    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, logInNewStudent, finishSetup, logOut }),
+    [state, logInEducator, enterClassCode, pickLearner, logInLearner, logInNewStudent, finishSetup, logOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

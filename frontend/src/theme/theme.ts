@@ -79,6 +79,7 @@ export const theme = {
     stickyNoteOn: '#FFD89C', // the current step's note
     padlockBody: '#F6C94B', // Create PIN code page
     padlockShackle: '#C9A93A',
+    videoBackdrop: '#000000', // behind the full-screen loading video
 
     // Ollie's flying wings (School ID transition)
     ollieWingFill: '#DCA26F',

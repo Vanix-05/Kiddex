@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { paths } from '../../../routes/paths'
+import { useSession } from '../../../session/session'
 import { NotebookPage } from '../NotebookPage/NotebookPage'
 import { WelcomeStudentPopup, type PopupRects } from '../WelcomeStudentPopup/WelcomeStudentPopup'
 import { CodeStep } from './CodeStep'
+import { LoadingVideo } from './LoadingVideo'
 import { Padlock } from './Padlock'
 import { ENTER_MS, LEAVE_MS, NewStudentScreen, TURN_MS, type Step } from './NewStudentScreen'
 
@@ -34,6 +38,10 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
   const [schoolId, setSchoolId] = useState('')
   const [oneTimeCode, setOneTimeCode] = useState('')
   const [pin, setPin] = useState('')
+  // Done! plays the loading video, then the first-time setup (quiz) starts.
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+  const { logInNewStudent } = useSession()
 
   const timer = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(timer.current), [])
@@ -92,8 +100,15 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
   }
 
   const finish = () => {
-    // TODO: go to the loading page (not built yet). The School ID, one-time
-    // code and PIN code are in this component's state (schoolId, oneTimeCode, pin).
+    if (turningFrom === null) setLoading(true)
+  }
+
+  /** After the loading video: log in (fake, no backend yet) and start the quiz. */
+  const startQuiz = () => {
+    // TODO: send the School ID, one-time code and new PIN code (oneTimeCode,
+    // pin) to the backend once it exists.
+    logInNewStudent(`${schoolId.slice(0, 4)}-${schoolId.slice(4)}`)
+    navigate(paths.setup.quiz)
   }
 
   // ---------- Pages ----------
@@ -163,7 +178,7 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
           art={<Padlock open={pin.length === 4} />}
           submitLabel="Done!"
           onSubmit={finish}
-          active={live}
+          active={live && !loading}
         />
       </NotebookPage>
     )
@@ -185,6 +200,7 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
           renderStep={renderStep}
         />
       )}
+      {loading && <LoadingVideo onDone={startQuiz} />}
     </>
   )
 }
