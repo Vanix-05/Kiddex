@@ -63,3 +63,21 @@
 .companion {
   width: 100%;
 }
+
+.rowLabel {
+  min-width: 90px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.row .swatch {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.row .swatch[aria-pressed='true'] {
+  outline: 3px solid #f0a050;
+  outline-offset: 2px;
+}

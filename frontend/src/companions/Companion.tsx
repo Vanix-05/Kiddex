@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from 're
 import { companionRegistry, type CompanionId } from './registry'
 import type { CompanionDefinition } from './types'
 import type { Emotion } from './rig/emotions'
+import type { RigLook } from './TracedRig'
 import styles from './Companion.module.css'
 
 export type { Emotion } from './rig/emotions'
@@ -15,21 +16,22 @@ const FIRST_MOVE_MS = 1500
 const between = (min: number, max: number) => min + Math.random() * (max - min)
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-interface CompanionProps {
+interface CompanionProps extends RigLook {
   id: CompanionId
   className?: string
   /** How a traced companion feels (default calm). PNG-only companions ignore it. */
   emotion?: Emotion
 }
+// RigLook (colors, extras, hue, still): Customize Bridge looks. PNG-only companions ignore them.
 
 /**
  * Any companion in registry.ts. A companion with a traced rig shows its rig,
  * with an optional emotion; the others are animated from their PNG
  * (PngCompanion below).
  */
-export function Companion({ id, className, emotion }: CompanionProps) {
+export function Companion({ id, className, emotion, ...look }: CompanionProps) {
   const def: CompanionDefinition = companionRegistry[id]
-  if (def.Rig) return <def.Rig label={def.name} className={className} emotion={emotion} />
+  if (def.Rig) return <def.Rig label={def.name} className={className} emotion={emotion} {...look} />
   return <PngCompanion def={def} className={className} />
 }
 

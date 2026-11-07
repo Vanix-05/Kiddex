@@ -9,6 +9,10 @@ export const paths = {
     reveal: '/setup/reveal',
     pet: '/setup/pet',
   },
+  /** After the first-time setup: dress up you and your buddy, then sail to the Lobby. */
+  customize: '/customize',
+  /** Rene Island, the class Lobby (placeholder for now). */
+  lobby: '/lobby',
   learner: {
     code: '/learner/code',
     who: '/learner/who',

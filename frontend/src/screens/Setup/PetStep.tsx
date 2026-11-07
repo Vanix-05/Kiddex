@@ -24,7 +24,7 @@ import { PageContent, StoryBook, TURN_MS } from './StoryBook'
 import { useSetupState, type SetupState } from './setupState'
 import styles from './Pet.module.css'
 
-/** Confetti + "A perfect team!" before going to Learner Home. */
+/** Confetti + "A perfect team!" before going to the Customize Bridge. */
 const CHOSEN_MS = 1800
 /** Pet menu: tiles per row, and rows shown before it scrolls. */
 const MENU_COLUMNS = 4
@@ -38,7 +38,7 @@ const firstPick = (matched: BuddyId | null) =>
  * Setup step 4 (/setup/pet). Left page: a menu of every pet in petData.ts.
  * Right page: the picked pet's details and Choose. The picked pet also stands
  * big on the right with a Name box; Ollie perches on the book.
- * Choose saves the picks and goes to Learner Home; Back returns to the gender page.
+ * Choose saves the picks and goes to the Customize Bridge; Back returns to the gender page.
  */
 export function PetStep() {
   const navigate = useNavigate()
@@ -78,7 +78,7 @@ export function PetStep() {
     setChosen(true)
     later(CHOSEN_MS, () => {
       finishSetup({ avatar, buddy: pet.id, nickname: nickname.trim() })
-      navigate(paths.learner.home, { replace: true })
+      navigate(paths.customize, { replace: true })
     })
   }
 

@@ -25,3 +25,9 @@
   height: 100%;
   overflow: visible; /* room for the jump */
 }
+
+/* A still copy (e.g. a head icon): a picture, not a button. */
+.still {
+  cursor: default;
+  pointer-events: none;
+}

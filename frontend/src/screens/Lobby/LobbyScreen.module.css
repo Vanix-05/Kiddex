@@ -1,0 +1,11 @@
+/* The Student and their buddy, side by side. */
+.pair {
+  display: flex;
+  justify-content: center;
+  gap: clamp(4px, 1vw, 16px);
+}
+
+.figure {
+  width: min(260px, 34vh);
+  height: min(260px, 34vh);
+}

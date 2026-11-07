@@ -6,11 +6,14 @@
   background: var(--color-video-backdrop);
 }
 
-/* The whole video stays visible; any leftover space is the dark backdrop. */
+/* Fills the whole window (no bars). If the window's shape doesn't match the
+   video's, the crop takes more from the sky at the top than from the bottom,
+   so the Loading bar at the bottom stays fully visible. */
 .video {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: 50% 75%;
   pointer-events: none;
 }

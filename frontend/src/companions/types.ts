@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { Emotion } from './rig/emotions'
+import type { RigLook } from './TracedRig'
 
 /** A point on a companion image, in % of the image's width (x) and height (y). */
 export interface AnchorPoint {
@@ -28,5 +29,5 @@ export interface CompanionDefinition {
   image: string
   anchors: CompanionAnchors
   /** A traced, part-by-part rig. When set, <Companion> shows it instead of animating the PNG. */
-  Rig?: ComponentType<{ className?: string; label?: string; emotion?: Emotion }>
+  Rig?: ComponentType<{ className?: string; label?: string; emotion?: Emotion } & RigLook>
 }

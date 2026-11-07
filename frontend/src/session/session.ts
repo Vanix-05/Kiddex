@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { Avatar } from '../setup/avatar'
+import type { Look } from '../setup/customizeData'
 import type { BuddyId } from '../setup/quizData'
 
 export type Role = 'learner' | 'educator'
@@ -17,6 +18,8 @@ export interface SessionState {
   avatar: Avatar | null
   /** What the learner named their buddy (null = the buddy's default name). */
   buddyName: string | null
+  /** The Customize Bridge picks (skin, hair, shirt, extras, buddy color). Empty = the art as drawn. */
+  look: Look
   /** Learner login in progress: the class code they typed... */
   classCode: string | null
   /** ...and the learner tile they tapped on "Who are you?". */
@@ -42,6 +45,10 @@ export interface SessionContextValue extends SessionState {
   logInNewStudent: (schoolId: string) => void
   /** Saves the setup picks to the learner (mock for now) and the session. */
   finishSetup: (result: SetupResult) => void
+  /** Customize Bridge: saves the look. */
+  saveLook: (look: Look) => void
+  /** Customize Bridge pencil: renames the buddy (empty = the buddy's default name). */
+  renameBuddy: (name: string) => void
   logOut: () => void
 }
 

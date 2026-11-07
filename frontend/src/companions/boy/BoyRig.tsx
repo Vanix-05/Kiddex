@@ -1,4 +1,5 @@
-import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { boyColorKeys } from './colorKeys'
 import { boyParts } from './boyParts.generated'
 
 /** Joints on human_boy.png, in PNG pixels (measured from the outline). */
@@ -32,17 +33,20 @@ export function BoyRig({
   className,
   label = 'Boy',
   emotion,
+  ...look
 }: {
   className?: string
   label?: string
   emotion?: Emotion
-}) {
+} & RigLook) {
   return (
     <TracedRig
       parts={boyParts}
       pivots={boyPivots}
       face={boyFace}
       emotion={emotion}
+      colorKeys={boyColorKeys}
+      {...look}
       label={label}
       className={className}
     />

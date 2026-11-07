@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { SessionContext, type SessionState, type SetupResult, type User } from './session'
+import type { Look } from '../setup/customizeData'
 import { findClass, findLearner, saveLearnerSetup } from '../mock/learners'
 import { isAvatar } from '../setup/avatar'
+import { cleanLook } from '../setup/customizeData'
 
 const STORAGE_KEY = 'kiddex.session'
 
@@ -10,6 +12,7 @@ const EMPTY: SessionState = {
   companionId: null,
   avatar: null,
   buddyName: null,
+  look: {},
   classCode: null,
   learnerId: null,
 }
@@ -26,6 +29,7 @@ function loadSession(): SessionState {
         companionId: saved.companionId ?? null,
         avatar: isAvatar(saved.avatar) ? saved.avatar : null,
         buddyName: saved.buddyName ?? null,
+        look: cleanLook(saved.look),
         classCode: saved.classCode ?? null,
         learnerId: saved.learnerId ?? null,
       }
@@ -69,7 +73,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await fakeDelay()
       if (!email.trim() || !password) throw new Error('Please enter your email and password.')
       const user: User = { username: email.trim(), role: 'educator' }
-      update({ user, companionId: null, avatar: null, buddyName: null })
+      update({ user, companionId: null, avatar: null, buddyName: null, look: {} })
       return user
     },
     [update],
@@ -98,6 +102,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         companionId: learner.buddy,
         avatar: learner.avatar,
         buddyName: learner.nickname || null,
+        look: {},
       })
       return user
     },
@@ -109,7 +114,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const logInNewStudent = useCallback(
     (schoolId: string) => {
       const user: User = { username: schoolId, role: 'learner' }
-      update({ user, companionId: null, avatar: null, buddyName: null, classCode: null, learnerId: null })
+      update({ user, companionId: null, avatar: null, buddyName: null, look: {}, classCode: null, learnerId: null })
     },
     [update],
   )
@@ -123,11 +128,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [state.learnerId, update],
   )
 
+  // TODO: save to the backend once the API exists (the look and the buddy's name).
+  const saveLook = useCallback((look: Look) => update({ look }), [update])
+  const renameBuddy = useCallback((name: string) => update({ buddyName: name.trim() || null }), [update])
+
   const logOut = useCallback(() => update(EMPTY), [update])
 
   const value = useMemo(
-    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, logInNewStudent, finishSetup, logOut }),
-    [state, logInEducator, enterClassCode, pickLearner, logInLearner, logInNewStudent, finishSetup, logOut],
+    () => ({ ...state, logInEducator, enterClassCode, pickLearner, logInLearner, logInNewStudent, finishSetup, saveLook, renameBuddy, logOut }),
+    [state, logInEducator, enterClassCode, pickLearner, logInLearner, logInNewStudent, finishSetup, saveLook, renameBuddy, logOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

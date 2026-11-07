@@ -1,4 +1,4 @@
-import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
 import { otterParts } from './otterParts.generated'
 
 /**
@@ -37,17 +37,19 @@ export function OtterRig({
   className,
   label = 'Otter',
   emotion,
+  ...look
 }: {
   className?: string
   label?: string
   emotion?: Emotion
-}) {
+} & RigLook) {
   return (
     <TracedRig
       parts={otterParts}
       pivots={otterPivots}
       face={otterFace}
       emotion={emotion}
+      {...look}
       label={label}
       className={className}
     />

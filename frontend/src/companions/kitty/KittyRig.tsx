@@ -1,4 +1,4 @@
-import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
 import { kittyParts } from './kittyParts.generated'
 
 /**
@@ -37,17 +37,19 @@ export function KittyRig({
   className,
   label = 'Kitty',
   emotion,
+  ...look
 }: {
   className?: string
   label?: string
   emotion?: Emotion
-}) {
+} & RigLook) {
   return (
     <TracedRig
       parts={kittyParts}
       pivots={kittyPivots}
       face={kittyFace}
       emotion={emotion}
+      {...look}
       label={label}
       className={className}
     />

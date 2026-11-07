@@ -14,6 +14,8 @@ import { GenderStep } from '../screens/Setup/GenderStep'
 import { PetStep } from '../screens/Setup/PetStep'
 import { LearnerHomeScreen } from '../screens/LearnerHome/LearnerHomeScreen'
 import { ComingSoonScreen } from '../screens/ComingSoonScreen/ComingSoonScreen'
+import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
+import { LobbyScreen } from '../screens/Lobby/LobbyScreen'
 
 export const router = createBrowserRouter([
   // Login flow: one beach scene, the card on the right changes per step.
@@ -44,6 +46,9 @@ export const router = createBrowserRouter([
           { path: paths.setup.pet, element: <PetStep /> },
         ],
       },
+      // After setup (outside SetupFrame, which sends anyone with a buddy away).
+      { path: paths.customize, element: <CustomizeScreen /> },
+      { path: paths.lobby, element: <LobbyScreen /> },
       { path: paths.learner.home, element: <LearnerHomeScreen /> },
     ],
   },

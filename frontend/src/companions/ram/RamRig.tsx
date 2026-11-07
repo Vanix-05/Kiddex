@@ -1,4 +1,4 @@
-import { TracedRig, type Emotion, type RigFace, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
 import { ramParts } from './ramParts.generated'
 
 /**
@@ -37,17 +37,19 @@ export function RamRig({
   className,
   label = 'Ram',
   emotion,
+  ...look
 }: {
   className?: string
   label?: string
   emotion?: Emotion
-}) {
+} & RigLook) {
   return (
     <TracedRig
       parts={ramParts}
       pivots={ramPivots}
       face={ramFace}
       emotion={emotion}
+      {...look}
       label={label}
       className={className}
     />

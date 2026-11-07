@@ -105,6 +105,8 @@ export function useSpringRig(
   pivots: RigPivots,
   face: RigFace,
   emotion: Emotion,
+  /** Draw the resting pose once and don't animate (small copies, e.g. a head icon). */
+  still = false,
 ) {
   const emotionRef = useRef(emotion)
   const playRef = useRef<(move?: Move) => void>(() => {})
@@ -428,12 +430,16 @@ export function useSpringRig(
       frame = requestAnimationFrame(tick)
     }
     update(0)
+    if (still) {
+      playing.delete(play)
+      return
+    }
     frame = requestAnimationFrame(tick)
     return () => {
       cancelAnimationFrame(frame)
       playing.delete(play)
     }
-  }, [svgRef, pivots, face])
+  }, [svgRef, pivots, face, still])
 
   return useCallback(() => playRef.current(), [])
 }
