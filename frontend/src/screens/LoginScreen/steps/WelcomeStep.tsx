@@ -36,7 +36,7 @@ export function WelcomeStep() {
       </button>
       {studentOpen && <StudentFlow onClose={closeStudent} />}
 
-      <Link to={paths.educator.login} className={`${styles.roleButton} ${styles.teacher}`}>
+      <Link to={paths.teacher.login} className={`${styles.roleButton} ${styles.teacher}`}>
         <span className={styles.roleIcon} aria-hidden="true">
           <img src={characterArt.ollie} alt="" draggable={false} />
         </span>

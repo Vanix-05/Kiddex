@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
+import { startTransition, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, ChartNoAxesColumn, Flower, Flower2, House, Plus, Rose, TreePalm, Users, type LucideIcon } from 'lucide-react'
 import { characterArt } from '../../assets/art'
@@ -379,8 +379,13 @@ function ProfileChip() {
         type="button"
         className={styles.logOut}
         onClick={() => {
-          navigate(paths.educator.login)
-          logOut()
+          // One transition: the router changes pages in a transition, so a
+          // separate log-out would render first, on the old Teacher page,
+          // and the guard would send us to the Welcome card instead.
+          startTransition(() => {
+            navigate(paths.teacher.login)
+            logOut()
+          })
         }}
       >
         · Log out

@@ -3,7 +3,9 @@ import type { Avatar } from '../setup/avatar'
 import type { Look } from '../setup/customizeData'
 import type { BuddyId } from '../setup/quizData'
 
-export type Role = 'learner' | 'educator'
+export type Role = 'student' | 'teacher'
+
+export const isRole = (r: unknown): r is Role => r === 'student' || r === 'teacher'
 
 export interface User {
   username: string
@@ -12,21 +14,17 @@ export interface User {
 
 export interface SessionState {
   user: User | null
-  /** The logged-in learner's companion (null = not picked yet). */
+  /** The logged-in student's companion (null = not picked yet). */
   companionId: string | null
-  /** The logged-in learner's own character (null = not picked yet). */
+  /** The logged-in student's own character (null = not picked yet). */
   avatar: Avatar | null
-  /** What the learner named their buddy (null = the buddy's default name). */
+  /** What the student named their buddy (null = the buddy's default name). */
   buddyName: string | null
   /** The Customize Bridge picks (skin, hair, shirt, extras, buddy color). Empty = the art as drawn. */
   look: Look
-  /** Learner login in progress: the class code they typed... */
-  classCode: string | null
-  /** ...and the learner tile they tapped on "Who are you?". */
-  learnerId: string | null
 }
 
-/** What the learner picked during first-time setup. */
+/** What the student picked during first-time setup. */
 export interface SetupResult {
   avatar: Avatar
   buddy: BuddyId
@@ -35,15 +33,11 @@ export interface SetupResult {
 }
 
 export interface SessionContextValue extends SessionState {
-  logInEducator: (email: string, password: string) => Promise<User>
-  /** Saves the class code. Returns false if no class has that code. */
-  enterClassCode: (code: string) => boolean
-  pickLearner: (learnerId: string) => void
-  logInLearner: (pin: string) => Promise<User>
+  logInTeacher: (email: string, password: string) => Promise<User>
   /** New Student flow (School ID + one-time code + new PIN code): logs them in
       with no buddy yet, so the first-time setup (quiz) comes next. Fake for now. */
   logInNewStudent: (schoolId: string) => void
-  /** Saves the setup picks to the learner (mock for now) and the session. */
+  /** Saves the setup picks to the session (no backend yet). */
   finishSetup: (result: SetupResult) => void
   /** Customize Bridge: saves the look. */
   saveLook: (look: Look) => void

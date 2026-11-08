@@ -1,11 +1,15 @@
 /* The Student and their buddy, side by side. */
 .pair {
+  --figure: min(260px, 34vh);
   display: flex;
   justify-content: center;
   gap: clamp(4px, 1vw, 16px);
+  /* Room above the figures: a bow, cap or crown and the idle bounce reach
+     above each figure's box, and must not cover the "coming soon" line. */
+  padding-top: calc(var(--figure) * 0.28);
 }
 
 .figure {
-  width: min(260px, 34vh);
-  height: min(260px, 34vh);
+  width: var(--figure);
+  height: var(--figure);
 }

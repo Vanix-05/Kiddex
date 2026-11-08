@@ -3,39 +3,37 @@ import { paths } from './paths'
 import { RequireRole } from './RequireRole'
 import { LoginScreen } from '../screens/LoginScreen/LoginScreen'
 import { WelcomeStep } from '../screens/LoginScreen/steps/WelcomeStep'
-import { EducatorLoginStep } from '../screens/LoginScreen/steps/EducatorLoginStep'
-import { ClassCodeStep } from '../screens/LoginScreen/steps/ClassCodeStep'
-import { WhoAreYouStep } from '../screens/LoginScreen/steps/WhoAreYouStep'
-import { PinStep } from '../screens/LoginScreen/steps/PinStep'
+import { TeacherLoginStep } from '../screens/LoginScreen/steps/TeacherLoginStep'
 import { SetupFrame } from '../screens/Setup/SetupFrame'
 import { QuizStep } from '../screens/Setup/QuizStep'
 import { RevealStep } from '../screens/Setup/RevealStep'
 import { GenderStep } from '../screens/Setup/GenderStep'
 import { PetStep } from '../screens/Setup/PetStep'
-import { LearnerHomeScreen } from '../screens/LearnerHome/LearnerHomeScreen'
-import { ComingSoonScreen } from '../screens/ComingSoonScreen/ComingSoonScreen'
 import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
 import { LobbyScreen } from '../screens/Lobby/LobbyScreen'
 import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
 
 export const router = createBrowserRouter([
-  // Login flow: one beach scene, the card on the right changes per step.
+  // Login: one beach scene, the card on the right changes per step. The
+  // Student popup and notebook pages open over the Welcome card (same URL).
+  // Open to everyone (no login needed).
   {
     element: <LoginScreen />,
     children: [
       { path: paths.welcome, element: <WelcomeStep /> },
-      { path: paths.educator.login, element: <EducatorLoginStep /> },
-      { path: paths.learner.code, element: <ClassCodeStep /> },
-      { path: paths.learner.who, element: <WhoAreYouStep /> },
-      { path: paths.learner.pin, element: <PinStep /> },
+      { path: paths.teacher.login, element: <TeacherLoginStep /> },
     ],
   },
-  { path: '/login', element: <Navigate to={paths.welcome} replace /> },
-  { path: paths.register, element: <ComingSoonScreen title="Register" /> },
 
-  // Learner screens
+  // Old links: keep them working.
+  { path: '/login', element: <Navigate to={paths.welcome} replace /> },
+  { path: '/learner/*', element: <Navigate to={paths.welcome} replace /> },
+  { path: '/educator/login', element: <Navigate to={paths.teacher.login} replace /> },
+  { path: '/educator', element: <Navigate to={paths.teacher.home} replace /> },
+
+  // Student screens
   {
-    element: <RequireRole role="learner" />,
+    element: <RequireRole role="student" />,
     children: [
       // First-time setup (no buddy yet): storybook quiz -> gender -> reveal -> pet.
       {
@@ -50,14 +48,13 @@ export const router = createBrowserRouter([
       // After setup (outside SetupFrame, which sends anyone with a buddy away).
       { path: paths.customize, element: <CustomizeScreen /> },
       { path: paths.lobby, element: <LobbyScreen /> },
-      { path: paths.learner.home, element: <LearnerHomeScreen /> },
     ],
   },
 
   // Teacher Dashboard: one planner. It draws the pages itself (so it can flip
   // between them); these child routes only list the URLs it knows.
   {
-    element: <RequireRole role="educator" />,
+    element: <RequireRole role="teacher" />,
     children: [
       {
         path: paths.teacher.home,
@@ -73,7 +70,6 @@ export const router = createBrowserRouter([
           { path: 'lobby', element: null },
         ],
       },
-      { path: '/educator', element: <Navigate to={paths.teacher.home} replace /> },
     ],
   },
 

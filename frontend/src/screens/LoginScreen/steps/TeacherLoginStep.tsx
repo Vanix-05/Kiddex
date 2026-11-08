@@ -1,17 +1,17 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { TextInput } from '../../../components/TextInput/TextInput'
 import { Button } from '../../../components/Button/Button'
 import { paths } from '../../../routes/paths'
 import { useSession } from '../../../session/session'
 import { LoginCard } from '../LoginCard'
-import { BackLink, Divider, FormError } from './shared'
+import { BackLink, FormError } from './shared'
 import styles from './steps.module.css'
 
-/** Step 2 (/educator/login): email + password. Any values work for now (fake auth). */
-export function EducatorLoginStep() {
+/** Teacher Login (/teacher/login): email + password. Any values work for now (fake auth). */
+export function TeacherLoginStep() {
   const navigate = useNavigate()
-  const { logInEducator } = useSession()
+  const { logInTeacher } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -22,8 +22,8 @@ export function EducatorLoginStep() {
     setError('')
     setSubmitting(true)
     try {
-      await logInEducator(email, password)
-      navigate(paths.educator.home)
+      await logInTeacher(email, password)
+      navigate(paths.teacher.home)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setSubmitting(false)
@@ -32,7 +32,7 @@ export function EducatorLoginStep() {
 
   const errorProps = {
     'aria-invalid': error ? true : undefined,
-    'aria-describedby': error ? 'educator-login-error' : undefined,
+    'aria-describedby': error ? 'teacher-login-error' : undefined,
   }
 
   return (
@@ -58,20 +58,13 @@ export function EducatorLoginStep() {
           onChange={(e) => setPassword(e.target.value)}
           {...errorProps}
         />
-        <FormError id="educator-login-error" message={error} />
+        <FormError id="teacher-login-error" message={error} />
         <Button type="submit" withArrow fullWidth disabled={submitting}>
           {submitting ? 'Logging in…' : 'Log In'}
         </Button>
       </form>
 
-      <div className={styles.linkRow}>
-        <Divider>Don’t have an account?</Divider>
-        <Link to={paths.register} className={styles.textLink}>
-          Register
-        </Link>
-      </div>
-
-      <BackLink to={paths.learner.code}>I’m a Student</BackLink>
+      <BackLink to={paths.welcome}>I’m a Student</BackLink>
     </LoginCard>
   )
 }
