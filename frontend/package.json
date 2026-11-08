@@ -23,7 +23,8 @@
     "rig:raccoon": "node --max-old-space-size=4096 scripts/rig-pet.mjs raccoon",
     "rig:ram": "node --max-old-space-size=4096 scripts/rig-pet.mjs ram",
     "rig:monkey": "node --max-old-space-size=4096 scripts/rig-pet.mjs monkey",
-    "rig:dog": "node --max-old-space-size=4096 scripts/rig-pet.mjs dog"
+    "rig:dog": "node --max-old-space-size=4096 scripts/rig-pet.mjs dog",
+    "web-art": "node scripts/make-web-art.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.70.0",
@@ -42,6 +43,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
+    "sharp": "^0.34.4",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4"

@@ -100,6 +100,60 @@
   will-change: transform;
 }
 
+/* ---------- Breathing and blinking (useBlinks in hooks/useBlinks.ts) ---------- */
+
+/* The pair breathes: a slow stretch up from the feet (same pivot as the tilt). */
+.breathe {
+  --breath: 3.6s;
+  transform-origin: 50% calc(100% * (1 - var(--feet-pad)));
+  animation: breathe var(--breath) ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.012);
+  }
+}
+
+/* The fox's head rides the breath, then lifts about 1px half a beat later
+   than the girl's, so the two don't move as one block. */
+.foxRide {
+  animation: foxRide var(--breath) ease-in-out calc(var(--breath) / 4) infinite;
+}
+
+@keyframes foxRide {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+/* Blinks squash the eye layer flat, around each character's eye centre
+   (measured from the 371x474 eye layers): girl (243, 170), fox (128, 312). */
+.girlBlink {
+  transform-origin: 65.5% 35.9%;
+}
+
+.foxBlink {
+  transform-origin: 34.6% 65.8%;
+}
+
+/* Reduced motion: the art stays still (no breath; useBlinks skips blinks).
+   `none` beats the global 0.01ms rule, which would make them flicker. */
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .foxRide {
+    animation: none;
+  }
+}
+
 .sign {
   display: none;
 }

@@ -1,8 +1,11 @@
 /**
  * Every illustration the app uses, imported in one place.
  *
- * Characters and companions are transparent PNGs. The scene pieces are SVGs
- * (the sea is drawn in code: components/SceneBackground/Sea.tsx).
+ * Characters and companions are transparent images. Ollie and the companions
+ * load as small WebP copies (characters/web, companions/web) made from the
+ * big PNGs by `npm run web-art` (scripts/make-web-art.mjs); the PNGs stay for
+ * the trace/rig scripts. The scene pieces are SVGs (the sea is drawn in code:
+ * components/SceneBackground/Sea.tsx).
  */
 
 // Scene
@@ -29,25 +32,25 @@ import gfFoxEyeArea from './characters/girlfox/fox-eye-area.png'
 
 // Setup screens: Ollie the guide owl (428x600). A transparent, smaller copy
 // of characters/Ollie.png, whose background is solid white.
-import ollie from './characters/ollie-cutout.png'
+import ollie from './characters/web/ollie-cutout.webp'
 // The same Ollie split in two for the wave (scripts/split-ollie-wing.mjs).
 // Both are 428x600 and line up exactly with ollie-cutout.png when stacked.
-import ollieBody from './characters/ollie-body.png'
-import ollieWing from './characters/ollie-wing.png'
+import ollieBody from './characters/web/ollie-body.webp'
+import ollieWing from './characters/web/ollie-wing.webp'
 // Big transparent Ollie, cut from Ollie.png (scripts/cutout-ollie-large.mjs).
-import ollieLargeImg from './characters/ollie-large.png'
+import ollieLargeImg from './characters/web/ollie-large.webp'
 
-// Companions (all 5000x5000, square)
-import boy from './companions/human_boy.png'
-import girl from './companions/human_girl.png'
-import axolotl from './companions/pet_axolotl.png'
-import dog from './companions/pet_dog.png'
-import fox from './companions/pet_fox.png'
-import kitty from './companions/pet_kitty.png'
-import monkey from './companions/pet_monkey.png'
-import otter from './companions/pet_otter.png'
-import raccoon from './companions/pet_raccoon.png'
-import ram from './companions/pet_ram.png'
+// Companions: 700x700 WebP copies of the 5000x5000 PNGs (see make-web-art.mjs)
+import boy from './companions/web/human_boy.webp'
+import girl from './companions/web/human_girl.webp'
+import axolotl from './companions/web/pet_axolotl.webp'
+import dog from './companions/web/pet_dog.webp'
+import fox from './companions/web/pet_fox.webp'
+import kitty from './companions/web/pet_kitty.webp'
+import monkey from './companions/web/pet_monkey.webp'
+import otter from './companions/web/pet_otter.webp'
+import raccoon from './companions/web/pet_raccoon.webp'
+import ram from './companions/web/pet_ram.webp'
 
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }
 export const characterArt = { girlFoxLogin, ollie }

@@ -5,6 +5,7 @@ import { KiddexLogo } from '../../components/KiddexLogo/KiddexLogo'
 import { SignPost } from '../../components/SignPost/SignPost'
 import { BeachCrab } from '../../components/BeachCrab/BeachCrab'
 import { girlFoxLayers } from '../../assets/art'
+import { useBlinks } from '../../hooks/useBlinks'
 import { useMouseTilt, type LookPart } from '../../hooks/useMouseTilt'
 import styles from './LoginScreen.module.css'
 
@@ -25,6 +26,10 @@ export function LoginScreen() {
   const girlEyesRef = useRef<HTMLImageElement>(null)
   const foxHeadRef = useRef<HTMLDivElement>(null)
   const foxEyesRef = useRef<HTMLImageElement>(null)
+  // Blink wrappers around the eye layers (apart from the eye-follow transform).
+  const girlBlinkRef = useRef<HTMLDivElement>(null)
+  const foxBlinkRef = useRef<HTMLDivElement>(null)
+  useBlinks(girlBlinkRef, foxBlinkRef)
 
   // Heads and eyes follow the cursor. Eyes are fastest, then the girl's
   // head, then the fox's (slower, bouncier). Keep angles at or below ~6deg,
@@ -86,20 +91,30 @@ export function LoginScreen() {
           <SignPost className={styles.sign} />
           {/* Girl and fox, stacked in layers (see assets/characters/girlfox/). */}
           <div ref={kidsRef} className={styles.kids} role="img" aria-label="A girl and her fox">
-            <img src={girlFoxLayers.body} alt="" className={styles.layer} draggable={false} />
+            {/* The pair breathes. A wrapper, so the mouse tilt on .kids is untouched. */}
+            <div className={`${styles.layer} ${styles.breathe}`}>
+              <img src={girlFoxLayers.body} alt="" className={styles.layer} draggable={false} />
 
-            <div ref={girlHeadRef} className={`${styles.layer} ${styles.girlHead}`}>
-              <img src={girlFoxLayers.girlHead} alt="" className={styles.layer} draggable={false} />
-              <div className={styles.layer} style={girlEyeMask}>
-                <img ref={girlEyesRef} src={girlFoxLayers.girlEyes} alt="" className={styles.layer} draggable={false} />
+              <div ref={girlHeadRef} className={`${styles.layer} ${styles.girlHead}`}>
+                <img src={girlFoxLayers.girlHead} alt="" className={styles.layer} draggable={false} />
+                <div className={styles.layer} style={girlEyeMask}>
+                  <div ref={girlBlinkRef} className={`${styles.layer} ${styles.girlBlink}`}>
+                    <img ref={girlEyesRef} src={girlFoxLayers.girlEyes} alt="" className={styles.layer} draggable={false} />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* On top of the girl's head: the fox's ear overlaps her hair. */}
-            <div ref={foxHeadRef} className={`${styles.layer} ${styles.foxHead}`}>
-              <img src={girlFoxLayers.foxHead} alt="" className={styles.layer} draggable={false} />
-              <div className={styles.layer} style={foxEyeMask}>
-                <img ref={foxEyesRef} src={girlFoxLayers.foxEyes} alt="" className={styles.layer} draggable={false} />
+              {/* On top of the girl's head: the fox's ear overlaps her hair.
+                  Its head rides the breath half a beat behind hers. */}
+              <div className={`${styles.layer} ${styles.foxRide}`}>
+                <div ref={foxHeadRef} className={`${styles.layer} ${styles.foxHead}`}>
+                  <img src={girlFoxLayers.foxHead} alt="" className={styles.layer} draggable={false} />
+                  <div className={styles.layer} style={foxEyeMask}>
+                    <div ref={foxBlinkRef} className={`${styles.layer} ${styles.foxBlink}`}>
+                      <img ref={foxEyesRef} src={girlFoxLayers.foxEyes} alt="" className={styles.layer} draggable={false} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
