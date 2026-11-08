@@ -41,6 +41,7 @@
 
 .sub {
   margin: 4px 0 0;
+  white-space: nowrap;
   font-size: 16px;
   color: var(--color-text-subtle);
 }
@@ -64,7 +65,7 @@
   padding: 0 13px;
   border: 2px solid;
   border-radius: var(--radius-pill);
-  font: 600 14px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   white-space: nowrap;
 }
 
@@ -100,7 +101,7 @@
   border-color: var(--color-ai-line);
   background: var(--color-ai-bg);
   color: var(--color-ai-text);
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .code {
@@ -267,7 +268,7 @@
   border: 2.5px solid var(--color-card-border);
   border-radius: 6px 14px 6px 6px;
   background: var(--color-input-bg);
-  font: 700 12px/1 var(--font-display);
+  font: 700 15px/1 var(--font-display);
   color: var(--color-danger-text);
 }
 

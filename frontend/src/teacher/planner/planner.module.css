@@ -1,15 +1,18 @@
 /*
- * Teacher planner. Everything is laid out on a fixed 1440x900 stage, which
- * TeacherPlanner scales to fit the window (same ratio, centered). Positions
- * below are in stage pixels, measured from the reference images.
+ * Teacher planner. The island scene fills the window by itself. The planner
+ * group (bookmarks, tabs, book, Ms. Cruz chip, test switch) is laid out in
+ * 1440x900 design px; TeacherPlanner scales just that group's outer box
+ * (18,36 to 1406,890) to fit the window with a 16px margin, centered.
+ * Positions below are design px, measured from the reference images.
  *
  *   cover       151,104 to 1400,878
  *   left page   167,121  597x740      right page  788,121  597x740
  *   spine       764..788 (rings centered on x 776)
  *
- * Two stages share the same scale: the book stage (scene logo + book) and,
- * above the Students blur, the chrome stage (tabs, bookmarks, Ms. Cruz chip
- * and the Students window), so the chrome stays sharp and clickable.
+ * Two layers share the same scale: the book and, above the Students blur,
+ * the chrome (tabs, bookmarks, chip, switch and the Students window), so
+ * the chrome stays sharp and clickable. The logo is fixed at the window's
+ * top-left, not scaled.
  */
 
 .root {
@@ -53,21 +56,42 @@
 
 /* ---------- Logo ---------- */
 
+/* Fixed size at the window's top-left (screen px; LOGO in TeacherPlanner.tsx
+   must match its box). Hidden when it would touch the planner. */
 .brand {
   position: absolute;
-  left: 14px;
-  top: 6px;
+  left: 12px;
+  top: 4px;
+  z-index: 1;
+  pointer-events: none;
 }
 
-/* KiddexLogo sizes itself with vw/vh; on the stage it needs fixed sizes. */
+/* KiddexLogo sizes itself with vw/vh; here it needs fixed sizes. */
 .brand div > span:first-child {
-  font-size: 54px;
-  -webkit-text-stroke-width: 8px;
+  font-size: 46px;
+  -webkit-text-stroke-width: 7px;
 }
 
 .brand div > span:last-child {
   margin-top: 2px;
-  font-size: 13px;
+  font-size: 15px;
+}
+
+/* Less room: a smaller word, the tagline stays readable. */
+.brandSmall {
+  left: 8px;
+  top: 2px;
+}
+
+.brandSmall div > span:first-child {
+  font-size: 32px;
+  -webkit-text-stroke-width: 5px;
+}
+
+.brandSmall div > span:last-child {
+  margin: 0 0 0 0.3em;
+  word-spacing: 0.1em;
+  letter-spacing: 0;
 }
 
 /* ---------- Book ---------- */
@@ -363,21 +387,28 @@
   position: absolute;
   left: 200px;
   top: 0;
-  width: 680px;
+  width: 640px;
   height: 106px;
+  /* A row: each tab as wide as its label, 9px apart, never squeezed. */
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-left: 16px;
   /* clip, not hidden: a focused tab or bookmark must not scroll it */
   overflow: clip;
   pointer-events: none;
 }
 
+/* Taller than it shows: the bottom 20px is tucked behind the cover. */
 .tab {
-  position: absolute;
-  top: 50px;
+  position: relative;
+  flex: none;
+  margin-top: 50px;
   height: 76px;
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 0 12px 20px;
+  padding: 0 16px 20px 12px;
   border: 2.5px solid var(--color-card-border);
   border-radius: 14px 14px 0 0;
   font: 600 17px/1 var(--font-display);
@@ -398,7 +429,8 @@
 }
 
 .tabOn {
-  top: 41px;
+  z-index: 1;
+  margin-top: 41px;
   height: 85px;
   padding-bottom: 26px;
   font-size: 18px;

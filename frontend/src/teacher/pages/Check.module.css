@@ -103,7 +103,7 @@
   height: 26px;
   border-radius: 6px;
   background: var(--color-neutral-bg);
-  font: 600 14px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
 }
 
 .text {
@@ -120,7 +120,7 @@
   border: 1.5px solid var(--color-neutral-line);
   border-radius: 7px;
   background: var(--color-input-bg);
-  font: 600 13px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   color: var(--color-text-subtle);
 }
 
@@ -174,7 +174,7 @@
 
 .game {
   margin-left: auto;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-subtle);
 }
 
@@ -268,7 +268,7 @@
 }
 
 .rightTag {
-  font: 600 13px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   color: var(--color-ok-text);
 }
 
@@ -350,7 +350,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font: 600 14px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   color: var(--color-text-muted);
 }
 

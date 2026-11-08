@@ -18,27 +18,70 @@ import styles from './planner.module.css'
 
 /** How long a page turn takes. */
 const FLIP_MS = 650
-const STAGE_W = 1440
-const STAGE_H = 900
+
+/**
+ * The planner group's outer box in design px (bookmarks, tabs, book, chip,
+ * switch, with room for the bookmark hover and the book's shadow). Only this
+ * box is scaled; the island scene fills the window by itself.
+ */
+const BOX = { x: 18, y: 36, w: 1388, h: 854 }
+/** Space kept free around the planner, in screen px. */
+const MARGIN = 16
+
+/**
+ * The KIDDEX logo at the window's top-left: its box in screen px at each size
+ * (see .brand / .brandSmall in the CSS). Big if there's room, else small,
+ * else hidden.
+ */
+const LOGO_SIZES = [
+  { size: 'big', right: 188, bottom: 82 },
+  { size: 'small', right: 152, bottom: 64 },
+] as const
+const LOGO_GAP = 8
+type LogoSize = 'big' | 'small' | null
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** Scale for the 1440x900 stage: as big as fits, same ratio, centered. */
-function fitStage() {
-  const w = window.innerWidth
-  const h = window.innerHeight
-  const scale = Math.min(w / STAGE_W, h / STAGE_H)
-  return { scale, left: (w - STAGE_W * scale) / 2, top: (h - STAGE_H * scale) / 2 }
+interface Fit {
+  scale: number
+  left: number
+  top: number
+  /** The biggest logo that stays clear of the tabs, bookmarks and book. */
+  logo: LogoSize
 }
 
-function useStageFit() {
-  const [fit, setFit] = useState(fitStage)
+/** Scale the planner group to fit the window with a margin, same ratio, centered. */
+function fitPlanner(): Fit {
+  const w = window.innerWidth
+  const h = window.innerHeight
+  const scale = Math.min((w - 2 * MARGIN) / BOX.w, (h - 2 * MARGIN) / BOX.h)
+  // Centered, but the bookmarks never closer than MARGIN to the left edge.
+  const left = Math.max((w - BOX.w * scale) / 2, MARGIN) - BOX.x * scale
+  const top = (h - BOX.h * scale) / 2 - BOX.y * scale
+
+  // The logo must stay clear of the tabs, the bookmarks and the book cover
+  // (their top-left corners in design px).
+  const fits = ({ right, bottom }: { right: number; bottom: number }) =>
+    [
+      [216, 41],
+      [24, 151],
+      [151, 104],
+    ].every(([x, y]) => right + LOGO_GAP <= left + x * scale || bottom + LOGO_GAP <= top + y * scale)
+  const logo = LOGO_SIZES.find(fits)?.size ?? null
+  return { scale, left, top, logo }
+}
+
+function usePlannerFit() {
+  const [fit, setFit] = useState(fitPlanner)
   useEffect(() => {
-    const onResize = () => setFit(fitStage())
+    const onResize = () => setFit(fitPlanner())
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  return { transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` }
+  return {
+    style: { transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` },
+    logo: fit.logo,
+  }
 }
 
 interface Flip {
@@ -97,7 +140,7 @@ function Planner() {
     if (!active || active === document.body) leftRef.current?.focus({ preventScroll: true })
   }, [bookPath])
 
-  const fitStyle = useStageFit()
+  const { style: fitStyle, logo } = usePlannerFit()
   const page = resolvePage(bookUrl).key
   const activeMark: BookmarkKey = win === 'open' ? 'students' : bookmarkFor(page)
 
@@ -114,10 +157,14 @@ function Planner() {
         <SceneBackground>{null}</SceneBackground>
       </div>
 
-      <div className={`${styles.stage} ${styles.bookStage}`} style={fitStyle} inert={win === 'open' ? true : undefined}>
-        <div className={styles.brand}>
+      {/* Fixed size at the window's top-left (not scaled with the planner). */}
+      {logo && (
+        <div className={logo === 'small' ? `${styles.brand} ${styles.brandSmall}` : styles.brand}>
           <KiddexLogo />
         </div>
+      )}
+
+      <div className={`${styles.stage} ${styles.bookStage}`} style={fitStyle} inert={win === 'open' ? true : undefined}>
         <div className={styles.cover} aria-hidden="true" />
 
         <main>
@@ -236,20 +283,13 @@ function Rings() {
 
 const TAB_ICONS: Record<SectionIcon, LucideIcon> = { flower: Flower, tulip: Flower2, rose: Rose }
 const TAB_COLORS = { yellow: styles.tabYellow, pink: styles.tabPink, coral: styles.tabCoral }
-/** Tab widths and gaps from the reference (stage px, relative to the tab strip). */
-const ACTIVE_W = 203
-const TAB_W = 149
-const GAP = 9
 
+/** Tabs sit in a row, each as wide as its own label (never squeezed). */
 function SectionTabs() {
   const { sections, active, setActive } = useSection()
-  const widths = sections.map((s) => (s.id === active.id ? ACTIVE_W : TAB_W))
-  const lefts = widths.map((_, i) => 16 + widths.slice(0, i).reduce((a, w) => a + w + GAP, 0))
-  const placed = sections.map((s, i) => ({ s, left: lefts[i], w: widths[i] }))
-  const x = 16 + widths.reduce((a, w) => a + w + GAP, 0)
   return (
     <div className={styles.tabs} role="group" aria-label="Sections">
-      {placed.map(({ s, left, w }) => {
+      {sections.map((s) => {
         const Icon = TAB_ICONS[s.icon]
         const on = s.id === active.id
         return (
@@ -257,7 +297,6 @@ function SectionTabs() {
             key={s.id}
             type="button"
             className={`${styles.tab} ${TAB_COLORS[s.color]} ${on ? styles.tabOn : ''}`}
-            style={{ left, width: w }}
             aria-pressed={on}
             onClick={() => setActive(s.id)}
           >
@@ -271,7 +310,6 @@ function SectionTabs() {
       <button
         type="button"
         className={`${styles.tab} ${styles.tabNew}`}
-        style={{ left: x, width: 104 }}
         onClick={() => {
           // TODO: add a new section.
         }}

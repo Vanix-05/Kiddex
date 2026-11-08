@@ -40,7 +40,7 @@
   align-items: center;
   gap: 5px;
   margin-top: 6px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-muted);
   white-space: nowrap;
 }
@@ -59,7 +59,7 @@
   padding: 0 6px;
   border-radius: var(--radius-pill);
   background: var(--color-tab-coral);
-  font: 600 13px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   color: var(--color-planner-ink);
 }
 
@@ -107,6 +107,7 @@
 
 .rowTitle {
   display: flex;
+  white-space: nowrap;
   align-items: center;
   gap: 10px;
   margin: 0;
@@ -116,7 +117,10 @@
 
 .rowDetail {
   margin: 3px 0 0;
-  font-size: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
   color: var(--color-text-subtle);
 }
 
@@ -130,7 +134,7 @@
   padding: 3px 8px;
   border-radius: var(--radius-pill);
   background: var(--color-tint-pink);
-  font: 600 12px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   color: var(--color-danger-text);
   text-decoration: none;
 }
@@ -181,8 +185,8 @@
   flex: none;
   display: flex;
   flex-direction: column;
-  width: 52px;
-  height: 42px;
+  width: 56px;
+  height: 52px;
   overflow: hidden;
   border: 2px solid var(--color-card-border);
   border-radius: 8px;
@@ -192,12 +196,12 @@
 
 .calDay {
   background: var(--color-bookmark-red);
-  font: 600 10px/14px var(--font-display);
+  font: 600 15px/19px var(--font-display);
   color: var(--color-text-on-dark);
 }
 
 .calDate {
-  font: 600 18px/24px var(--font-display);
+  font: 600 18px/29px var(--font-display);
 }
 
 .muted {
@@ -277,7 +281,7 @@
 }
 
 .colNumber {
-  font: 600 14px/1 var(--font-display);
+  font: 600 15px/1 var(--font-display);
   margin-bottom: 6px;
 }
 
@@ -306,7 +310,7 @@
   border-top: 2.5px solid var(--color-card-border);
   margin-left: -9px;
   margin-right: -9px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--color-text-subtle);
 }
 
