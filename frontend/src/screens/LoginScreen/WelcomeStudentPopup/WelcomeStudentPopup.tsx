@@ -4,7 +4,10 @@ import { companionArt, ollieLayers } from '../../../assets/art'
 import { Icon } from '../../../components/Icon/Icon'
 import styles from './WelcomeStudentPopup.module.css'
 
-/** Where the popup's notebook and Ollie are on screen when "Start here" is tapped. */
+/** Which card was picked: New Student ("Start here") or Returning Student ("Log in"). */
+export type StudentKind = 'new' | 'returning'
+
+/** Where the popup's notebook and Ollie are on screen when a card is tapped. */
 export interface PopupRects {
   notebook: DOMRect
   ollie: DOMRect
@@ -12,8 +15,8 @@ export interface PopupRects {
 
 interface WelcomeStudentPopupProps {
   onClose: () => void
-  /** "Start here": gets the popup's layout, so the next page can grow out of it. */
-  onStartNewStudent: (rects: PopupRects) => void
+  /** "Start here" or "Log in": gets the popup's layout, so the next page can grow out of it. */
+  onStart: (kind: StudentKind, rects: PopupRects) => void
   /** false = coming back from the School ID page: a quick fade, no pop-in or wave. */
   intro?: boolean
 }
@@ -24,7 +27,7 @@ interface WelcomeStudentPopupProps {
  * Ollie pops onto its corner and waves. Back, ✕, Esc or a tap on the dark
  * overlay closes it.
  */
-export function WelcomeStudentPopup({ onClose, onStartNewStudent, intro = true }: WelcomeStudentPopupProps) {
+export function WelcomeStudentPopup({ onClose, onStart, intro = true }: WelcomeStudentPopupProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
   const notebookRef = useRef<HTMLDivElement>(null)
@@ -62,9 +65,9 @@ export function WelcomeStudentPopup({ onClose, onStartNewStudent, intro = true }
     if (e.target === e.currentTarget) onClose()
   }
 
-  const handleStart = () => {
+  const handleStart = (kind: StudentKind) => {
     if (!notebookRef.current || !ollieArtRef.current) return
-    onStartNewStudent({
+    onStart(kind, {
       notebook: notebookRef.current.getBoundingClientRect(),
       ollie: ollieArtRef.current.getBoundingClientRect(),
     })
@@ -95,17 +98,17 @@ interface ChoiceNotebookProps {
   notebookRef?: Ref<HTMLDivElement>
   titleId?: string
   firstCardRef?: Ref<HTMLButtonElement>
-  onStart?: () => void
+  onStart?: (kind: StudentKind) => void
   onClose?: () => void
-  /** Copy used by the page-flip transition: "Start here" plays its press. */
-  pressingStart?: boolean
+  /** Copy used by the page-flip transition: the tapped card's button plays its press. */
+  pressing?: StudentKind
 }
 
 /**
  * The popup's notebook page (without Ollie). Also drawn, as a still copy,
  * on top of the School ID page while it flips away.
  */
-export function ChoiceNotebook({ notebookRef, titleId, firstCardRef, onStart, onClose, pressingStart }: ChoiceNotebookProps) {
+export function ChoiceNotebook({ notebookRef, titleId, firstCardRef, onStart, onClose, pressing }: ChoiceNotebookProps) {
   return (
     <div ref={notebookRef} className={styles.notebook}>
       <Rings />
@@ -120,13 +123,13 @@ export function ChoiceNotebook({ notebookRef, titleId, firstCardRef, onStart, on
       <p className={styles.question}>Is this your first time on KIDDEX?</p>
 
       <div className={styles.choices}>
-        <button ref={firstCardRef} type="button" className={`${styles.photo} ${styles.newStudent}`} onClick={onStart}>
+        <button ref={firstCardRef} type="button" className={`${styles.photo} ${styles.newStudent}`} onClick={() => onStart?.('new')}>
           <span className={styles.tape} aria-hidden="true" />
           <span className={styles.picture} aria-hidden="true">
             <MiniLoginCard />
           </span>
           <span className={styles.cardTitle}>New Student</span>
-          <span className={pressingStart ? `${styles.cta} ${styles.ctaPressing}` : styles.cta}>
+          <span className={pressing === 'new' ? `${styles.cta} ${styles.ctaPressing}` : styles.cta}>
             Start here <Icon name="arrowRight" size={18} />
           </span>
         </button>
@@ -134,9 +137,7 @@ export function ChoiceNotebook({ notebookRef, titleId, firstCardRef, onStart, on
         <button
           type="button"
           className={`${styles.photo} ${styles.returning}`}
-          onClick={() => {
-            // TODO: go to the Returning Student login (School ID + PIN code, not built yet).
-          }}
+          onClick={() => onStart?.('returning')}
         >
           <span className={styles.tape} aria-hidden="true" />
           <span className={styles.picture} aria-hidden="true">
@@ -145,7 +146,7 @@ export function ChoiceNotebook({ notebookRef, titleId, firstCardRef, onStart, on
             </span>
           </span>
           <span className={styles.cardTitle}>Returning Student</span>
-          <span className={styles.cta}>
+          <span className={pressing === 'returning' ? `${styles.cta} ${styles.ctaPressing}` : styles.cta}>
             Log in <Icon name="arrowRight" size={18} />
           </span>
         </button>

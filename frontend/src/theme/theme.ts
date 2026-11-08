@@ -94,6 +94,53 @@ export const theme = {
     logoOrange: '#F08A4B',
     logoOutline: '#FFF6E8',
     logoShadow: '#E2B48A',
+
+    // Teacher planner (paper, lines and margin reuse cardBg / notebookLine /
+    // notebookMargin; text reuses text / textMuted / textSubtle).
+    plannerCover: '#9A6542',
+    plannerCoverDark: '#5A3923', // cover border
+    plannerSpine: '#7E5134',
+    plannerRing: '#8C8F96', // metal spiral
+    plannerRingLight: '#D9DCE1',
+    plannerInk: '#3E2A1E', // dark chips and active pills
+    highlightBlue: '#CFE5F6', // "My class this week" highlighter
+    tabYellow: '#F8DD8C',
+    tabPink: '#F6C9CF',
+    tabCoral: '#F1AA9C',
+    tabNew: '#E6EEEA',
+    bookmarkRed: '#C9483A', // white text 4.7:1
+    bookmarkRedEdge: '#9C352B',
+    bookmarkGreen: '#6CB874',
+    bookmarkGreenEdge: '#4B8F55',
+    bookmarkActiveEdge: '#C77A36',
+    okText: '#2F7A45', // 5.0:1 on cream
+    okBg: '#E3F3E5',
+    okLine: '#8FCB9B',
+    okFill: '#4E9F62',
+    warnText: '#9A4A16', // "to check", "Not yet" (= link color)
+    warnBg: '#FDE3C6',
+    warnLine: '#F0B37A',
+    infoText: '#2F6E99', // "Assigned" (5.3:1 on its chip)
+    infoBg: '#E2F0FA',
+    infoLine: '#9CC8E6',
+    neutralBg: '#F2E8DA',
+    neutralLine: '#D9C7AF',
+    dangerText: '#B33A2E', // low % and Delete (5.6:1 on cream)
+    barRed: '#E8918A',
+    barYellow: '#F2C46B',
+    barGreen: '#9ED4A0',
+    barTrack: '#EDE2D2',
+    aiText: '#5D53B0', // the "AI" tag (= returningButtonEdge)
+    aiBg: '#E8E5FA',
+    aiLine: '#B9B2EC',
+    stickyYellow: '#FCF0A6', // Ollie's note
+    tape: '#F3C78E',
+    tapeBlue: '#BFDDF2',
+    codeYellow: '#FBEBA0', // one-time code chip
+    gridLine: '#EAF0E6', // the class record's grid paper
+    gridPaper: '#FFFDF6',
+    sheetBorder: '#D9C3A3',
+    clip: '#2B2A2E', // binder clips
   },
 
   fonts: {

@@ -39,7 +39,7 @@ export function LearnerHomeScreen() {
             </figure>
           )}
         </div>
-        <p className={styles.soon}>More of Learner Home is coming soon!</p>
+        <p className={styles.soon}>More of Student Home is coming soon!</p>
         <Button withArrow onClick={handleLogOut}>
           Log Out
         </Button>

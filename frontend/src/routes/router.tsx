@@ -16,6 +16,7 @@ import { LearnerHomeScreen } from '../screens/LearnerHome/LearnerHomeScreen'
 import { ComingSoonScreen } from '../screens/ComingSoonScreen/ComingSoonScreen'
 import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
 import { LobbyScreen } from '../screens/Lobby/LobbyScreen'
+import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
 
 export const router = createBrowserRouter([
   // Login flow: one beach scene, the card on the right changes per step.
@@ -53,11 +54,26 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Educator screens (to be built)
+  // Teacher Dashboard: one planner. It draws the pages itself (so it can flip
+  // between them); these child routes only list the URLs it knows.
   {
     element: <RequireRole role="educator" />,
     children: [
-      { path: paths.educator.home, element: <ComingSoonScreen title="Educator Home" /> },
+      {
+        path: paths.teacher.home,
+        element: <TeacherPlanner />,
+        children: [
+          { index: true, element: null },
+          { path: 'lessons', element: null },
+          { path: 'lessons/:id/making', element: null },
+          { path: 'lessons/:id/check', element: null },
+          { path: 'lessons/:id/games', element: null },
+          { path: 'students', element: null },
+          { path: 'progress', element: null },
+          { path: 'lobby', element: null },
+        ],
+      },
+      { path: '/educator', element: <Navigate to={paths.teacher.home} replace /> },
     ],
   },
 

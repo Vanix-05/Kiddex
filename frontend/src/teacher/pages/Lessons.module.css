@@ -1,0 +1,491 @@
+/* Lessons: upload (02) and making questions (03). Stage px. */
+
+/* ---------- My lessons list ---------- */
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 14px -14px 0 -14px;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.lesson {
+  margin: 0 14px;
+}
+
+.lesson + .lesson {
+  border-top: 2px dashed var(--color-neutral-line);
+}
+
+/* The new lesson while it's being made: highlighted. */
+.lessonNew {
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-title-pill-bg) 55%, transparent);
+}
+
+.lessonNew + .lesson {
+  border-top: 0;
+}
+
+.lessonButton {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+button.lessonButton {
+  cursor: pointer;
+}
+
+button.lessonButton:hover .lessonTitle {
+  text-decoration: underline;
+  text-decoration-color: var(--color-button-bg);
+  text-decoration-thickness: 2px;
+}
+
+.lessonText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lessonTitle,
+.fileName {
+  overflow: hidden;
+  font: 600 18px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lessonInfo {
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.noLessons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 200px;
+  margin-top: 24px;
+  border: 2.5px dashed var(--color-neutral-line);
+  border-radius: 16px;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.noLessons strong {
+  font: 600 20px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.noLessons span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- How it works ---------- */
+
+.how {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.howSteps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.howStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.howStep strong {
+  margin-top: 8px;
+  font: 600 15px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.howIcon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 2.5px solid;
+  border-radius: 50%;
+  background: var(--color-input-bg);
+}
+
+.howArrow {
+  position: absolute;
+  left: -10px;
+  top: 16px;
+  color: var(--color-text-subtle);
+  opacity: 0.6;
+}
+
+.howBrown {
+  border-color: var(--color-card-border);
+  color: var(--color-card-border);
+}
+
+.howPurple {
+  border-color: var(--color-ai-text);
+  background: var(--color-ai-bg);
+  color: var(--color-ai-text);
+}
+
+.howOrange {
+  border-color: var(--color-button-border);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+.howGreen {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+/* ---------- Add a lesson ---------- */
+
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 198px;
+  margin-top: 24px;
+  padding-top: 12px;
+  border: 2.5px dashed var(--color-warn-line);
+  border-radius: 18px;
+  text-align: center;
+}
+
+.dropOver {
+  border-style: solid;
+  background: var(--color-warn-bg);
+}
+
+.dropIcon {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+.dropTitle {
+  margin-top: 4px;
+  font: 600 19px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.dropHint {
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.fileSlot {
+  height: 62px;
+  margin-top: 14px;
+}
+
+.fileCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 62px;
+  padding: 0 14px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+}
+
+.fileName {
+  font-size: 16px;
+}
+
+.removeFile {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.removeFile:hover {
+  background: var(--color-neutral-bg);
+}
+
+.fileError {
+  display: flex;
+  align-items: center;
+  height: 62px;
+  margin: 0;
+  padding: 0 16px;
+  border: 2px solid var(--color-warn-line);
+  border-radius: 14px;
+  background: var(--color-warn-bg);
+  font-size: 15px;
+  color: var(--color-warn-text);
+}
+
+.fields {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldSmall {
+  flex: 0 0 150px;
+}
+
+.label {
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.input,
+.select {
+  height: 46px;
+  padding: 0 14px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 12px;
+  background: var(--color-input-bg);
+  font: 500 17px/1 var(--font-body);
+  color: var(--color-text);
+}
+
+.input {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-title-pill-bg) 60%, transparent);
+}
+
+.input::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.select {
+  border-color: var(--color-neutral-line);
+  cursor: pointer;
+}
+
+.gamesBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.gameChips {
+  display: flex;
+  gap: 10px;
+}
+
+.gameChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 10px;
+  background: var(--color-input-bg);
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.gameChipOn {
+  border-color: var(--color-ok-line);
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+.makeRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.makeButton {
+  flex: none;
+  width: 250px;
+  height: 50px;
+  font-size: 18px;
+}
+
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--color-text-subtle);
+}
+
+.privacy svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ---------- Making questions ---------- */
+
+.steps {
+  position: relative;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  min-height: 70px;
+}
+
+/* The line joining the step dots. */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 34px;
+  bottom: 0;
+  width: 2.5px;
+  background: var(--color-neutral-line);
+}
+
+.stepDot {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid var(--color-neutral-line);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+}
+
+.done .stepDot {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
+}
+
+.now .stepDot {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  color: var(--color-text-on-dark);
+  box-shadow: 0 0 0 6px var(--color-warn-bg);
+}
+
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0 0;
+  font: 600 18px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.next .stepTitle {
+  color: var(--color-text-subtle);
+}
+
+.stepDetail {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.progress {
+  position: relative;
+  display: block;
+  width: 360px;
+  height: 14px;
+  margin-top: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-track);
+  overflow: hidden;
+}
+
+/* Striped orange bar. */
+.progressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-pill);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--color-button-bg) 0 10px,
+    var(--color-button-bg-hover) 10px 20px
+  );
+  background-size: 28px 28px;
+  transition: width 140ms linear;
+  animation: stripes 600ms linear infinite;
+}
+
+@keyframes stripes {
+  to {
+    background-position: 28px 0;
+  }
+}
+
+.goCheck {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressFill {
+    animation: none;
+    transition: none;
+  }
+}

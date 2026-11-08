@@ -21,6 +21,15 @@ export const paths = {
   },
   educator: {
     login: '/educator/login',
-    home: '/educator',
+    /** Where a logged-in Teacher lands (the Teacher Dashboard). */
+    home: '/teacher',
+  },
+  /** Teacher Dashboard (the planner). Lessons steps: /teacher/lessons/:id/making|check|games */
+  teacher: {
+    home: '/teacher',
+    lessons: '/teacher/lessons',
+    students: '/teacher/students',
+    progress: '/teacher/progress',
+    lobby: '/teacher/lobby',
   },
 } as const

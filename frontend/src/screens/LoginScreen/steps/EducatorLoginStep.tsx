@@ -36,7 +36,7 @@ export function EducatorLoginStep() {
   }
 
   return (
-    <LoginCard title="Educator Login" subtitle="For teachers and parents">
+    <LoginCard title="Teacher Login" subtitle="For teachers and parents">
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <TextInput
           label="Email"
@@ -71,7 +71,7 @@ export function EducatorLoginStep() {
         </Link>
       </div>
 
-      <BackLink to={paths.learner.code}>I’m a Learner</BackLink>
+      <BackLink to={paths.learner.code}>I’m a Student</BackLink>
     </LoginCard>
   )
 }

@@ -82,7 +82,7 @@ export function ClassCodeStep() {
   }
 
   return (
-    <LoginCard title="Hi, Learner!" subtitle="Type the code your teacher gave you">
+    <LoginCard title="Hi, Student!" subtitle="Type the code your teacher gave you">
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <div className={styles.codeBoxes} role="group" aria-label="Class code">
           {letters.map((letter, i) => (

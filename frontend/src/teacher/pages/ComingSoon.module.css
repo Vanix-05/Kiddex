@@ -1,0 +1,22 @@
+.line {
+  margin: 30px 0 0;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.home {
+  align-self: flex-start;
+  margin-top: 22px;
+}
+
+.blank {
+  display: grid;
+  place-items: center;
+  height: 300px;
+  margin-top: 40px;
+  border: 2.5px dashed var(--color-neutral-line);
+  border-radius: 18px;
+  font: 600 26px/1 var(--font-display);
+  color: var(--color-text-subtle);
+  transform: rotate(-1.5deg);
+}

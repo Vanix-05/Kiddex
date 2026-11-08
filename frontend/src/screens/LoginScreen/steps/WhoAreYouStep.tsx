@@ -23,7 +23,7 @@ export function WhoAreYouStep() {
 
   return (
     <LoginCard title="Who are you?" subtitle={cls.name}>
-      <ul className={styles.tiles} aria-label="Learners in this class">
+      <ul className={styles.tiles} aria-label="Students in this class">
         {cls.learners.map((learner) => {
           const image = buddyImage(learner)
           const picked = learner.id === learnerId

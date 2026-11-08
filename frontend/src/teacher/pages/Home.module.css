@@ -1,0 +1,336 @@
+/* Home spread (01-home-planner.png). Stage px; page is 597x740. */
+
+/* ---------- Stats strip ---------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 26px 0 0;
+  height: 76px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-input-bg) 85%, transparent);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 14px;
+}
+
+.stat + .stat {
+  border-left: 2px dashed var(--color-neutral-line);
+}
+
+.statNumber {
+  margin: 0;
+  font: 600 30px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.statSmall {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.statLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ---------- To do / Get started ---------- */
+
+.todo {
+  margin-top: 26px;
+}
+
+.count {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-tab-coral);
+  font: 600 13px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.rows {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 6px 0;
+}
+
+.row + .row {
+  border-top: 2px dashed var(--color-neutral-line);
+}
+
+.check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 8px;
+  background: var(--color-input-bg);
+  color: var(--color-ok-text);
+  cursor: pointer;
+}
+
+.rowDone .check {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-bg);
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font: 600 17px/1.25 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.rowDetail {
+  margin: 3px 0 0;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.rowDone .rowTitle {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  color: var(--color-text-subtle);
+}
+
+.tag {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-tint-pink);
+  font: 600 12px/1 var(--font-display);
+  color: var(--color-danger-text);
+  text-decoration: none;
+}
+
+/* Get started: numbered circles. */
+.stepNo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-title-pill-bg);
+  font: 600 15px/1 var(--font-display);
+}
+
+.stepNoDone {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+/* ---------- Coming up ---------- */
+
+.coming {
+  margin-top: auto;
+}
+
+.comingRows {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comingRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 16px;
+}
+
+.comingRow + .comingRow {
+  margin-top: 10px;
+}
+
+.cal {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: 52px;
+  height: 42px;
+  overflow: hidden;
+  border: 2px solid var(--color-card-border);
+  border-radius: 8px;
+  background: var(--color-input-bg);
+  text-align: center;
+}
+
+.calDay {
+  background: var(--color-bookmark-red);
+  font: 600 10px/14px var(--font-display);
+  color: var(--color-text-on-dark);
+}
+
+.calDate {
+  font: 600 18px/24px var(--font-display);
+}
+
+.muted {
+  color: var(--color-text-subtle);
+}
+
+/* ---------- Right page ---------- */
+
+.openProgress {
+  position: absolute;
+  top: 30px;
+  right: 49px;
+  font-size: 16px;
+  border-bottom: 2px solid var(--color-button-bg);
+  border-radius: 0;
+}
+
+.topics {
+  margin-top: 24px;
+}
+
+.topicRows {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topic {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  row-gap: 7px;
+  font-size: 17px;
+}
+
+.topic + .topic {
+  margin-top: 13px;
+}
+
+.topicName {
+  color: var(--color-planner-ink);
+}
+
+.pct {
+  font-weight: 600;
+  color: var(--color-warn-text);
+}
+
+.pctLow {
+  color: var(--color-danger-text);
+}
+
+.topicBar {
+  grid-column: 1 / -1;
+  height: 17px;
+}
+
+.week {
+  margin-top: 26px;
+}
+
+.chart {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
+  height: 160px;
+  margin-top: 8px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  text-align: center;
+}
+
+.colNumber {
+  font: 600 14px/1 var(--font-display);
+  margin-bottom: 6px;
+}
+
+.colBar {
+  border: 2px solid var(--color-ok-fill);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--color-bar-green);
+  box-shadow: 0 2px 0 var(--color-card-border);
+}
+
+.today .colBar {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+}
+
+.future .colBar {
+  border: 2px dashed var(--color-neutral-line);
+  border-bottom: 0;
+  background: none;
+}
+
+.colDay {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 2.5px solid var(--color-card-border);
+  margin-left: -9px;
+  margin-right: -9px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.today .colDay {
+  font-weight: 600;
+  color: var(--color-planner-ink);
+}
+
+/* Empty: faint dashed areas with one line each. */
+.placeholder {
+  display: grid;
+  place-items: center;
+  margin: 12px 0 0;
+  border: 2px dashed var(--color-neutral-line);
+  border-radius: 14px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+  text-align: center;
+}
+
+.topicsEmpty {
+  height: 160px;
+}
+
+.chartEmpty {
+  height: 150px;
+}

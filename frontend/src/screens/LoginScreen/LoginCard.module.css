@@ -1,4 +1,4 @@
-/* Long titles ("Educator Login", "Hi, MangoKitty!") get a slightly smaller
+/* Long titles ("Teacher Login", "Hi, MangoKitty!") get a slightly smaller
    font so they stay on one line, like the mockups. `section` raises the
    specificity above `.card h1` in LoginScreen.module.css. */
 section.longTitle h1 {

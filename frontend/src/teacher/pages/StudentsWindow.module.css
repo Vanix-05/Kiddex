@@ -1,0 +1,538 @@
+/*
+ * My Students window (06). Stage px: the sheet's paper is 198,130 to
+ * 1354,850; the binder clips stick up above it; ✕ at 1318,110.
+ *
+ * Opening (about 0.7s): drops in folded in half (0.26s), then the right half
+ * unfolds (0.46s), then ✕ pops in. Closing: folds (0.45s), lifts away
+ * (0.26s). The blur behind it is in planner.module.css.
+ */
+
+.wrap {
+  position: absolute;
+  left: 198px;
+  top: 108px;
+  width: 1156px;
+  height: 742px;
+  z-index: 10;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  bottom: 0;
+  perspective: 2400px;
+  outline: none;
+  filter: drop-shadow(0 14px 14px rgba(60, 40, 25, 0.32));
+}
+
+.paper,
+.flapFront,
+.flapBack {
+  border: 2px solid var(--color-sheet-border);
+  background-color: var(--color-grid-paper);
+  background-image:
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.paper {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+}
+
+/* While folded: only the left half shows; the flap is the right half. */
+.halfOnly {
+  clip-path: inset(-40px 50% -40px -40px);
+}
+
+.flap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 50%;
+  transform-style: preserve-3d;
+  transform-origin: 0 50%;
+  z-index: 3;
+}
+
+.flapFront,
+.flapBack {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flapFront {
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+}
+
+.flapBack {
+  border-right: 0;
+  border-radius: 6px 0 0 6px;
+  transform: rotateY(180deg);
+}
+
+/* The copy of the whole sheet, shifted so its right half shows. */
+.flapCopy {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: calc(-100% - 2px);
+  width: calc(200% + 4px);
+}
+
+.flapShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(60, 35, 20, 0.35), transparent 60%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.unfold .flapShade {
+  animation: shade 460ms linear 260ms both;
+}
+
+.fold .flapShade {
+  animation: shade 450ms linear both;
+}
+
+.unfold {
+  animation: unfold 460ms cubic-bezier(0.55, 0.06, 0.32, 1) 260ms both;
+}
+
+.fold {
+  animation: fold 450ms cubic-bezier(0.55, 0.06, 0.32, 1) both;
+}
+
+@keyframes unfold {
+  from {
+    transform: rotateY(-180deg);
+  }
+  50% {
+    transform: rotateY(-90deg) translateZ(14px);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes fold {
+  from {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(-90deg) translateZ(14px);
+  }
+  to {
+    transform: rotateY(-180deg);
+  }
+}
+
+@keyframes shade {
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* The sheet drops in / lifts away. */
+.drop {
+  animation: drop 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.lift {
+  animation: lift 260ms cubic-bezier(0.5, 0, 0.8, 0.4) 450ms both;
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(-60px) rotate(-2deg);
+  }
+}
+
+@keyframes lift {
+  to {
+    opacity: 0;
+    transform: translateY(-60px) rotate(2deg);
+  }
+}
+
+/* Reduce motion: a fade. (!important: index.css cuts all animations to
+   0.01ms under reduce motion; a short fade is still wanted here.) */
+.fadeIn {
+  animation: fadeIn 150ms ease both !important;
+}
+
+.fadeOut {
+  animation: fadeOut 150ms ease both !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Black binder clips on top. */
+.clip {
+  position: absolute;
+  top: -14px;
+  width: 74px;
+  height: 30px;
+  z-index: 4;
+  border-radius: 5px 5px 7px 7px;
+  background: linear-gradient(to bottom, #48474c, var(--color-clip) 60%);
+  box-shadow: 0 3px 0 #151417;
+}
+
+/* The wire handle. */
+.clip::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: -16px;
+  height: 22px;
+  border: 4px solid #6b6a70;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+}
+
+.clipLeft {
+  left: 300px;
+}
+
+.clipRight {
+  left: 782px;
+}
+
+/* ✕ */
+.close {
+  position: absolute;
+  left: 1120px;
+  top: 2px;
+  z-index: 11;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-grid-paper);
+  box-shadow: 0 4px 0 rgba(74, 52, 38, 0.25);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-tint-peach);
+}
+
+.closePop {
+  animation: pop 220ms cubic-bezier(0.3, 1.5, 0.5, 1) 720ms both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+/* ---------- Content ---------- */
+
+.content {
+  position: absolute;
+  inset: 0;
+  padding: 34px 40px 22px;
+  display: flex;
+  flex-direction: column;
+  color: var(--color-text);
+}
+
+.content h2 {
+  font-size: 40px;
+}
+
+.sub {
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 250px;
+  height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 12px;
+  background: white;
+  color: var(--color-text-subtle);
+}
+
+.search:focus-within {
+  border-color: var(--color-card-border);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  font: 500 15px/1 var(--font-body);
+  color: var(--color-text);
+  outline: none;
+}
+
+.search input::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.toolButton {
+  height: 44px;
+  font-size: 16px;
+}
+
+.pills {
+  margin-top: 14px;
+}
+
+/* ---------- Table ---------- */
+
+.table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 16px;
+}
+
+.table th,
+.table td {
+  padding: 0 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table thead th {
+  height: 34px;
+  border-bottom: 2.5px solid var(--color-planner-ink);
+  font: 600 13px/1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Column widths (stage px) from the reference. */
+.table thead th:nth-child(1) {
+  width: 270px;
+  padding-left: 10px;
+}
+.table thead th:nth-child(2) {
+  width: 115px;
+}
+.table thead th:nth-child(3) {
+  width: 158px;
+}
+.table thead th:nth-child(4) {
+  width: 126px;
+}
+.table thead th:nth-child(5) {
+  width: 203px;
+}
+.table thead th:nth-child(6) {
+  width: 82px;
+}
+
+.row {
+  height: 47px;
+  border-bottom: 1.5px solid var(--color-neutral-line);
+}
+
+.row:hover {
+  background: color-mix(in srgb, var(--color-title-pill-bg) 40%, transparent);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 47px;
+  padding-left: 2px !important;
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-tint-peach);
+  object-fit: cover;
+}
+
+.avatarEmpty {
+  border: 2px dashed var(--color-neutral-line);
+  background: none;
+}
+
+.schoolId {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.loginChip {
+  height: 28px;
+}
+
+.mastery {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.masteryBar {
+  width: 112px;
+  height: 12px;
+}
+
+.code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-warn-text);
+}
+
+.streak strong {
+  color: var(--color-planner-ink);
+}
+
+.muted {
+  color: var(--color-text-subtle);
+}
+
+.noMatch {
+  height: 120px;
+  text-align: center !important;
+  color: var(--color-text-subtle);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.pages {
+  display: flex;
+  gap: 8px;
+}
+
+.pageButton {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 10px;
+  background: white;
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.pageOn {
+  border-color: var(--color-planner-ink);
+  background: var(--color-planner-ink);
+  color: var(--color-text-on-dark);
+}
+
+/* ---------- Empty ---------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border: 2.5px dashed var(--color-neutral-line);
+  border-radius: 50%;
+  color: var(--color-text-subtle);
+}
+
+.emptyTitle {
+  margin-top: 6px;
+  font: 600 26px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.emptyLine {
+  max-width: 440px;
+  margin: 0 0 8px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.bigButton {
+  height: 50px;
+  font-size: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .closePop {
+    animation: none;
+  }
+}

@@ -1,0 +1,58 @@
+/* TESTING TOOL: deleted together with src/mock/teacherMock.ts. */
+
+/*
+ * Sits on the stage (stage px), in the free space at the top between the
+ * "+ New" tab (ends at x 848 with three sections) and the Ms. Cruz chip
+ * (starts at x 1206), centered on the chip's middle (y 72).
+ */
+div.slot {
+  position: absolute;
+  left: 848px;
+  right: 234px;
+  top: 46px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.switch {
+  pointer-events: auto;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px 0 18px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card-bg);
+  box-shadow:
+    0 4px 0 rgba(74, 52, 38, 0.2),
+    0 10px 24px rgba(40, 30, 20, 0.22);
+  font: 500 17px/1 var(--font-display);
+  color: var(--color-text);
+}
+
+.label {
+  margin-right: 8px;
+}
+
+.option {
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--color-tint-peach);
+}
+
+.on,
+.on:hover {
+  background: var(--color-button-bg);
+  color: var(--color-button-text);
+}

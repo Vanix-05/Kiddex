@@ -26,6 +26,7 @@
     "rig:dog": "node --max-old-space-size=4096 scripts/rig-pet.mjs dog"
   },
   "dependencies": {
+    "lucide-react": "^1.70.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.4"

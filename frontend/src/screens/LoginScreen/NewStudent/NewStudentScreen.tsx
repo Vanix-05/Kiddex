@@ -4,7 +4,7 @@ import { ollieLarge } from '../../../assets/art'
 import { KiddexLogo } from '../../../components/KiddexLogo/KiddexLogo'
 import { SceneBackground } from '../../../components/SceneBackground/SceneBackground'
 import { SignPost } from '../../../components/SignPost/SignPost'
-import { ChoiceNotebook, type PopupRects } from '../WelcomeStudentPopup/WelcomeStudentPopup'
+import { ChoiceNotebook, type PopupRects, type StudentKind } from '../WelcomeStudentPopup/WelcomeStudentPopup'
 import styles from './NewStudentScreen.module.css'
 
 /** How long the "Start here" transition runs (see NewStudentScreen.module.css). */
@@ -17,14 +17,28 @@ export const TURN_MS = 700
 export type Step = 1 | 2 | 3
 export type NewStudentScreenMode = 'enter' | 'shown' | 'leave'
 
-/** Ollie's speech bubble for each step. */
-const BUBBLES: Record<Step, { title: string; emoji: string; line: string }> = {
-  1: { title: 'First, your School ID!', emoji: '🪪', line: 'Look at the top of your card.' },
-  2: { title: 'Now your one-time code!', emoji: '🎟️', line: 'Your teacher gave it to you.' },
-  3: { title: 'Make your own PIN code!', emoji: '🔒', line: 'Don’t share it with anyone.' },
+interface Bubble {
+  title: string
+  emoji: string
+  line: string
+}
+
+/** Ollie's speech bubble for each step (New Student: 3 steps, Returning Student: 2). */
+const BUBBLES: Record<StudentKind, Bubble[]> = {
+  new: [
+    { title: 'First, your School ID!', emoji: '🪪', line: 'Look at the top of your card.' },
+    { title: 'Now your one-time code!', emoji: '🎟️', line: 'Your teacher gave it to you.' },
+    { title: 'Make your own PIN code!', emoji: '🔒', line: 'Don’t share it with anyone.' },
+  ],
+  returning: [
+    { title: 'Welcome back!', emoji: '👋', line: 'Type your School ID.' },
+    { title: 'Now your PIN code!', emoji: '🔒', line: 'The one you made last time.' },
+  ],
 }
 
 interface NewStudentScreenProps {
+  /** Which card opened the steps: New Student or Returning Student. */
+  kind: StudentKind
   /** enter = playing the transition from the popup; leave = fading out (Back). */
   mode: NewStudentScreenMode
   /** Where the popup's notebook and Ollie were, for the enter transition. */
@@ -41,15 +55,24 @@ interface NewStudentScreenProps {
 }
 
 /**
- * The New Student steps (School ID, one-time code, PIN code), drawn over the
- * login screen. It has its own copy of the beach scene, with Ollie standing
+ * The New Student steps (School ID, one-time code, PIN code) or the Returning
+ * Student steps (School ID, PIN code), drawn over the login screen. It has its own copy of the beach scene, with Ollie standing
  * on the left and the notebook on the right. The URL doesn't change, same as
  * the popup. Next turns the page; Back fades to the previous step.
  *
  * Layers, bottom to top: scene, dim overlay (enter only), page (notebook +
  * Ollie), tap blocker (while anything animates).
  */
-export function NewStudentScreen({ mode, from, step, turningFrom, fadedIn, bounceKey, renderStep }: NewStudentScreenProps) {
+export function NewStudentScreen({
+  kind,
+  mode,
+  from,
+  step,
+  turningFrom,
+  fadedIn,
+  bounceKey,
+  renderStep,
+}: NewStudentScreenProps) {
   const titleId = useId()
   const pageRef = useRef<HTMLDivElement>(null)
   const slotRef = useRef<HTMLDivElement>(null)
@@ -58,7 +81,7 @@ export function NewStudentScreen({ mode, from, step, turningFrom, fadedIn, bounc
   const entering = mode === 'enter' && from !== null
   // Taps and keys are ignored while the popup transition or a page turn plays.
   const busy = mode === 'enter' || turningFrom !== null
-  const bubble = BUBBLES[step]
+  const bubble = BUBBLES[kind][step - 1]
 
   // Enter: start the notebook and Ollie where the popup's were (FLIP). Runs
   // before the first paint, then turns the animations on.
@@ -143,7 +166,7 @@ export function NewStudentScreen({ mode, from, step, turningFrom, fadedIn, bounc
           {entering && (
             <div className={styles.front} aria-hidden="true" inert>
               <div className={styles.frontInner} style={{ width: from.notebook.width, height: from.notebook.height }}>
-                <ChoiceNotebook pressingStart />
+                <ChoiceNotebook pressing={kind} />
               </div>
             </div>
           )}

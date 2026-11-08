@@ -1,0 +1,584 @@
+/*
+ * Teacher planner. Everything is laid out on a fixed 1440x900 stage, which
+ * TeacherPlanner scales to fit the window (same ratio, centered). Positions
+ * below are in stage pixels, measured from the reference images.
+ *
+ *   cover       151,104 to 1400,878
+ *   left page   167,121  597x740      right page  788,121  597x740
+ *   spine       764..788 (rings centered on x 776)
+ *
+ * Two stages share the same scale: the book stage (scene logo + book) and,
+ * above the Students blur, the chrome stage (tabs, bookmarks, Ms. Cruz chip
+ * and the Students window), so the chrome stays sharp and clickable.
+ */
+
+.root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--color-text);
+}
+
+/* Its own layer, so nothing in the scene can sit over the book. */
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 900px;
+  transform-origin: 0 0;
+}
+
+.bookStage {
+  z-index: 1;
+  perspective: 2600px;
+}
+
+.chromeStage {
+  z-index: 3;
+  pointer-events: none;
+}
+
+.chromeStage > * {
+  pointer-events: auto;
+}
+
+/* ---------- Logo ---------- */
+
+.brand {
+  position: absolute;
+  left: 14px;
+  top: 6px;
+}
+
+/* KiddexLogo sizes itself with vw/vh; on the stage it needs fixed sizes. */
+.brand div > span:first-child {
+  font-size: 54px;
+  -webkit-text-stroke-width: 8px;
+}
+
+.brand div > span:last-child {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+/* ---------- Book ---------- */
+
+.cover {
+  position: absolute;
+  left: 151px;
+  top: 104px;
+  width: 1249px;
+  height: 774px;
+  border: 3px solid var(--color-planner-cover-dark);
+  border-radius: 24px;
+  background: var(--color-planner-cover);
+  box-shadow:
+    inset 0 0 0 5px color-mix(in srgb, var(--color-planner-cover) 80%, white),
+    0 8px 0 color-mix(in srgb, var(--color-planner-cover-dark) 55%, transparent),
+    0 22px 44px rgba(40, 30, 20, 0.28);
+}
+
+/* Darker strip down the middle, behind the rings. */
+.cover::after {
+  content: '';
+  position: absolute;
+  left: 608px;
+  top: 8px;
+  bottom: 8px;
+  width: 28px;
+  border-radius: 6px;
+  background: linear-gradient(to right, var(--color-planner-spine), var(--color-planner-cover), var(--color-planner-spine));
+}
+
+.slotL,
+.slotR {
+  position: absolute;
+  top: 121px;
+  width: 597px;
+  height: 740px;
+}
+
+.slotL {
+  left: 167px;
+}
+
+.slotR {
+  left: 788px;
+}
+
+/* Lined cream paper. The left page has the red margin line. */
+.paper {
+  --line: 44px;
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  background-color: var(--color-card-bg);
+  color: var(--color-text);
+  outline: none;
+}
+
+.paperL {
+  border-radius: 14px 3px 3px 14px;
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 64px,
+      var(--color-notebook-margin) 64px,
+      var(--color-notebook-margin) 66.5px,
+      transparent 66.5px
+    ),
+    linear-gradient(to left, rgba(90, 57, 35, 0.16), transparent 30px),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line));
+  background-position: 0 0, 0 0, 0 1px;
+}
+
+.paperR {
+  border-radius: 3px 14px 14px 3px;
+  background-image:
+    linear-gradient(to right, rgba(90, 57, 35, 0.16), transparent 30px),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line));
+  background-position: 0 0, 0 1px;
+}
+
+/* ---------- Spiral rings ---------- */
+
+.rings {
+  position: absolute;
+  left: 752px;
+  top: 139px;
+  width: 48px;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.ring {
+  position: absolute;
+  left: 0;
+  width: 48px;
+  height: 12px;
+}
+
+/* The two punched holes, one on each page. */
+.ring::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0;
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 5px 50%, #4a3a30 0 4.5px, transparent 5px),
+    radial-gradient(circle at calc(100% - 5px) 50%, #4a3a30 0 4.5px, transparent 5px);
+}
+
+/* The metal loop between the holes. */
+.ring::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 0;
+  height: 12px;
+  border: 2px solid #55585e;
+  border-radius: 6px;
+  background: linear-gradient(to bottom, var(--color-planner-ring-light), var(--color-planner-ring) 70%, #6d7076);
+}
+
+/* ---------- Page flip ---------- */
+
+.flipLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+}
+
+/* The page under the turning one gets a soft shadow that fades away. */
+.underShade {
+  position: absolute;
+  top: 121px;
+  width: 597px;
+  height: 740px;
+  z-index: 5;
+  pointer-events: none;
+  animation: underFade var(--flip-ms) linear forwards;
+}
+
+.underShade.fwd {
+  left: 788px;
+  background: linear-gradient(to right, rgba(60, 35, 20, 0.35), rgba(60, 35, 20, 0) 60%);
+}
+
+.underShade.bwd {
+  left: 167px;
+  background: linear-gradient(to left, rgba(60, 35, 20, 0.35), rgba(60, 35, 20, 0) 60%);
+}
+
+@keyframes underFade {
+  from {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.cover2 {
+  z-index: 4;
+}
+
+.flipper {
+  position: absolute;
+  top: 121px;
+  width: 597px;
+  height: 740px;
+  z-index: 7;
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: var(--flip-ms) ease-in-out forwards;
+}
+
+/* Forward: the right page turns over the spine (12px left of it) to the left. */
+.flipper.fwd {
+  left: 788px;
+  transform-origin: -12px 50%;
+  animation-name: turnForward;
+}
+
+/* Backward: the left page turns to the right. */
+.flipper.bwd {
+  left: 167px;
+  transform-origin: calc(100% + 12px) 50%;
+  animation-name: turnBackward;
+}
+
+@keyframes turnForward {
+  from {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(-90deg) translateZ(18px);
+  }
+  to {
+    transform: rotateY(-180deg);
+  }
+}
+
+@keyframes turnBackward {
+  from {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(90deg) translateZ(18px);
+  }
+  to {
+    transform: rotateY(180deg);
+  }
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.faceBack {
+  transform: rotateY(180deg);
+}
+
+/* Shading on the turning page: darkens as it stands up, then lightens. */
+.shade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.shadeIn {
+  animation: shadeIn var(--flip-ms) linear forwards;
+}
+
+.shadeOut {
+  animation: shadeOut var(--flip-ms) linear forwards;
+}
+
+.shadeFromLeft {
+  background: linear-gradient(to right, rgba(60, 35, 20, 0.45), rgba(60, 35, 20, 0) 70%);
+}
+
+.shadeFromRight {
+  background: linear-gradient(to left, rgba(60, 35, 20, 0.45), rgba(60, 35, 20, 0) 70%);
+}
+
+@keyframes shadeIn {
+  from {
+    opacity: 0;
+  }
+  50%,
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shadeOut {
+  from,
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduce motion: the old spread fades out over the new one. (!important:
+   index.css cuts all animations to 0.01ms under reduce motion; this short
+   crossfade is the reduce-motion version of the flip, so it stays.) */
+.fadeOld {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  animation: fadeOut 200ms ease forwards !important;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------- Section tabs (on top, tucked behind the cover) ---------- */
+
+.tabs {
+  position: absolute;
+  left: 200px;
+  top: 0;
+  width: 680px;
+  height: 106px;
+  /* clip, not hidden: a focused tab or bookmark must not scroll it */
+  overflow: clip;
+  pointer-events: none;
+}
+
+.tab {
+  position: absolute;
+  top: 50px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px 20px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 14px 14px 0 0;
+  font: 600 17px/1 var(--font-display);
+  white-space: nowrap;
+  color: var(--color-text);
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: inset 0 -26px 14px -14px rgba(90, 57, 35, 0.18);
+  transition: transform 150ms ease;
+}
+
+.tab:hover {
+  transform: translateY(-3px);
+}
+
+.tab:focus-visible {
+  outline-offset: -6px;
+}
+
+.tabOn {
+  top: 41px;
+  height: 85px;
+  padding-bottom: 26px;
+  font-size: 18px;
+}
+
+.tabOn:hover {
+  transform: none;
+}
+
+.tabYellow {
+  background-color: var(--color-tab-yellow);
+}
+
+.tabPink {
+  background-color: var(--color-tab-pink);
+}
+
+.tabCoral {
+  background-color: var(--color-tab-coral);
+}
+
+.tabNew {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-card-border) 70%, transparent);
+  background-color: var(--color-tab-new);
+  color: var(--color-text-subtle);
+  font-weight: 500;
+}
+
+.tabIcon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, white 65%, transparent);
+}
+
+/* ---------- Bookmarks (left, tucked under the cover) ---------- */
+
+.bookmarks {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 154px;
+  height: 900px;
+  /* clip, not hidden: a focused tab or bookmark must not scroll it */
+  overflow: clip;
+  pointer-events: none;
+}
+
+.bookmark {
+  position: absolute;
+  left: 46px;
+  width: 150px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 44px 0 0;
+  border: 3px solid var(--color-bookmark-red-edge);
+  border-right: 0;
+  border-radius: 14px 0 0 14px;
+  background: var(--color-bookmark-red);
+  box-shadow: 0 5px 0 var(--color-bookmark-red-edge);
+  color: var(--color-text-on-dark);
+  font: 600 15px/1.1 var(--font-display);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 150ms ease;
+}
+
+.bookmark:hover {
+  transform: translateX(-5px);
+}
+
+.bookmark:focus-visible {
+  outline-offset: -7px;
+  outline-color: var(--color-text-on-dark);
+}
+
+.bookmarkGreen {
+  border-color: var(--color-bookmark-green-edge);
+  background: var(--color-bookmark-green);
+  box-shadow: 0 5px 0 var(--color-bookmark-green-edge);
+  color: var(--color-planner-ink);
+}
+
+/* The active one: orange, sticks out further, dark text. */
+.bookmarkOn {
+  left: 24px;
+  border-color: var(--color-bookmark-active-edge);
+  background: var(--color-button-bg);
+  box-shadow: 0 5px 0 var(--color-bookmark-active-edge);
+  color: var(--color-planner-ink);
+}
+
+.bookmarkOn:hover {
+  transform: none;
+}
+
+.bookmarkOn:focus-visible {
+  outline-color: var(--color-focus-ring);
+}
+
+/* ---------- Ms. Cruz chip ---------- */
+
+.chip {
+  position: absolute;
+  right: 40px;
+  top: 50px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 5px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card-bg);
+  box-shadow: 0 4px 0 rgba(74, 52, 38, 0.2);
+  font: 600 16px/1 var(--font-display);
+}
+
+.chipAvatar {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-tint-peach) no-repeat;
+  object-fit: cover;
+  object-position: 50% 12%;
+}
+
+.logOut {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font: 500 15px/1 var(--font-display);
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.logOut:hover {
+  color: var(--color-link);
+  text-decoration: underline;
+}
+
+/* ---------- My Students blur ---------- */
+
+.blur {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  backdrop-filter: blur(7px) saturate(0.92);
+  -webkit-backdrop-filter: blur(7px) saturate(0.92);
+  background: rgba(58, 38, 24, 0.22);
+  animation: fadeIn 380ms ease-out both;
+}
+
+.blurOut {
+  animation: fadeOut 320ms ease-in 480ms both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blur {
+    animation-duration: 150ms;
+  }
+  .blurOut {
+    animation: fadeOut 150ms ease both;
+  }
+  .tab,
+  .bookmark {
+    transition: none;
+  }
+}
