@@ -22,6 +22,8 @@ export interface SessionState {
   buddyName: string | null
   /** The Customize Bridge picks (skin, hair, shirt, extras, buddy color). Empty = the art as drawn. */
   look: Look
+  /** The Customize Bridge -> Rene Island cutscene has played (it plays once). */
+  seenBridgeCutscene: boolean
 }
 
 /** What the student picked during first-time setup. */
@@ -43,6 +45,8 @@ export interface SessionContextValue extends SessionState {
   saveLook: (look: Look) => void
   /** Customize Bridge pencil: renames the buddy (empty = the buddy's default name). */
   renameBuddy: (name: string) => void
+  /** Go to Lobby: the cutscene played (or was skipped), so next time it opens /lobby straight away. */
+  markBridgeCutsceneSeen: () => void
   logOut: () => void
 }
 

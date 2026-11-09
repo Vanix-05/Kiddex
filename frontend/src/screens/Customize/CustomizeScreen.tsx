@@ -28,6 +28,7 @@ import {
 } from '../../setup/customizeData'
 import { cleanNickname, MAX_NICKNAME, petById } from '../../setup/petData'
 import { isBuddyId, type BuddyId } from '../../setup/quizData'
+import { BridgeCutscene } from './cutscene/BridgeCutscene'
 import { Boat, Scene } from './Scene'
 import styles from './CustomizeScreen.module.css'
 
@@ -53,7 +54,6 @@ const DEFAULT_BUBBLE = 'Let’s sail to the Lobby! ⛵'
 const ART_KEYS: Record<Avatar, ColorKeys> = { boy: boyColorKeys, girl: girlColorKeys }
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 /** The tray area (toggle, tabs, tray, buttons): its own layer at the bottom, from this stage y down. */
 const HUD_TOP = 688
 /** The tray never shrinks below this, so its 16px labels stay at 14px or more on short screens. */
@@ -91,16 +91,33 @@ const colorDistance = (a: string, b: string) => {
  * The Customize Bridge (/customize), after the first-time setup. The Student
  * and their buddy stand on a pier; Rene Island (the class Lobby) is across the
  * water. The tray dresses up "You" (skin, hair, shirt, extra) or the buddy
- * (color, extra); the ribbon's pencil renames the buddy. "Go to Lobby" walks
- * them onto the boat and sails to the island, then opens /lobby.
+ * (color, extra); the ribbon's pencil renames the buddy. "Go to Lobby" plays
+ * the Rene Island cutscene the first time (not with reduce motion), then opens /lobby.
  */
 export function CustomizeScreen() {
   const navigate = useNavigate()
-  const { avatar, companionId, buddyName, look, saveLook, renameBuddy, logOut } = useSession()
+  const { avatar, companionId, buddyName, look, saveLook, renameBuddy, logOut, seenBridgeCutscene, markBridgeCutsceneSeen } =
+    useSession()
   const buddy = isBuddyId(companionId) ? companionId : null
+  const [cutscene, setCutscene] = useState(false)
 
   // Not set up yet (opened directly): back to the first-time setup.
   if (!avatar || !buddy) return <Navigate to={paths.setup.quiz} replace />
+
+  const goToLobby = () => {
+    if (seenBridgeCutscene || reducedMotion()) {
+      navigate(paths.lobby)
+      return
+    }
+    markBridgeCutsceneSeen() // once only, even if they skip it
+    setCutscene(true)
+  }
+
+  if (cutscene) {
+    return (
+      <BridgeCutscene avatar={avatar} buddy={buddy} look={look} buddyName={buddyName} onDone={() => navigate(paths.lobby)} />
+    )
+  }
 
   return (
     <Bridge
@@ -110,7 +127,7 @@ export function CustomizeScreen() {
       look={look}
       saveLook={saveLook}
       renameBuddy={renameBuddy}
-      onLobby={() => navigate(paths.lobby)}
+      onLobby={goToLobby}
       onLogOut={() => {
         logOut()
         navigate(paths.welcome)
@@ -119,7 +136,6 @@ export function CustomizeScreen() {
   )
 }
 
-type Sail = 'walk' | 'hop' | 'boat' | null
 type IdleMove = { move: 'hop' | 'lean'; key: number } | null
 type Sparkle = { key: number; who: Side }
 
@@ -155,29 +171,21 @@ function Bridge({
   const [sparkles, setSparkles] = useState<Sparkle[]>([])
   const [idle, setIdle] = useState<IdleMove>(null)
   const [editing, setEditing] = useState(false)
-  const [sail, setSail] = useState<Sail>(null)
 
-  const avatarRef = useRef<HTMLDivElement>(null)
-  const buddyRef = useRef<HTMLDivElement>(null)
-  const boatRef = useRef<HTMLDivElement>(null)
-  const pathRef = useRef<SVGPathElement>(null)
   const nameInput = useRef<HTMLInputElement>(null)
   const cancelEdit = useRef(false)
   const timers = useRef<number[]>([])
   const counter = useRef(0)
-  const alive = useRef(true)
 
   const later = (ms: number, fn: () => void) => {
     timers.current.push(window.setTimeout(fn, ms))
   }
 
   useEffect(() => {
-    alive.current = true
     const onResize = () => setLayout(layoutFor())
     window.addEventListener('resize', onResize)
     const pending = timers.current
     return () => {
-      alive.current = false
       window.removeEventListener('resize', onResize)
       pending.forEach((t) => window.clearTimeout(t))
     }
@@ -185,7 +193,7 @@ function Bridge({
 
   // ---------- Buddy idle: one hop after ~1 s, then a hop or a lean every few seconds ----------
   useEffect(() => {
-    if (sail || reducedMotion()) return
+    if (reducedMotion()) return
     const next = (move: 'hop' | 'lean') => setIdle({ move, key: ++counter.current })
     const first = window.setTimeout(() => next('hop'), FIRST_HOP_MS)
     const every = window.setInterval(() => next(Math.random() < 0.5 ? 'hop' : 'lean'), IDLE_EVERY_MS)
@@ -193,7 +201,7 @@ function Bridge({
       window.clearTimeout(first)
       window.clearInterval(every)
     }
-  }, [sail])
+  }, [])
 
   /** Happy bounce + sparkles around the one that just changed. */
   const celebrate = (who: Side) => {
@@ -224,7 +232,6 @@ function Bridge({
   }
 
   const pick = (item: CustomizeItem) => {
-    if (sail) return
     if (isLocked(item)) {
       setShake({ id: item.id, key: ++counter.current })
       setBubble(`Reach Lv ${item.level} to unlock it!`)
@@ -239,7 +246,6 @@ function Bridge({
   // ---------- Rename ----------
 
   const startRename = () => {
-    if (sail) return
     cancelEdit.current = false
     setEditing(true)
   }
@@ -266,64 +272,6 @@ function Bridge({
     }
   }
 
-  // ---------- Go to Lobby: walk to the pier's end, hop in, sail ----------
-
-  const goToLobby = async () => {
-    if (sail) return
-    if (reducedMotion()) {
-      onLobby()
-      return
-    }
-    const a = avatarRef.current
-    const b = buddyRef.current
-    const boat = boatRef.current
-    const path = pathRef.current
-    if (!a || !b || !boat || !path) {
-      onLobby()
-      return
-    }
-    const keep = { fill: 'forwards' as const }
-
-    // 1. Walk right along the pier (the buddy arrives a bit earlier).
-    setSail('walk')
-    await Promise.all([
-      a.animate([{ transform: 'none' }, { transform: 'translateX(380px)' }], { duration: 1500, ...keep }).finished,
-      b.animate([{ transform: 'none' }, { transform: 'translateX(260px)' }], { duration: 1150, ...keep }).finished,
-    ])
-    if (!alive.current) return
-
-    // 2. Hop into the boat: an arc, shrinking to boat size.
-    setSail('hop')
-    const arc = (startX: number, dx: number, lift: number) =>
-      Array.from({ length: 11 }, (_, i) => {
-        const e = i / 10
-        const x = startX + e * dx
-        const y = -Math.sin(e * Math.PI) * lift + e * 10
-        return { transform: `translate(${x}px, ${y}px) scale(${1 - e * 0.55})`, opacity: e < 0.9 ? 1 : 0 }
-      })
-    await Promise.all([
-      a.animate(arc(380, 120, 70), { duration: 650, easing: 'ease-in-out', ...keep }).finished,
-      b.animate(arc(260, 70, 80), { duration: 700, easing: 'ease-in-out', ...keep }).finished,
-    ])
-    if (!alive.current) return
-
-    // 3. Small copies ride in the boat, which sails along the dotted path, getting smaller.
-    setSail('boat')
-    await wait(250)
-    if (!alive.current) return
-    const length = path.getTotalLength()
-    const start = path.getPointAtLength(0)
-    const frames = Array.from({ length: 41 }, (_, i) => {
-      const e = i / 40
-      const p = path.getPointAtLength(e * length)
-      return { transform: `translate(${p.x - start.x}px, ${p.y - start.y}px) scale(${1 - e * 0.74})` }
-    })
-    await boat.animate(frames, { duration: 2600, easing: 'ease-in-out', ...keep }).finished
-    if (!alive.current) return
-    await boat.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, ...keep }).finished
-    if (alive.current) onLobby()
-  }
-
   // ---------- Bits for the page ----------
 
   const items = ITEMS[tab]
@@ -345,51 +293,38 @@ function Bridge({
   const sparkleAt = (who: Side) => (who === 'you' ? { x: AVATAR.x, y: FEET_Y - 250 } : { x: BUDDY.x, y: FEET_Y - 230 })
 
   return (
-    <main className={[styles.screen, sail && styles.sailing].filter(Boolean).join(' ')}>
+    <main className={styles.screen}>
       <div
         className={styles.stage}
         style={{ width: STAGE_W, height: STAGE_H, top: layout.top, transform: `translateX(-50%) scale(${layout.scene})` }}
       >
-        <Scene className={styles.scene} pathRef={pathRef} hidePath={!!sail} />
+        <Scene className={styles.scene} />
 
         <p className={styles.island}>
           <span aria-hidden="true">🌴 </span>Rene Island
           <small>Lobby · {SECTION}</small>
         </p>
 
-        {/* ---------- The boat (riders appear when they hop in) ---------- */}
-        <div ref={boatRef} className={styles.boat}>
+        {/* ---------- The boat ---------- */}
+        <div className={styles.boat}>
           <div className={styles.bob}>
-            <Boat
-              seats={
-                sail === 'boat' && (
-                  <div className={styles.seats} aria-hidden="true">
-                    <Companion id={avatar} still colors={colors} extras={youExtras} className={styles.riderYou} />
-                    <Companion id={buddy} still hue={hue} extras={buddyExtras} className={styles.riderBuddy} />
-                  </div>
-                )
-              }
-            />
+            <Boat />
           </div>
         </div>
 
         {/* ---------- The Student and their buddy ---------- */}
-        <div ref={avatarRef} className={styles.char} style={place(avatar, AVATAR)} data-hidden={sail === 'boat' || undefined}>
+        <div className={styles.char} style={place(avatar, AVATAR)}>
           <span className={styles.shadow} aria-hidden="true" />
           <div key={cheer.you} className={cheer.you ? styles.happy : undefined}>
-            <div className={sail === 'walk' ? styles.walk : undefined}>
-              <Companion id={avatar} className={styles.figure} colors={colors} extras={youExtras} />
-            </div>
+            <Companion id={avatar} className={styles.figure} colors={colors} extras={youExtras} />
           </div>
         </div>
 
-        <div ref={buddyRef} className={styles.char} style={place(buddy, BUDDY)} data-hidden={sail === 'boat' || undefined}>
+        <div className={styles.char} style={place(buddy, BUDDY)}>
           <span className={`${styles.shadow} ${styles.shadowBuddy}`} aria-hidden="true" />
           <div key={idle?.key ?? 0} className={idle ? styles[idle.move] : undefined}>
             <div key={cheer.buddy} className={cheer.buddy ? styles.happy : undefined}>
-              <div className={sail === 'walk' ? styles.walk : undefined}>
-                <Companion id={buddy} className={styles.figure} hue={hue} extras={buddyExtras} />
-              </div>
+              <Companion id={buddy} className={styles.figure} hue={hue} extras={buddyExtras} />
             </div>
           </div>
         </div>
@@ -411,12 +346,12 @@ function Bridge({
           )
         })}
 
-        <p className={`${styles.bubble} ${styles.ui}`} aria-live="polite">
+        <p className={`${styles.bubble}`} aria-live="polite">
           {bubble ?? DEFAULT_BUBBLE}
         </p>
 
         {/* ---------- Name ribbon + chip ---------- */}
-        <div className={`${styles.ribbon} ${styles.ui}`}>
+        <div className={`${styles.ribbon}`}>
           <svg className={styles.ribbonArt} viewBox="0 0 420 120" aria-hidden="true">
             <path d="M8 44 L62 44 L62 104 L8 104 L30 74 Z" fill="#e2675e" stroke="#5b3a22" strokeWidth="4" strokeLinejoin="round" />
             <path d="M412 44 L358 44 L358 104 L412 104 L390 74 Z" fill="#e2675e" stroke="#5b3a22" strokeWidth="4" strokeLinejoin="round" />
@@ -454,7 +389,7 @@ function Bridge({
             <span aria-hidden="true">✏️</span>
           </button>
         </div>
-        <p className={`${styles.chip} ${styles.ui}`}>
+        <p className={`${styles.chip}`}>
           <span className={`${styles.head} ${styles.chipHead}`} aria-hidden="true">
             <Companion id={buddy} still hue={hue} className={styles.headFigure} />
           </span>
@@ -475,7 +410,7 @@ function Bridge({
         }}
       >
         {/* ---------- You / Buddy toggle ---------- */}
-        <div className={`${styles.toggle} ${styles.ui}`} role="group" aria-label="Who to dress up">
+        <div className={`${styles.toggle}`} role="group" aria-label="Who to dress up">
           <button type="button" aria-pressed={side === 'you'} onClick={() => switchSide('you')}>
             <span className={styles.head} aria-hidden="true">
               <Companion id={avatar} still colors={colors} className={styles.headFigure} />
@@ -491,7 +426,7 @@ function Bridge({
         </div>
 
         {/* ---------- Folder tabs + tray ---------- */}
-        <div className={`${styles.tabs} ${styles.ui}`} role="tablist" aria-label={side === 'you' ? 'Dress up you' : `Dress up ${name}`}>
+        <div className={`${styles.tabs}`} role="tablist" aria-label={side === 'you' ? 'Dress up you' : `Dress up ${name}`}>
           {TABS[side].map((t) => (
             <button
               key={t.key}
@@ -509,7 +444,7 @@ function Bridge({
           ))}
         </div>
 
-        <div id="cb-tray" className={`${styles.tray} ${styles.ui}`} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
+        <div id="cb-tray" className={`${styles.tray}`} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
           <ul className={styles.tiles}>
             {items.map((item, i) => {
               const locked = isLocked(item)
@@ -579,12 +514,12 @@ function Bridge({
         </div>
 
         {/* ---------- Buttons ---------- */}
-        <button type="button" className={`${styles.go} ${styles.ui}`} onClick={goToLobby} disabled={!!sail}>
+        <button type="button" className={`${styles.go}`} onClick={onLobby}>
           Go to Lobby <span aria-hidden="true">→</span>
         </button>
-        <p className={`${styles.out} ${styles.ui}`}>
+        <p className={`${styles.out}`}>
           Not you?{' '}
-          <button type="button" onClick={onLogOut} disabled={!!sail}>
+          <button type="button" onClick={onLogOut}>
             Log out
           </button>
         </p>

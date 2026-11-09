@@ -1,0 +1,262 @@
+/*
+ * Customize Bridge -> Rene Island cutscene. A 1440 x 900 stage, scaled to fit
+ * the window (BridgeCutscene.tsx); the window around it is the letterbox
+ * color, so there are never white edges. Everything that moves is moved by
+ * the cutscene's clock (transforms and opacity only).
+ */
+
+.root {
+  --ink: #5b3a22;
+  --bar: #1d1410;
+  --cream: #fdf6ec;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: var(--bar);
+  font-family: var(--font-display);
+}
+
+/* Its left, top and scale are set in BridgeCutscene.tsx (fit). */
+.stage {
+  position: absolute;
+  overflow: hidden;
+  transform-origin: 0 0;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* Scenery (Scene, Pier) on its own GPU layer: drawn once, then only moved and zoomed. */
+.svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  will-change: transform;
+}
+
+/* Layers that move each frame get their own GPU layer too. */
+.moving {
+  will-change: transform;
+}
+
+/* A camera: the world at stage size, moved and zoomed from its top-left. */
+.cam {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 900px;
+  transform-origin: 0 0;
+}
+
+.camC {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 60%;
+}
+
+.fill {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Characters and the boat ---------- */
+
+/* The rigs repaint every frame: on their own layers, so the scenery around them isn't redrawn too. */
+.walker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.shadow {
+  position: absolute;
+  left: -55px;
+  top: -9px;
+  width: 110px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0;
+}
+
+.shadowBuddy {
+  left: -60px;
+  width: 120px;
+}
+
+/* The boat's 260 x 210 box; its layers (reflection, sails, riders, hull, foam) stack inside. */
+.boatBox {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 210px;
+  transform-origin: 0 0;
+}
+
+.boatArt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 210px;
+  overflow: visible;
+}
+
+.reflect {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.rider {
+  position: absolute;
+  will-change: transform;
+}
+
+.boatC {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 130px 210px;
+}
+
+.boatD {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+/* ---------- Sea set ---------- */
+
+.waveRow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.farIsland {
+  position: absolute;
+  left: 1180px;
+  top: 352px;
+  transform-origin: 50% 100%;
+  /* Haze: far away, so softer and paler */
+  opacity: 0.7;
+  filter: blur(0.8px) saturate(0.7);
+}
+
+.gull {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* ---------- Out-of-focus foreground (the only blurs) ---------- */
+
+.post {
+  position: absolute;
+  left: 0;
+  top: 0;
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.frontD {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 100%;
+  filter: blur(2.5px);
+  will-change: transform;
+}
+
+/* ---------- Title card ---------- */
+
+.title {
+  position: absolute;
+  left: 50%;
+  top: 170px;
+  padding: 18px 44px 20px;
+  border: 4px solid var(--ink);
+  border-radius: 28px;
+  background: var(--cream);
+  box-shadow: 0 8px 0 rgba(91, 58, 34, 0.25);
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.titleMain {
+  color: var(--ink);
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.titleSub {
+  margin-top: 8px;
+  color: #8a5a34;
+  font-size: 26px;
+  font-weight: 500;
+}
+
+/* The end: everything fades to cream, then the Lobby opens. */
+.cream {
+  position: absolute;
+  inset: 0;
+  background: var(--cream);
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* The start: in from the letterbox color. */
+.fadeIn {
+  position: absolute;
+  inset: 0;
+  background: var(--bar);
+}
+
+/* ---------- Letterbox + Skip ---------- */
+
+.bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--bar);
+}
+
+.barTop {
+  top: 0;
+}
+
+.barBottom {
+  bottom: 0;
+}
+
+.skip {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  min-height: 44px;
+  padding: 0 22px;
+  transform: translateY(-50%);
+  border: 2px solid rgba(253, 246, 236, 0.7);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skip:hover {
+  border-color: var(--cream);
+  background: rgba(253, 246, 236, 0.12);
+}

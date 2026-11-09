@@ -81,6 +81,11 @@ export const router = createBrowserRouter([
           lazy: () =>
             import('../screens/DevCompanions/DevCompanionsScreen').then((m) => ({ Component: m.DevCompanionsScreen })),
         },
+        // The Go to Lobby cutscene with a sample Student: ?p=a|b, ?t=7.5 holds one moment.
+        {
+          path: '/dev/cutscene',
+          lazy: () => import('../screens/DevCutscene/DevCutsceneScreen').then((m) => ({ Component: m.DevCutsceneScreen })),
+        },
       ]
     : []),
 

@@ -1,5 +1,3 @@
-import type { ReactNode, Ref } from 'react'
-
 /** Where the boat sails, in stage coordinates (1440 x 900): from the pier's end to Rene Island. */
 const SAIL_PATH = 'M930 640 Q1060 610 1080 520 Q1090 486 1060 466'
 
@@ -12,9 +10,10 @@ const LEAF = '#5cb85f'
  * mockup, cb.tpl.html): sky, sun, clouds, sea, Rene Island (palms, campfire
  * tent, classroom house, lighthouse), the dotted sail path and a short pier.
  * The sky, sea and pier run far past the stage's edges (overflow visible), so
- * any window shape is filled with no bars.
+ * any window shape is filled with no bars. `hidePier` leaves the pier out: the
+ * cutscene draws it on its own, nearer layer (see Pier).
  */
-export function Scene({ className, pathRef, hidePath }: { className?: string; pathRef?: Ref<SVGPathElement>; hidePath?: boolean }) {
+export function Scene({ className, hidePath, hidePier }: { className?: string; hidePath?: boolean; hidePier?: boolean }) {
   return (
     <svg className={className} width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true" focusable="false">
       <defs>
@@ -142,7 +141,6 @@ export function Scene({ className, pathRef, hidePath }: { className?: string; pa
 
       {/* Dotted sail path, boat -> island */}
       <path
-        ref={pathRef}
         d={SAIL_PATH}
         fill="none"
         stroke="#fff"
@@ -153,48 +151,86 @@ export function Scene({ className, pathRef, hidePath }: { className?: string; pa
         style={{ transition: 'opacity .4s' }}
       />
 
-      {/* ---------- Short pier from the left (runs off the stage's left edge) ---------- */}
+      {!hidePier && <PierShapes />}
+    </svg>
+  )
+}
+
+/** The short pier from the left (runs off the stage's left edge), in stage coordinates. */
+function PierShapes() {
+  return (
+    <g stroke={INK} strokeWidth="4" strokeLinejoin="round">
+      <g fill="#a46b3f">
+        {[-320, -130, 60, 250, 440, 630].map((x) => (
+          <rect key={x} x={x} y="640" width="26" height="200" />
+        ))}
+        <rect x="760" y="640" width="26" height="160" />
+      </g>
+      <path d="M-3000 590 L800 590 L800 650 L-3000 650 Z" fill="#d9a066" />
+      <path
+        d="M-300 592 L-312 648M-210 592 L-220 648M-120 592 L-128 648M-30 592 L-36 648M60 592 L48 648M150 592 L140 648M240 592 L232 648M330 592 L324 648M420 592 L416 648M510 592 L508 648M600 592 L600 648M690 592 L692 648"
+        stroke="#a46b3f"
+        strokeWidth="3"
+      />
+      <path d="M-3000 590 L800 590" />
+      <path d="M-3000 650 L800 650 L800 670 L-3000 670Z" fill="#b97c49" />
+      <rect x="776" y="548" width="26" height="110" rx="6" fill="#a46b3f" />
+      <path d="M790 566 Q830 600 870 600" fill="none" strokeWidth="3" />
+    </g>
+  )
+}
+
+/** Just the pier, on the same 1440 x 900 stage as Scene (the cutscene's near layer). */
+export function Pier({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="1440" height="900" viewBox="0 0 1440 900" aria-hidden="true" focusable="false">
+      <PierShapes />
+    </svg>
+  )
+}
+
+/** The sailboat's mast, sails and flag (mockup shapes), in a 260 x 210 box. Riders sit between these and the hull. */
+export function BoatSails() {
+  return (
+    <svg width="260" height="210" viewBox="0 0 260 210" style={{ overflow: 'visible', display: 'block' }} aria-hidden="true">
       <g stroke={INK} strokeWidth="4" strokeLinejoin="round">
-        <g fill="#a46b3f">
-          {[-320, -130, 60, 250, 440, 630].map((x) => (
-            <rect key={x} x={x} y="640" width="26" height="200" />
-          ))}
-          <rect x="760" y="640" width="26" height="160" />
-        </g>
-        <path d="M-3000 590 L800 590 L800 650 L-3000 650 Z" fill="#d9a066" />
-        <path
-          d="M-300 592 L-312 648M-210 592 L-220 648M-120 592 L-128 648M-30 592 L-36 648M60 592 L48 648M150 592 L140 648M240 592 L232 648M330 592 L324 648M420 592 L416 648M510 592 L508 648M600 592 L600 648M690 592 L692 648"
-          stroke="#a46b3f"
-          strokeWidth="3"
-        />
-        <path d="M-3000 590 L800 590" />
-        <path d="M-3000 650 L800 650 L800 670 L-3000 670Z" fill="#b97c49" />
-        <rect x="776" y="548" width="26" height="110" rx="6" fill="#a46b3f" />
-        <path d="M790 566 Q830 600 870 600" fill="none" strokeWidth="3" />
+        <path d="M126 20 V150" fill="none" strokeWidth="5" />
+        <path d="M120 30 L44 140 L120 140 Z" fill="#fbe7b0" />
+        <path d="M132 24 L214 140 L132 140 Z" fill="#fff" />
+        <path d="M126 20 L150 10 L126 2 Z" fill="#f0a050" />
       </g>
     </svg>
   )
 }
 
-/** The sailboat (mockup shapes). `seats` holds the small riders while it sails. */
-export function Boat({ seats }: { seats?: ReactNode }) {
+/** The sailboat's hull, in the same 260 x 210 box, laid over the sails (and anyone riding). */
+export function BoatHull() {
+  return (
+    <svg
+      width="260"
+      height="210"
+      viewBox="0 0 260 210"
+      style={{ overflow: 'visible', position: 'absolute', left: 0, top: 0 }}
+      aria-hidden="true"
+    >
+      <g stroke={INK} strokeWidth="4" strokeLinejoin="round">
+        <path d="M20 148 L240 148 L214 196 L46 196 Z" fill="#f0a050" />
+        <path d="M30 162 L232 162" stroke="#fff" strokeWidth="5" />
+        <circle cx="80" cy="178" r="7" fill="#fff" />
+        <circle cx="130" cy="178" r="7" fill="#fff" />
+        <circle cx="180" cy="178" r="7" fill="#fff" />
+      </g>
+      <ellipse cx="130" cy="204" rx="120" ry="9" fill="#fff" opacity=".35" />
+    </svg>
+  )
+}
+
+/** The whole sailboat, as on the Customize Bridge. */
+export function Boat() {
   return (
     <>
-      <svg width="260" height="210" viewBox="0 0 260 210" style={{ overflow: 'visible', display: 'block' }} aria-hidden="true">
-        <g stroke={INK} strokeWidth="4" strokeLinejoin="round">
-          <path d="M126 20 V150" fill="none" strokeWidth="5" />
-          <path d="M120 30 L44 140 L120 140 Z" fill="#fbe7b0" />
-          <path d="M132 24 L214 140 L132 140 Z" fill="#fff" />
-          <path d="M126 20 L150 10 L126 2 Z" fill="#f0a050" />
-          <path d="M20 148 L240 148 L214 196 L46 196 Z" fill="#f0a050" />
-          <path d="M30 162 L232 162" stroke="#fff" strokeWidth="5" />
-          <circle cx="80" cy="178" r="7" fill="#fff" />
-          <circle cx="130" cy="178" r="7" fill="#fff" />
-          <circle cx="180" cy="178" r="7" fill="#fff" />
-        </g>
-        <ellipse cx="130" cy="204" rx="120" ry="9" fill="#fff" opacity=".35" />
-      </svg>
-      {seats}
+      <BoatSails />
+      <BoatHull />
     </>
   )
 }

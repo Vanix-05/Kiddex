@@ -73,6 +73,23 @@ export function FaceOverlay({
       {eye('right', face.eyes.right)}
 
       <g data-rig="eyesHappy" opacity="0" fill="none" stroke={outline} strokeWidth={46} strokeLinecap="round">
+        {/* Face-coloured patches over the eyes, so whatever the art has under the
+            traced eyes (the boy has dark eye holes) doesn't show through. */}
+        {(['left', 'right'] as const).map((side) => {
+          const e = face.eyes[side]
+          return (
+            <rect
+              key={side}
+              x={e.cx - e.rx * 2.4}
+              y={e.cy - e.ry * 1.6}
+              width={e.rx * 4.8}
+              height={e.ry * 3.2}
+              fill={lid}
+              stroke="none"
+              clipPath={`url(#${id}-lid-${side})`}
+            />
+          )
+        })}
         {[face.eyes.left, face.eyes.right].map((e, i) => (
           <g key={i} data-rig={i ? 'eyeRight' : 'eyeLeft'}>
             <path d={`M${e.cx - e.rx * 0.8},${e.cy + 40} Q${e.cx},${e.cy - e.ry * 0.75} ${e.cx + e.rx * 0.8},${e.cy + 40}`} />

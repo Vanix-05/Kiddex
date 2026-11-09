@@ -12,6 +12,7 @@ const EMPTY: SessionState = {
   avatar: null,
   buddyName: null,
   look: {},
+  seenBridgeCutscene: false,
 }
 
 /** A saved user we still understand (roles from older versions are not). */
@@ -33,6 +34,7 @@ function loadSession(): SessionState {
         avatar: isAvatar(saved.avatar) ? saved.avatar : null,
         buddyName: saved.buddyName ?? null,
         look: cleanLook(saved.look),
+        seenBridgeCutscene: saved.seenBridgeCutscene === true,
       }
     }
   } catch {
@@ -75,7 +77,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await fakeDelay()
       if (!email.trim() || !password) throw new Error('Please enter your email and password.')
       const user: User = { username: email.trim(), role: 'teacher' }
-      update({ user, companionId: null, avatar: null, buddyName: null, look: {} })
+      update({ ...EMPTY, user })
       return user
     },
     [update],
@@ -86,7 +88,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const logInNewStudent = useCallback(
     (schoolId: string) => {
       const user: User = { username: schoolId, role: 'student' }
-      update({ user, companionId: null, avatar: null, buddyName: null, look: {} })
+      update({ ...EMPTY, user })
     },
     [update],
   )
@@ -103,11 +105,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const saveLook = useCallback((look: Look) => update({ look }), [update])
   const renameBuddy = useCallback((name: string) => update({ buddyName: name.trim() || null }), [update])
 
+  // TODO: save to the backend once the API exists.
+  const markBridgeCutsceneSeen = useCallback(() => update({ seenBridgeCutscene: true }), [update])
+
   const logOut = useCallback(() => update(EMPTY), [update])
 
   const value = useMemo(
-    () => ({ ...state, logInTeacher, logInNewStudent, finishSetup, saveLook, renameBuddy, logOut }),
-    [state, logInTeacher, logInNewStudent, finishSetup, saveLook, renameBuddy, logOut],
+    () => ({ ...state, logInTeacher, logInNewStudent, finishSetup, saveLook, renameBuddy, markBridgeCutsceneSeen, logOut }),
+    [state, logInTeacher, logInNewStudent, finishSetup, saveLook, renameBuddy, markBridgeCutsceneSeen, logOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

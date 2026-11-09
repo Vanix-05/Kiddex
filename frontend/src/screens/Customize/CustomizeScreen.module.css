@@ -49,16 +49,6 @@
   z-index: 30;
 }
 
-/* While sailing: the tray, ribbon, bubble and buttons fade away. */
-.ui {
-  transition: opacity 0.35s ease;
-}
-
-.sailing .ui {
-  opacity: 0;
-  pointer-events: none;
-}
-
 /* ---------- Island sign ---------- */
 
 .island {
@@ -115,42 +105,12 @@
   }
 }
 
-/* Where the small riders sit, inside the hull. */
-.seats {
-  position: absolute;
-  left: 52px;
-  top: 52px;
-  width: 156px;
-  height: 104px;
-}
-
-.riderYou,
-.riderBuddy {
-  position: absolute;
-  bottom: 0;
-  width: 78px;
-  height: 78px;
-}
-
-.riderYou {
-  left: 0;
-}
-
-.riderBuddy {
-  left: 72px;
-}
-
 /* ---------- Characters ---------- */
 
 .char {
   position: absolute;
   z-index: 10;
   transform-origin: 50% 100%;
-  transition: opacity 0.2s;
-}
-
-.char[data-hidden] {
-  opacity: 0;
 }
 
 .char > div,
@@ -244,20 +204,6 @@
   25%,
   75% {
     transform: rotate(-7deg) translateX(-6px);
-  }
-}
-
-/* Walking to the pier's end: a small bob. */
-.walk {
-  animation: walk 0.32s ease-in-out infinite alternate;
-}
-
-@keyframes walk {
-  from {
-    transform: translateY(0) rotate(-3deg);
-  }
-  to {
-    transform: translateY(-10px) rotate(3deg);
   }
 }
 
@@ -772,15 +718,12 @@
   .happy,
   .hop,
   .lean,
-  .walk,
   .spark,
   .shake {
     animation: none;
   }
 
-  .tile,
-  .ui,
-  .char {
+  .tile {
     transition: none;
   }
 }
