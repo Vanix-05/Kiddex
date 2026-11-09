@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { dogBuddyKeys, dogPalettes } from './buddyColors'
 import { dogParts } from './dogParts.generated'
 
 /**
@@ -47,6 +48,8 @@ export function DogRig({
       parts={dogParts}
       pivots={dogPivots}
       face={dogFace}
+      colorKeys={dogBuddyKeys}
+      palettes={dogPalettes}
       emotion={emotion}
       {...look}
       label={label}

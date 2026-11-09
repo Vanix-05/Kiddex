@@ -8,7 +8,7 @@ import styles from './BuddyFigure.module.css'
 /**
  * A buddy, as animated as its art allows: its rig if it has one, otherwise
  * its picture with a gentle idle bob. Renders nothing if it has neither.
- * The look (colors, extras, hue) only shows on buddies with a rig.
+ * The look (colors, extras, buddy color) only shows on buddies with a rig.
  */
 export function BuddyFigure({
   id,

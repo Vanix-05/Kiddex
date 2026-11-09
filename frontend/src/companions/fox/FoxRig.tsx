@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { foxBuddyKeys, foxPalettes } from './buddyColors'
 import { foxParts } from './foxParts.generated'
 
 /**
@@ -46,6 +47,8 @@ export function FoxRig({
       parts={foxParts}
       pivots={foxPivots}
       face={foxFace}
+      colorKeys={foxBuddyKeys}
+      palettes={foxPalettes}
       emotion={emotion}
       {...look}
       label={label}

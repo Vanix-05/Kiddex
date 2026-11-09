@@ -49,6 +49,7 @@ export function GirlRig({
       face={girlFace}
       emotion={emotion}
       colorKeys={girlColorKeys}
+      avatarEyes
       {...look}
       label={label}
       className={className}

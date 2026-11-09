@@ -5,7 +5,7 @@ import { BuddyFigure } from '../../components/BuddyFigure/BuddyFigure'
 import { Companion } from '../../companions/Companion'
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
-import { lookBuddyExtras, lookColors, lookHue, lookYouExtras, SECTION } from '../../setup/customizeData'
+import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras, SECTION } from '../../setup/customizeData'
 import { isBuddyId } from '../../setup/quizData'
 import { SetupLayout } from '../shared/SetupLayout'
 import styles from './LobbyScreen.module.css'
@@ -34,7 +34,7 @@ export function LobbyScreen() {
               id={buddy}
               name={buddyName ?? undefined}
               className={styles.figure}
-              hue={lookHue(look)}
+              buddyColor={lookBuddyColor(look)}
               extras={lookBuddyExtras(look)}
             />
           )}

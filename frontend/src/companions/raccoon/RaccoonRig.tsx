@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { raccoonBuddyKeys, raccoonPalettes } from './buddyColors'
 import { raccoonParts } from './raccoonParts.generated'
 
 /**
@@ -46,6 +47,8 @@ export function RaccoonRig({
       parts={raccoonParts}
       pivots={raccoonPivots}
       face={raccoonFace}
+      colorKeys={raccoonBuddyKeys}
+      palettes={raccoonPalettes}
       emotion={emotion}
       {...look}
       label={label}

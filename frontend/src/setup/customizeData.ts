@@ -22,8 +22,6 @@ export interface CustomizeItem {
   level?: number
   /** Extras: what it draws on the character (null = none). */
   accessory?: AccessoryId | null
-  /** Buddy color: hue-rotate angle in degrees (0 = the buddy's own colors). */
-  hue?: number
 }
 
 /** The Student's picks. Each value is an item id; empty = the art as drawn. */
@@ -73,14 +71,15 @@ const youExtra: CustomizeItem[] = [
 
 // ---------- Buddy ----------
 
-// Hue angles tuned on the fox (orange), checked on the other buddies.
+// Each buddy has its own tuned palette for these (companions/<id>/buddyColors.ts).
+// Keep the ids: saved looks use them.
 const buddyColor: CustomizeItem[] = [
-  { id: 'original', label: 'Original', hue: 0 },
-  { id: 'pink', label: 'Pink', hue: -40 },
-  { id: 'blue', label: 'Blue', hue: 180 },
-  { id: 'mint', label: 'Mint', hue: 110 },
-  { id: 'purple', label: 'Purple', hue: 245 },
-  { id: 'gold', label: 'Gold', hue: 22, level: 5 },
+  { id: 'original', label: 'Original' },
+  { id: 'pink', label: 'Pink' },
+  { id: 'blue', label: 'Blue' },
+  { id: 'mint', label: 'Mint' },
+  { id: 'purple', label: 'Purple' },
+  { id: 'gold', label: 'Gold', level: 5 },
 ]
 
 const buddyExtra: CustomizeItem[] = [
@@ -168,7 +167,8 @@ export const lookBuddyExtras = (look: Look): AccessoryId[] => {
   return a ? [a] : []
 }
 
-export const lookHue = (look: Look) => findItem('buddyColor', look.buddyColor)?.hue ?? 0
+/** The buddy's color id for the rig (undefined = the buddy as drawn). */
+export const lookBuddyColor = (look: Look) => findItem('buddyColor', look.buddyColor)?.id
 
 /** A saved look with only known, unlocked item ids (e.g. from sessionStorage). */
 export function cleanLook(raw: unknown): Look {

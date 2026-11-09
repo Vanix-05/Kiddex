@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { ramBuddyKeys, ramPalettes } from './buddyColors'
 import { ramParts } from './ramParts.generated'
 
 /**
@@ -48,6 +49,8 @@ export function RamRig({
       parts={ramParts}
       pivots={ramPivots}
       face={ramFace}
+      colorKeys={ramBuddyKeys}
+      palettes={ramPalettes}
       emotion={emotion}
       {...look}
       label={label}

@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { monkeyBuddyKeys, monkeyPalettes } from './buddyColors'
 import { monkeyParts } from './monkeyParts.generated'
 
 /**
@@ -46,6 +47,8 @@ export function MonkeyRig({
       parts={monkeyParts}
       pivots={monkeyPivots}
       face={monkeyFace}
+      colorKeys={monkeyBuddyKeys}
+      palettes={monkeyPalettes}
       emotion={emotion}
       {...look}
       label={label}

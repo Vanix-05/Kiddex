@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { axolotlBuddyKeys, axolotlPalettes } from './buddyColors'
 import { axolotlParts } from './axolotlParts.generated'
 
 /**
@@ -50,6 +51,8 @@ export function AxolotlRig({
       parts={axolotlParts}
       pivots={axolotlPivots}
       face={axolotlFace}
+      colorKeys={axolotlBuddyKeys}
+      palettes={axolotlPalettes}
       emotion={emotion}
       {...look}
       label={label}

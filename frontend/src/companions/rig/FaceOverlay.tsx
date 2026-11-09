@@ -2,6 +2,10 @@ import type { EyeBox, RigFace } from './types'
 
 const LASH = 30 // lash line along the lid's bottom edge, in SVG units
 const TONGUE = '#F2858F'
+const SHINE = '#ffffff'
+const RIM = '#fff3e6'
+/** Happy-eye arcs on the darkest skins: the outline color is too close to the skin there. */
+const DEEP_INK = '#3a2027'
 
 /**
  * Drawn on top of a traced head, inside the head group (so it moves with it).
@@ -11,17 +15,26 @@ const TONGUE = '#F2858F'
  * - Eyelids: a face-coloured rectangle with a lash line, clipped to each eye's
  *   own traced shapes, that slides down to blink.
  * - Happy eyes (^ ^), blush, simple drawn mouths, and the sleepy z's.
+ * - The boy and girl (`shine`): a white shine on each eye, under the lid, so
+ *   the eyes read on every skin; on the darkest skins (`rim`) also a soft cream
+ *   rim around each eye. Both hide with the traced eyes for the happy face.
  */
 export function FaceOverlay({
   face,
   eyePaths,
   id,
+  shine = false,
+  rim = false,
 }: {
   face: RigFace
   /** Each eye's traced path data, for the lid's clip. */
   eyePaths: { left: string[]; right: string[] }
   /** Unique per rig, for the clip and gradient ids. */
   id: string
+  /** A shine on each eye (the avatars). */
+  shine?: boolean
+  /** The avatars on the darkest skins: a soft cream rim just outside each eye, and deeper happy-eye arcs. */
+  rim?: boolean
 }) {
   const { outline, lid, blush } = face.colors
   const { x: mx, y: my } = face.mouth
@@ -33,7 +46,19 @@ export function FaceOverlay({
     const name = side === 'left' ? 'Left' : 'Right'
     return (
       <g key={side} data-rig={`eye${name}`}>
+        {/* Always rendered (the rig finds its parts once, on mount), so a skin change can show or hide it live. */}
+        {shine && (
+          <g data-rig="eyesTraced">
+            <ellipse cx={box.cx} cy={box.cy} rx={box.rx + 34} ry={box.ry + 30} fill="none" stroke={RIM} strokeWidth={26} opacity={rim ? 0.32 : 0} />
+          </g>
+        )}
         <g data-rig="eyesTraced" clipPath={`url(#${id}-lid-${side})`}>
+          {shine && (
+            <>
+              <circle cx={box.cx - box.rx * 0.3} cy={box.cy - box.ry * 0.42} r={box.rx * 0.34} fill={SHINE} />
+              <circle cx={box.cx + box.rx * 0.3} cy={box.cy + box.ry * 0.3} r={box.rx * 0.14} fill={SHINE} opacity={0.8} />
+            </>
+          )}
           <g data-rig={`lid${name}`} transform={`translate(${box.cx} ${box.cy - box.ry - 30})`}>
             <rect x={-box.rx * 2.4} y={-box.ry * 2.6} width={box.rx * 4.8} height={box.ry * 2.6} fill={lid} />
             <rect x={-box.rx * 2.4} y={-LASH} width={box.rx * 4.8} height={LASH} fill={outline} />
@@ -72,7 +97,7 @@ export function FaceOverlay({
       {eye('left', face.eyes.left)}
       {eye('right', face.eyes.right)}
 
-      <g data-rig="eyesHappy" opacity="0" fill="none" stroke={outline} strokeWidth={46} strokeLinecap="round">
+      <g data-rig="eyesHappy" opacity="0" fill="none" stroke={rim ? DEEP_INK : outline} strokeWidth={46} strokeLinecap="round">
         {/* Face-coloured patches over the eyes, so whatever the art has under the
             traced eyes (the boy has dark eye holes) doesn't show through. */}
         {(['left', 'right'] as const).map((side) => {

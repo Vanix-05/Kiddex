@@ -81,6 +81,11 @@ export const router = createBrowserRouter([
           lazy: () =>
             import('../screens/DevCompanions/DevCompanionsScreen').then((m) => ({ Component: m.DevCompanionsScreen })),
         },
+        // Every buddy color and kid skin at once, to check they all look cute.
+        {
+          path: '/dev/looks',
+          lazy: () => import('../screens/DevLooks/DevLooksScreen').then((m) => ({ Component: m.DevLooksScreen })),
+        },
         // The Go to Lobby cutscene with a sample Student: ?p=a|b, ?t=7.5 holds one moment.
         {
           path: '/dev/cutscene',

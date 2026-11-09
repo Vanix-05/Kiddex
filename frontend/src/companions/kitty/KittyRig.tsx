@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { kittyBuddyKeys, kittyPalettes } from './buddyColors'
 import { kittyParts } from './kittyParts.generated'
 
 /**
@@ -48,6 +49,8 @@ export function KittyRig({
       parts={kittyParts}
       pivots={kittyPivots}
       face={kittyFace}
+      colorKeys={kittyBuddyKeys}
+      palettes={kittyPalettes}
       emotion={emotion}
       {...look}
       label={label}

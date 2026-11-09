@@ -22,7 +22,7 @@ interface CompanionProps extends RigLook {
   /** How a traced companion feels (default calm). PNG-only companions ignore it. */
   emotion?: Emotion
 }
-// RigLook (colors, extras, hue, still): Customize Bridge looks. PNG-only companions ignore them.
+// RigLook (colors, extras, buddyColor, still): Customize Bridge looks. PNG-only companions ignore them.
 
 /**
  * Any companion in registry.ts. A companion with a traced rig shows its rig,

@@ -16,7 +16,7 @@ const TRACED: CompanionId[] = ['fox', 'boy', 'girl', 'kitty', 'axolotl', 'raccoo
  * Dev only (/dev/companions): every traced companion in a grid, to check the
  * rig. Emotion buttons set all of them at once; the move buttons play a move
  * on all of them; slow motion runs the springs at 0.35x. The Customize rows
- * recolor the boy and girl (skin, hair, shirt), hue-rotate the buddies, and put
+ * recolor the boy and girl (skin, hair, shirt), recolor the buddies (their tuned palettes), and put
  * accessories on everyone.
  */
 export function DevCompanionsScreen() {
@@ -27,7 +27,7 @@ export function DevCompanionsScreen() {
   const [skin, setSkin] = useState<string>()
   const [hair, setHair] = useState<string>()
   const [shirt, setShirt] = useState<string>()
-  const [hue, setHue] = useState(0)
+  const [buddyColor, setBuddyColor] = useState('original')
   const [extras, setExtras] = useState<AccessoryId[]>([])
   const toggleExtra = (a: AccessoryId) => setExtras((x) => (x.includes(a) ? x.filter((y) => y !== a) : [...x, a]))
 
@@ -96,8 +96,8 @@ export function DevCompanionsScreen() {
         <div className={styles.row} role="group" aria-label="Buddy color">
           <span className={styles.rowLabel}>buddy color</span>
           {ITEMS.buddyColor.map((item) => (
-            <button key={item.id} type="button" aria-pressed={hue === item.hue} onClick={() => setHue(item.hue ?? 0)}>
-              {item.label} ({item.hue}°)
+            <button key={item.id} type="button" aria-pressed={buddyColor === item.id} onClick={() => setBuddyColor(item.id)}>
+              {item.label}
             </button>
           ))}
         </div>
@@ -118,7 +118,7 @@ export function DevCompanionsScreen() {
               emotion={emotion}
               className={styles.companion}
               colors={HUMANS.includes(id) ? { skin, hair, shirt } : undefined}
-              hue={HUMANS.includes(id) ? 0 : hue}
+              buddyColor={HUMANS.includes(id) ? undefined : buddyColor}
               extras={extras}
             />
             <figcaption>{id}</figcaption>

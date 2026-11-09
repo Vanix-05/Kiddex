@@ -1,8 +1,18 @@
-import { Fragment, useId, useMemo, useRef, type ReactNode } from 'react'
+import { Fragment, useId, useMemo, useRef } from 'react'
 import type { AccessoryId } from '../setup/customizeData'
 import { RigAccessories } from './rig/Accessories'
 import { FaceOverlay } from './rig/FaceOverlay'
-import { buildRecolor, hueRotate, recolorOne, type ColorKeys, type RigColors } from './rig/recolor'
+import {
+  buildRecolor,
+  isBuddyColorId,
+  isDark,
+  KEEP_GROUPS,
+  recolorOne,
+  type BuddyPalettes,
+  type ColorKeys,
+  type ColorTargets,
+  type RigColors,
+} from './rig/recolor'
 import type { Emotion } from './rig/emotions'
 import type { RigFace, RigPivots } from './rig/types'
 import { useSpringRig } from './rig/useSpringRig'
@@ -44,8 +54,8 @@ export interface RigLook {
   colors?: RigColors
   /** Accessories, drawn inside the head / body groups so they move with them. */
   extras?: readonly AccessoryId[]
-  /** Buddy color: hue-rotate in degrees, on the traced shapes only. */
-  hue?: number
+  /** Buddy color: a customizeData buddyColor id (e.g. "mint"). Needs the rig's palettes; "original" = as drawn. */
+  buddyColor?: string
   /** No animation: draw the resting pose once (small copies, e.g. icons). */
   still?: boolean
 }
@@ -61,8 +71,11 @@ function Shapes({
   /** old fill -> new fill (Customize recolor) */
   recolor?: Map<string, string>
 }) {
+  // Eyes, nose and mouth always keep the art's colors.
   const shapes = (items: readonly TracedPath[]) =>
-    items.map(([d, fill], j) => <path key={j} d={d} fill={recolor?.get(fill) ?? fill} />)
+    items.map(([d, fill, group], j) => (
+      <path key={j} d={d} fill={(!KEEP_GROUPS.has(group) && recolor?.get(fill)) || fill} />
+    ))
   const runs: { group: string; items: TracedPath[] }[] = []
   for (const p of paths) {
     const last = runs.at(-1)
@@ -125,9 +138,11 @@ export function TracedRig({
   emotion = 'calm',
   legsBehindBody = false,
   colorKeys,
+  palettes,
+  avatarEyes = false,
   colors,
   extras = [],
-  hue = 0,
+  buddyColor,
   still = false,
 }: {
   parts: RigParts
@@ -138,28 +153,31 @@ export function TracedRig({
   emotion?: Emotion
   /** Draw the legs behind the body, e.g. so a skirt stays over them when they step. */
   legsBehindBody?: boolean
-  /** The avatar's key colors for `colors` (picked with scripts/list-fills.mjs). */
+  /** The rig's key colors (picked with scripts/list-fills.mjs): the avatar's for `colors`, a buddy's for its palettes. */
   colorKeys?: ColorKeys
+  /** A buddy's tuned palette for each buddyColor. */
+  palettes?: BuddyPalettes
+  /** The boy and girl: a shine on the eyes, and a soft rim on the darkest skins. */
+  avatarEyes?: boolean
 } & RigLook) {
   const svgRef = useRef<SVGSVGElement>(null)
   const play = useSpringRig(svgRef, pivots, face, emotion, still)
   const id = 'rig' + useId().replace(/[^\w-]/g, '')
 
-  // Customize recolor: built once per look, not per frame.
+  // Customize recolor (avatar colors, or the buddy's palette): built once per look, not per frame.
   const { skin, hair, shirt } = colors ?? {}
-  const recolor = useMemo(
-    () => (colorKeys ? buildRecolor(parts, colorKeys, { skin, hair, shirt }) : {}),
-    [parts, colorKeys, skin, hair, shirt],
+  const targets = useMemo<ColorTargets>(
+    () => (isBuddyColorId(buddyColor) && palettes ? palettes[buddyColor] : { skin, hair, shirt }),
+    [buddyColor, palettes, skin, hair, shirt],
   )
-  // The blink lid must match the (recolored, hue-rotated) skin, or blinks show the old color.
+  const recolor = useMemo(() => (colorKeys ? buildRecolor(parts, colorKeys, targets) : {}), [parts, colorKeys, targets])
+  // The blink lid must match the recolored skin or fur, or blinks show the old color.
   const overlayFace = useMemo(() => {
-    const lid = hueRotate(colorKeys ? recolorOne(face.colors.lid, colorKeys, { skin, hair, shirt }) : face.colors.lid, hue)
+    const lid = colorKeys ? recolorOne(face.colors.lid, colorKeys, targets) : face.colors.lid
     return lid === face.colors.lid ? face : { ...face, colors: { ...face.colors, lid } }
-  }, [face, colorKeys, skin, hair, shirt, hue])
-
-  // Buddy color: an SVG hue filter on the traced shapes only (not the face overlay or accessories).
-  const hueFilter = hue ? `url(#${id}-hue)` : undefined
-  const tinted = (node: ReactNode) => (hueFilter ? <g filter={hueFilter}>{node}</g> : node)
+  }, [face, colorKeys, targets])
+  // On the darkest skins the dark eyes need a soft rim to stand out.
+  const eyeRim = avatarEyes && !!skin && isDark(skin)
 
   const eyePaths = useMemo(() => {
     const out = { left: [] as string[], right: [] as string[] }
@@ -172,43 +190,39 @@ export function TracedRig({
 
   const legs = (
     <>
-      <g data-rig="legLeft">{tinted(<Shapes paths={parts.legLeft} recolor={recolor.legLeft} />)}</g>
-      <g data-rig="legRight">{tinted(<Shapes paths={parts.legRight} recolor={recolor.legRight} />)}</g>
+      <g data-rig="legLeft">
+        <Shapes paths={parts.legLeft} recolor={recolor.legLeft} />
+      </g>
+      <g data-rig="legRight">
+        <Shapes paths={parts.legRight} recolor={recolor.legRight} />
+      </g>
     </>
   )
 
   const svg = (
     <svg ref={svgRef} className={styles.svg} viewBox="0 0 5000 5000" aria-hidden="true" focusable="false">
-      {hueFilter && (
-        <defs>
-          {/* sRGB, so the angle looks the same as CSS hue-rotate() (the tray's swatches). */}
-          <filter id={`${id}-hue`} colorInterpolationFilters="sRGB">
-            <feColorMatrix type="hueRotate" values={String(hue)} />
-          </filter>
-        </defs>
-      )}
       {/* root (hop, sway) > squash (landing) > parts */}
       <g data-rig="root">
         <g data-rig="squash">
           {legsBehindBody && legs}
           <g data-rig="body">
-            {tinted(
-              <>
-                <Shapes paths={parts.body} recolor={recolor.body} />
-                <Shapes paths={parts.belly} recolor={recolor.belly} />
-              </>,
-            )}
+            <Shapes paths={parts.body} recolor={recolor.body} />
+            <Shapes paths={parts.belly} recolor={recolor.belly} />
             <RigAccessories extras={extras} slot="body" face={face} pivots={pivots} />
           </g>
           {!legsBehindBody && legs}
           <g data-rig="head">
-            {tinted(<Shapes paths={parts.head} face={face} recolor={recolor.head} />)}
-            <FaceOverlay face={overlayFace} eyePaths={eyePaths} id={id} />
+            <Shapes paths={parts.head} face={face} recolor={recolor.head} />
+            <FaceOverlay face={overlayFace} eyePaths={eyePaths} id={id} shine={avatarEyes} rim={eyeRim} />
             <RigAccessories extras={extras} slot="head" face={face} pivots={pivots} />
           </g>
           {/* Arms in front, so the wave can pass over the cheek. */}
-          <g data-rig="armLeft">{tinted(<Shapes paths={parts.armLeft} recolor={recolor.armLeft} />)}</g>
-          <g data-rig="armRight">{tinted(<Shapes paths={parts.armRight} recolor={recolor.armRight} />)}</g>
+          <g data-rig="armLeft">
+            <Shapes paths={parts.armLeft} recolor={recolor.armLeft} />
+          </g>
+          <g data-rig="armRight">
+            <Shapes paths={parts.armRight} recolor={recolor.armRight} />
+          </g>
         </g>
       </g>
     </svg>

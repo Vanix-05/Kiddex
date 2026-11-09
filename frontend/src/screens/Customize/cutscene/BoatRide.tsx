@@ -1,6 +1,6 @@
 import { useId, type Ref } from 'react'
 import { Companion } from '../../../companions/Companion'
-import { lookBuddyExtras, lookColors, lookHue, lookYouExtras } from '../../../setup/customizeData'
+import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras } from '../../../setup/customizeData'
 import { BoatHull, BoatSails } from '../Scene'
 import { SEATS, type Cast, type Who } from './motion'
 import styles from './BridgeCutscene.module.css'
@@ -11,7 +11,7 @@ export function Figure({ who, cast }: { who: Who; cast: Cast }) {
   return who === 'you' ? (
     <Companion id={avatar} emotion="happy" className={styles.fill} colors={lookColors(look)} extras={lookYouExtras(look)} />
   ) : (
-    <Companion id={buddy} emotion="happy" className={styles.fill} hue={lookHue(look)} extras={lookBuddyExtras(look)} />
+    <Companion id={buddy} emotion="happy" className={styles.fill} buddyColor={lookBuddyColor(look)} extras={lookBuddyExtras(look)} />
   )
 }
 

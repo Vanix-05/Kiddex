@@ -1,4 +1,5 @@
 import { TracedRig, type Emotion, type RigLook, type RigFace, type RigPivots } from '../TracedRig'
+import { otterBuddyKeys, otterPalettes } from './buddyColors'
 import { otterParts } from './otterParts.generated'
 
 /**
@@ -48,6 +49,8 @@ export function OtterRig({
       parts={otterParts}
       pivots={otterPivots}
       face={otterFace}
+      colorKeys={otterBuddyKeys}
+      palettes={otterPalettes}
       emotion={emotion}
       {...look}
       label={label}

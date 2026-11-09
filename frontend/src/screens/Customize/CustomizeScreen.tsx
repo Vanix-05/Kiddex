@@ -16,7 +16,7 @@ import {
   levelFromXp,
   lookBuddyExtras,
   lookColors,
-  lookHue,
+  lookBuddyColor,
   lookYouExtras,
   nextUnlock,
   SECTION,
@@ -216,6 +216,7 @@ function Bridge({
 
   const switchSide = (next: Side) => {
     setSide(next)
+    if (next === 'you') setEditing(false)
     setTab(TABS[next][0].key)
   }
 
@@ -279,7 +280,7 @@ function Bridge({
   const colors = lookColors(look)
   const youExtras = lookYouExtras(look)
   const buddyExtras = lookBuddyExtras(look)
-  const hue = lookHue(look)
+  const buddyColor = lookBuddyColor(look)
   const current = pickedId(tab)
 
   /** Where a character's square image goes so its feet stand on the pier. */
@@ -324,7 +325,7 @@ function Bridge({
           <span className={`${styles.shadow} ${styles.shadowBuddy}`} aria-hidden="true" />
           <div key={idle?.key ?? 0} className={idle ? styles[idle.move] : undefined}>
             <div key={cheer.buddy} className={cheer.buddy ? styles.happy : undefined}>
-              <Companion id={buddy} className={styles.figure} hue={hue} extras={buddyExtras} />
+              <Companion id={buddy} className={styles.figure} buddyColor={buddyColor} extras={buddyExtras} />
             </div>
           </div>
         </div>
@@ -346,12 +347,12 @@ function Bridge({
           )
         })}
 
-        <p className={`${styles.bubble}`} aria-live="polite">
+        <p className={styles.bubble} aria-live="polite">
           {bubble ?? DEFAULT_BUBBLE}
         </p>
 
         {/* ---------- Name ribbon + chip ---------- */}
-        <div className={`${styles.ribbon}`}>
+        <div className={styles.ribbon}>
           <svg className={styles.ribbonArt} viewBox="0 0 420 120" aria-hidden="true">
             <path d="M8 44 L62 44 L62 104 L8 104 L30 74 Z" fill="#e2675e" stroke="#5b3a22" strokeWidth="4" strokeLinejoin="round" />
             <path d="M412 44 L358 44 L358 104 L412 104 L390 74 Z" fill="#e2675e" stroke="#5b3a22" strokeWidth="4" strokeLinejoin="round" />
@@ -361,7 +362,10 @@ function Bridge({
             <path d="M60 28 Q210 12 360 28" fill="none" stroke="#ffd0c8" strokeWidth="4" strokeLinecap="round" strokeDasharray="2 10" />
             <path d="M60 80 Q210 64 360 80" fill="none" stroke="#ffd0c8" strokeWidth="4" strokeLinecap="round" strokeDasharray="2 10" />
           </svg>
-          {editing ? (
+          {/* TODO: show the Student's first name on the You side once the backend sends it. */}
+          {side === 'you' ? (
+            <h1 className={styles.name}>You</h1>
+          ) : editing ? (
             <input
               ref={nameInput}
               className={styles.nameInput}
@@ -379,19 +383,21 @@ function Bridge({
           ) : (
             <h1 className={styles.name}>{name}</h1>
           )}
-          <button
-            type="button"
-            className={styles.pen}
-            onMouseDown={(e) => editing && e.preventDefault()} // keep the input focused; its blur saves
-            onClick={() => (editing ? nameInput.current?.blur() : startRename())}
-            aria-label={editing ? 'Save the name' : 'Rename your buddy'}
-          >
-            <span aria-hidden="true">✏️</span>
-          </button>
+          {side === 'buddy' && (
+            <button
+              type="button"
+              className={styles.pen}
+              onMouseDown={(e) => editing && e.preventDefault()} // keep the input focused; its blur saves
+              onClick={() => (editing ? nameInput.current?.blur() : startRename())}
+              aria-label={editing ? 'Save the name' : 'Rename your buddy'}
+            >
+              <span aria-hidden="true">✏️</span>
+            </button>
+          )}
         </div>
-        <p className={`${styles.chip}`}>
+        <p className={styles.chip}>
           <span className={`${styles.head} ${styles.chipHead}`} aria-hidden="true">
-            <Companion id={buddy} still hue={hue} className={styles.headFigure} />
+            <Companion id={buddy} still buddyColor={buddyColor} className={styles.headFigure} />
           </span>
           {pet?.name ?? 'Buddy'} · Lv {level}
         </p>
@@ -410,7 +416,7 @@ function Bridge({
         }}
       >
         {/* ---------- You / Buddy toggle ---------- */}
-        <div className={`${styles.toggle}`} role="group" aria-label="Who to dress up">
+        <div className={styles.toggle} role="group" aria-label="Who to dress up">
           <button type="button" aria-pressed={side === 'you'} onClick={() => switchSide('you')}>
             <span className={styles.head} aria-hidden="true">
               <Companion id={avatar} still colors={colors} className={styles.headFigure} />
@@ -419,14 +425,14 @@ function Bridge({
           </button>
           <button type="button" aria-pressed={side === 'buddy'} onClick={() => switchSide('buddy')}>
             <span className={styles.head} aria-hidden="true">
-              <Companion id={buddy} still hue={hue} className={styles.headFigure} />
+              <Companion id={buddy} still buddyColor={buddyColor} className={styles.headFigure} />
             </span>
             <span className={styles.toggleName}>{name}</span>
           </button>
         </div>
 
         {/* ---------- Folder tabs + tray ---------- */}
-        <div className={`${styles.tabs}`} role="tablist" aria-label={side === 'you' ? 'Dress up you' : `Dress up ${name}`}>
+        <div className={styles.tabs} role="tablist" aria-label={side === 'you' ? 'Dress up you' : `Dress up ${name}`}>
           {TABS[side].map((t) => (
             <button
               key={t.key}
@@ -444,7 +450,7 @@ function Bridge({
           ))}
         </div>
 
-        <div id="cb-tray" className={`${styles.tray}`} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
+        <div id="cb-tray" className={styles.tray} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
           <ul className={styles.tiles}>
             {items.map((item, i) => {
               const locked = isLocked(item)
@@ -465,7 +471,7 @@ function Bridge({
                   >
                     {tab === 'buddyColor' ? (
                       <span className={styles.colorHead}>
-                        <Companion id={buddy} still hue={item.hue ?? 0} className={styles.headFigure} />
+                        <Companion id={buddy} still buddyColor={item.id} className={styles.headFigure} />
                       </span>
                     ) : item.swatch ? (
                       <span className={styles.swatch} style={{ background: item.swatch }} />
@@ -514,10 +520,10 @@ function Bridge({
         </div>
 
         {/* ---------- Buttons ---------- */}
-        <button type="button" className={`${styles.go}`} onClick={onLobby}>
+        <button type="button" className={styles.go} onClick={onLobby}>
           Go to Lobby <span aria-hidden="true">→</span>
         </button>
-        <p className={`${styles.out}`}>
+        <p className={styles.out}>
           Not you?{' '}
           <button type="button" onClick={onLogOut}>
             Log out

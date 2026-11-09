@@ -46,6 +46,7 @@ export function BoyRig({
       face={boyFace}
       emotion={emotion}
       colorKeys={boyColorKeys}
+      avatarEyes
       {...look}
       label={label}
       className={className}
