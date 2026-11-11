@@ -11,7 +11,7 @@ export const paths = {
   },
   /** After the first-time setup: dress up you and your buddy, then sail to the Lobby. */
   customize: '/customize',
-  /** Rene Island, the class Lobby (placeholder for now). */
+  /** Rene Island, the Main Lobby: the Student's section classroom. */
   lobby: '/lobby',
   /** Teacher Login, and the Teacher Dashboard (the planner). Lessons steps: /teacher/lessons/:id/making|check|games */
   teacher: {

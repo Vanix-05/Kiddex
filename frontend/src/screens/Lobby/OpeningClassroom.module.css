@@ -1,0 +1,14 @@
+.opening {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
+  background: var(--color-card-bg);
+}

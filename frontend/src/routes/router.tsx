@@ -10,7 +10,7 @@ import { RevealStep } from '../screens/Setup/RevealStep'
 import { GenderStep } from '../screens/Setup/GenderStep'
 import { PetStep } from '../screens/Setup/PetStep'
 import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
-import { LobbyScreen } from '../screens/Lobby/LobbyScreen'
+import { LazyDevLobbyScreen, LazyLobbyScreen } from '../screens/Lobby/LazyLobby'
 import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
 
 export const router = createBrowserRouter([
@@ -47,7 +47,8 @@ export const router = createBrowserRouter([
       },
       // After setup (outside SetupFrame, which sends anyone with a buddy away).
       { path: paths.customize, element: <CustomizeScreen /> },
-      { path: paths.lobby, element: <LobbyScreen /> },
+      // Its own download, with Pixi (screens/Lobby/preloadLobby.ts).
+      { path: paths.lobby, element: <LazyLobbyScreen /> },
     ],
   },
 
@@ -91,6 +92,8 @@ export const router = createBrowserRouter([
           path: '/dev/cutscene',
           lazy: () => import('../screens/DevCutscene/DevCutsceneScreen').then((m) => ({ Component: m.DevCutsceneScreen })),
         },
+        // The Main Lobby with a sample Student, no login needed: ?p=a|b, &fps shows the frame rate.
+        { path: '/dev/lobby', element: <LazyDevLobbyScreen /> },
       ]
     : []),
 

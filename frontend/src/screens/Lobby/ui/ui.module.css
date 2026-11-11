@@ -1,0 +1,770 @@
+/*
+ * The Lobby's UI over the game canvas: the HUD in the four corners, the emote
+ * bar, the action button, the toast and the cards.
+ *
+ * Sizes are written in --u, which is 1px on a big screen and shrinks on short
+ * ones (LobbyScreen sets --s). Text never goes under 11px and anything
+ * tappable never goes under 44px.
+ */
+
+.hud {
+  --u: calc(1px * var(--s, 1));
+  --edge: max(12px, calc(18 * var(--u)));
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hud > * {
+  pointer-events: auto;
+}
+
+.hud button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Top left: the Student card ---------- */
+
+.board {
+  position: absolute;
+  left: max(var(--edge), env(safe-area-inset-left, 0px));
+  top: calc(16 * var(--u));
+  min-width: calc(318 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  padding: calc(12 * var(--u)) calc(16 * var(--u)) calc(14 * var(--u)) calc(12 * var(--u));
+  background: var(--color-lobby-wood);
+  border: max(3px, calc(4 * var(--u))) solid var(--color-card-border);
+  border-radius: calc(18 * var(--u));
+  box-shadow:
+    inset 0 calc(-6 * var(--u)) 0 var(--color-lobby-wood-edge),
+    0 calc(6 * var(--u)) 0 var(--color-lobby-shadow);
+}
+
+/* The two ropes it hangs from. */
+.board::before,
+.board::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  width: 3px;
+  height: calc(20 * var(--u));
+  background: var(--color-card-border);
+}
+
+.board::before {
+  left: 20%;
+}
+
+.board::after {
+  right: 20%;
+}
+
+.ava {
+  flex: none;
+  width: max(44px, calc(76 * var(--u)));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: max(3px, calc(4 * var(--u))) solid var(--color-card-border);
+  background: linear-gradient(var(--color-sky), var(--color-sky-light));
+  overflow: hidden;
+  position: relative;
+}
+
+/* The kid's picture, big enough that only the head shows. */
+.ava img {
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  height: 205%;
+  max-width: none;
+  transform: translateX(-50%);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  font-size: max(16px, calc(24 * var(--u)));
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.lv {
+  font-size: max(11px, calc(12 * var(--u)));
+  font-weight: 600;
+  padding: 1px 7px;
+  background: var(--color-card-bg);
+  border: 2px solid var(--color-card-border);
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+.xp {
+  margin-top: calc(7 * var(--u));
+  height: max(9px, calc(13 * var(--u)));
+  border: 2px solid var(--color-card-border);
+  border-radius: 9px;
+  background: var(--color-card-bg);
+  overflow: hidden;
+}
+
+.xp i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(-45deg, var(--color-lobby-xp) 0 8px, var(--color-lobby-xp-stripe) 8px 16px);
+}
+
+.meta {
+  margin-top: calc(5 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  font-size: max(11px, calc(13 * var(--u)));
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.meta b {
+  font-weight: 700;
+}
+
+/* ---------- Top right: today's mission, and who's here ---------- */
+
+.topRight {
+  position: absolute;
+  right: max(var(--edge), env(safe-area-inset-right, 0px));
+  top: calc(18 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(12 * var(--u));
+  pointer-events: none;
+}
+
+.topRight > * {
+  pointer-events: auto;
+}
+
+.note {
+  position: relative;
+  width: max(214px, calc(290 * var(--u)));
+  padding: calc(14 * var(--u)) calc(16 * var(--u)) calc(12 * var(--u));
+  background: var(--color-input-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 8px 8px 22px 8px;
+  box-shadow: 0 calc(6 * var(--u)) 0 var(--color-lobby-shadow);
+  transform: rotate(1.5deg);
+  transform-origin: 100% 0;
+}
+
+.pin {
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  margin-left: -10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-lobby-pin);
+  border: 3px solid var(--color-card-border);
+}
+
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--color-link);
+}
+
+.noteTitle {
+  margin-top: 2px;
+  font-size: max(17px, calc(24 * var(--u)));
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.noteSub {
+  margin-top: 3px;
+  font-size: max(11px, calc(13 * var(--u)));
+  color: var(--color-text-subtle);
+}
+
+.noteRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: calc(8 * var(--u));
+}
+
+.chip {
+  font-size: max(11px, calc(12 * var(--u)));
+  font-weight: 600;
+  padding: 1px 7px;
+  background: var(--color-lobby-chip);
+  border: 2px solid var(--color-card-border);
+  border-radius: 9px;
+  white-space: nowrap;
+}
+
+.start {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-button-text);
+  background: var(--color-button-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 13px;
+  box-shadow: 0 4px 0 var(--color-button-border);
+}
+
+.online {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 12px;
+  font-size: max(12px, calc(14 * var(--u)));
+  font-weight: 600;
+  background: var(--color-card-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--color-lobby-shadow);
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-lobby-online);
+  border: 2px solid var(--color-lobby-online-edge);
+}
+
+/* ---------- Bottom corners ---------- */
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  height: max(48px, calc(62 * var(--u)));
+  padding: 0 calc(22 * var(--u)) 0 calc(9 * var(--u));
+  font-size: max(15px, calc(20 * var(--u)));
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-card-bg);
+  border: max(3px, calc(4 * var(--u))) solid var(--color-card-border);
+  border-radius: calc(22 * var(--u));
+  box-shadow: 0 5px 0 var(--color-lobby-shadow);
+}
+
+.pillOrange {
+  color: var(--color-button-text);
+  background: var(--color-button-bg);
+  box-shadow: 0 5px 0 var(--color-button-border);
+}
+
+.pillIcon {
+  display: grid;
+  place-items: center;
+  width: max(32px, calc(42 * var(--u)));
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--color-lobby-chip);
+  border: 3px solid var(--color-card-border);
+}
+
+.bottomLeft {
+  position: absolute;
+  left: max(var(--edge), env(safe-area-inset-left, 0px));
+  bottom: var(--edge);
+}
+
+.bottomRight {
+  position: absolute;
+  right: max(var(--edge), env(safe-area-inset-right, 0px));
+  bottom: var(--edge);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: max(6px, calc(10 * var(--u)));
+  pointer-events: none;
+}
+
+.bottomRight > * {
+  pointer-events: auto;
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  width: max(44px, calc(56 * var(--u)));
+  aspect-ratio: 1;
+  padding: 0;
+  color: var(--color-card-border);
+  background: var(--color-card-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 50%;
+  box-shadow: 0 4px 0 var(--color-lobby-shadow);
+}
+
+.pill:active,
+.round:active,
+.start:active,
+.emo:active,
+.phrase:active,
+.btn:active,
+.action:active {
+  translate: 0 3px;
+  box-shadow: none;
+}
+
+/* ---------- Bottom middle: the emote bar ---------- */
+
+.tray {
+  position: absolute;
+  left: 50%;
+  bottom: var(--edge);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 7px;
+  background: var(--color-card-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 30px;
+  box-shadow: 0 5px 0 var(--color-lobby-shadow);
+}
+
+.emo,
+.phrase {
+  height: 44px;
+  color: var(--color-text);
+  background: var(--color-lobby-chip);
+  border: 3px solid var(--color-card-border);
+}
+
+.emo {
+  width: 44px;
+  padding: 0;
+  font-size: 20px;
+  border-radius: 50%;
+}
+
+.phrase {
+  padding: 0 max(9px, calc(13 * var(--u)));
+  font-size: max(13px, calc(15 * var(--u)));
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 22px;
+}
+
+/* ---------- Top middle: the first-visit hint ---------- */
+
+.hint {
+  position: absolute;
+  left: 50%;
+  top: calc(16 * var(--u));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: max(12px, calc(14 * var(--u)));
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-text-on-dark);
+  background: var(--color-lobby-hint);
+  border-radius: 14px;
+  pointer-events: none;
+  transition: opacity 0.6s;
+}
+
+.hintGone {
+  opacity: 0;
+}
+
+.keys {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  font-family: inherit;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  background: var(--color-lobby-chip);
+  border-bottom: 3px solid var(--color-lobby-key-edge);
+  border-radius: 6px;
+}
+
+/* ---------- The action button (the game moves it over the Student) ---------- */
+
+.action {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 4px 14px 4px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-input-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--color-lobby-shadow);
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.actionTouch {
+  padding-left: 14px;
+}
+
+.action .key {
+  color: var(--color-button-text);
+  background: var(--color-button-bg);
+  border-bottom-color: var(--color-button-border);
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--edge) + 68px);
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  padding: 7px 15px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  background: var(--color-input-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--color-lobby-shadow);
+  pointer-events: none;
+  animation: toast 2.4s both;
+}
+
+@keyframes toast {
+  0% {
+    opacity: 0;
+    translate: 0 10px;
+  }
+  10%,
+  88% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+/* ---------- Cards ---------- */
+
+.dim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 12px max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px));
+  background: var(--color-lobby-dim);
+  pointer-events: auto;
+}
+
+.card {
+  position: relative;
+  width: min(400px, 100%);
+  /* Taller than the screen: the card scrolls. */
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 20px 22px;
+  text-align: center;
+  color: var(--color-text);
+  background: var(--color-input-bg);
+  border: 4px solid var(--color-card-border);
+  border-radius: 26px;
+  box-shadow: 0 8px 0 var(--color-lobby-shadow);
+  animation: pop 0.28s cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+}
+
+.card button {
+  cursor: pointer;
+}
+
+.close {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 700;
+  background: var(--color-lobby-chip);
+  border: 3px solid var(--color-card-border);
+  border-radius: 50%;
+}
+
+.cardTitle {
+  margin-top: 6px;
+  /* Clear of the close button. */
+  padding: 0 34px;
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.sub {
+  margin-top: 5px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.soon {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-link);
+}
+
+.bigIcon {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  margin: 0 auto;
+  background: var(--tint, var(--color-lobby-chip));
+  border: 3.5px solid var(--color-card-border);
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.bigIcon img {
+  height: 96px;
+  max-width: none;
+  margin-top: 8px;
+}
+
+.acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn {
+  min-height: 48px;
+  padding: 4px 20px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  background: var(--color-lobby-chip);
+  border: 3.5px solid var(--color-card-border);
+  border-radius: 15px;
+  box-shadow: 0 4px 0 var(--color-lobby-shadow);
+}
+
+.btnOrange {
+  color: var(--color-button-text);
+  background: var(--color-button-bg);
+  box-shadow: 0 4px 0 var(--color-button-border);
+}
+
+.btnGreen {
+  color: var(--color-text-on-dark);
+  background: var(--color-new-student-button);
+  box-shadow: 0 4px 0 var(--color-new-student-button-edge);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--color-lobby-chip);
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 12px;
+}
+
+/* Buddy card: the kid and their buddy, side by side. */
+.duo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: min(190px, 34dvh);
+  margin: 4px 28px 6px;
+  padding-bottom: 12px;
+  background: radial-gradient(circle at 50% 70%, var(--color-label-pill-bg) 0 45%, var(--color-tint-peach) 46% 100%);
+  border: 3px solid var(--color-card-border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.duo img {
+  height: 84%;
+  max-width: none;
+}
+
+.duo img + img {
+  height: 62%;
+}
+
+/* Rows of facts (the chalkboard card) and of keys (How to play). */
+.list,
+.howto,
+.set {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  text-align: left;
+}
+
+.list > div,
+.howto > div,
+.row {
+  background: var(--color-lobby-chip);
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 13px;
+}
+
+.list > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 15px;
+}
+
+.list b,
+.howto b {
+  font-weight: 700;
+}
+
+.howto > div {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 15px;
+}
+
+.howto .keys {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+}
+
+/* Settings: a label and a segmented pill per row. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  padding: 5px 5px 5px 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.row .soon {
+  margin: 0 8px 0 0;
+  line-height: 44px;
+}
+
+.seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--color-card-bg);
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 16px;
+}
+
+.segBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 48px;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: 11px;
+}
+
+.segBtn[aria-pressed='true'] {
+  color: var(--color-button-text);
+  background: var(--color-button-bg);
+}
+
+.logout {
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-link);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+}

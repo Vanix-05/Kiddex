@@ -141,6 +141,22 @@ export const theme = {
     gridPaper: '#FFFDF6',
     sheetBorder: '#D9C3A3',
     clip: '#2B2A2E', // binder clips
+
+    // Main Lobby (the classroom): the HUD and cards over the game canvas.
+    // Borders reuse cardBorder, text reuses text / textMuted, orange reuses the buttons.
+    lobbySea: '#7FCBE6', // behind the canvas (same as the game's background)
+    lobbyWood: '#D79A5C', // the Student card's wooden board
+    lobbyWoodEdge: '#C3854A',
+    lobbyChip: '#FFFFFF', // white chips, round icons and bubbles
+    lobbyShadow: 'rgba(91, 58, 34, 0.22)', // flat drop shadow under buttons
+    lobbyDim: 'rgba(70, 45, 25, 0.45)', // behind an open card
+    lobbyHint: 'rgba(63, 38, 20, 0.85)', // the "WASD or click to walk" hint (white text 11:1)
+    lobbyPin: '#EF6F5E', // the mission note's pin
+    lobbyOnline: '#58B56A', // the green dot on name tags
+    lobbyOnlineEdge: '#2F7A3F',
+    lobbyXp: '#8BC97A', // XP bar stripes
+    lobbyXpStripe: '#7DBB6C',
+    lobbyKeyEdge: '#C8B39C', // bottom edge of a keyboard key
   },
 
   fonts: {

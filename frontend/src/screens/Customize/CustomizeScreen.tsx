@@ -28,6 +28,7 @@ import {
 } from '../../setup/customizeData'
 import { cleanNickname, MAX_NICKNAME, petById } from '../../setup/petData'
 import { isBuddyId, type BuddyId } from '../../setup/quizData'
+import { preloadLobby, prewarmLobby } from '../Lobby/preloadLobby'
 import { BridgeCutscene } from './cutscene/BridgeCutscene'
 import { Boat, Scene } from './Scene'
 import styles from './CustomizeScreen.module.css'
@@ -101,6 +102,11 @@ export function CustomizeScreen() {
   const buddy = isBuddyId(companionId) ? companionId : null
   const [cutscene, setCutscene] = useState(false)
 
+  // Start downloading the Lobby now, so it is ready when the cutscene ends.
+  useEffect(() => {
+    void preloadLobby()
+  }, [])
+
   // Not set up yet (opened directly): back to the first-time setup.
   if (!avatar || !buddy) return <Navigate to={paths.setup.quiz} replace />
 
@@ -111,6 +117,8 @@ export function CustomizeScreen() {
     }
     markBridgeCutsceneSeen() // once only, even if they skip it
     setCutscene(true)
+    // The look is final now: draw the Lobby pictures while the cutscene plays.
+    void prewarmLobby(avatar, buddy, look)
   }
 
   if (cutscene) {
