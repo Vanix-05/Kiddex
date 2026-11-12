@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
+import { availableTemplates, MIN_CARDS, TEMPLATE_FOR_TYPE } from '../../content/questionCard'
 import { fakeDraftsFor } from '../../mock/teacherMock'
 import { useTestData } from './testDataContext'
-import type { Draft, FileType, GameType, Lesson, Section, TeacherData, TodoItem } from './types'
+import type { FileType, Lesson, QuestionCard, Section, TeacherData, TemplateId, TodoItem } from './types'
 
 /**
  * The only way Teacher screens read and change data.
@@ -16,13 +17,15 @@ export const sectionLabel = (s: Section) => `${s.grade} – ${s.name}`
 
 const nowLabel = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
+const activeSection = (d: TeacherData) => d.sections.find((s) => s.id === d.activeSectionId) ?? d.sections[0]
+
 export function useTeacher() {
   return useTestData().data.teacher
 }
 
 export function useSection() {
   const { data, update } = useTestData()
-  const active = data.sections.find((s) => s.id === data.activeSectionId) ?? data.sections[0]
+  const active = activeSection(data)
   const setActive = useCallback((id: string) => update((d) => ({ ...d, activeSectionId: id })), [update])
   return { sections: data.sections, active, label: sectionLabel(active), setActive }
 }
@@ -47,8 +50,25 @@ export function useClassSummary() {
   }
 }
 
+/** A To do as Home shows it: always with a title. */
+export type ShownTodo = TodoItem & { title: string }
+
+/** "Check 7 AI-drafted questions" */
+const checkTitle = (n: number) => `Check ${n} AI-drafted question${n === 1 ? '' : 's'}`
+
 export function useTodos() {
   const { data, update } = useTestData()
+  // "Check" items count the lesson's draft cards now, and leave the list at 0.
+  const todos = useMemo(
+    () =>
+      data.todos.flatMap((t): ShownTodo[] => {
+        if (t.target.kind !== 'check') return [{ ...t, title: t.title ?? '' }]
+        const { lessonId } = t.target
+        const left = data.cards.filter((c) => c.lessonId === lessonId && c.status === 'draft').length
+        return left > 0 ? [{ ...t, title: checkTitle(left) }] : []
+      }),
+    [data.todos, data.cards],
+  )
   const toggle = useCallback(
     (id: string) =>
       update((d) => ({
@@ -57,7 +77,7 @@ export function useTodos() {
       })),
     [update],
   )
-  return { todos: data.todos, upcoming: data.upcoming, toggle }
+  return { todos, upcoming: data.upcoming, toggle }
 }
 
 export interface LessonWithCounts extends Lesson {
@@ -66,11 +86,11 @@ export interface LessonWithCounts extends Lesson {
 }
 
 const withCounts = (data: TeacherData) => (l: Lesson): LessonWithCounts => {
-  const mine = data.drafts.filter((q) => q.lessonId === l.id)
+  const mine = data.cards.filter((c) => c.lessonId === l.id)
   return {
     ...l,
-    toCheck: mine.filter((q) => q.status === 'toCheck').length,
-    approved: mine.filter((q) => q.status === 'approved').length,
+    toCheck: mine.filter((c) => c.status === 'draft').length,
+    approved: mine.filter((c) => c.status === 'approved').length,
   }
 }
 
@@ -80,14 +100,63 @@ export interface NewLesson {
   fileSize: string
   topic: string
   subject: string
-  games: GameType[]
+  games: TemplateId[]
 }
+
+/** FAKE: the "AI" takes about this long to draft a lesson's questions. */
+export const MAKING_MS = 6000
+
+/** FAKE: what "reading" an uploaded file finds. TODO: the backend reads the real file. */
+export const fakeFileFacts = (type: FileType) => ({ size: type === 'PPT' ? '12 slides' : '3 pages', words: 1240 })
 
 /** Marks every To do that points at this lesson as done. */
 const finishTodos = (todos: TodoItem[], kind: 'check' | 'games', lessonId: string) =>
   todos.map((t) =>
     !t.done && t.target.kind === kind && t.target.lessonId === lessonId ? { ...t, done: true, doneAt: nowLabel() } : t,
   )
+
+/** Drafting finished: the lesson gets its question cards and a To do. */
+const finishMaking = (d: TeacherData, id: string): TeacherData => {
+  const lesson = d.lessons.find((l) => l.id === id)
+  if (!lesson || lesson.status !== 'making') return d
+  // TODO: the cards come from the backend (AI) once it exists.
+  const { cards, quotes } = fakeDraftsFor(lesson, activeSection(d).grade)
+  // No title: useTodos counts the draft cards left.
+  const todo: TodoItem = {
+    id: `t-${id}`,
+    detail: `${lesson.title} · hidden until approved`,
+    action: 'Review',
+    primary: true,
+    target: { kind: 'check', lessonId: id },
+    done: false,
+  }
+  return {
+    ...d,
+    lessons: d.lessons.map((l) => (l.id === id ? { ...l, status: 'toCheck' } : l)),
+    cards: [...d.cards, ...cards],
+    sourceQuotes: { ...d.sourceQuotes, ...quotes },
+    todos: [todo, ...d.todos],
+  }
+}
+
+/**
+ * FAKE "AI": finishes every lesson that's being made, MAKING_MS after its upload,
+ * whichever page the Teacher is on. Mounted once, in the planner.
+ */
+export function useFakeMaking() {
+  const { data, update } = useTestData()
+  const making = data.lessons.filter((l) => l.status === 'making')
+  const key = making.map((l) => `${l.id}@${l.makingStartedAt}`).join()
+  useEffect(() => {
+    if (!key) return
+    const timers = key.split(',').map((entry) => {
+      const [id, at] = entry.split('@')
+      const wait = Math.max(0, Number(at) + MAKING_MS - Date.now())
+      return window.setTimeout(() => update((d) => finishMaking(d, id)), wait)
+    })
+    return () => timers.forEach((t) => window.clearTimeout(t))
+  }, [key, update])
+}
 
 export function useLessons() {
   const { data, update } = useTestData()
@@ -99,56 +168,21 @@ export function useLessons() {
       const id = `l${Date.now().toString(36)}`
       const lesson: Lesson = {
         id,
-        title: input.fileName.replace(/\.(pdf|pptx)$/i, ''),
+        title: input.fileName.replace(/\.(pdf|pptx|docx)$/i, ''),
         fileName: input.fileName,
         fileType: input.fileType,
-        // TODO: the real page count comes from the backend once the file is read.
-        size: input.fileType === 'PDF' ? '8 pages' : '12 slides',
+        size: fakeFileFacts(input.fileType).size,
         fileSize: input.fileSize,
         uploaded: 'just now',
         topic: input.topic,
         subject: input.subject,
         games: input.games,
         status: 'making',
-        makingStep: 1,
+        makingStartedAt: Date.now(),
       }
       update((d) => ({ ...d, lessons: [lesson, ...d.lessons] }))
       return id
     },
-    [update],
-  )
-
-  /** Fake progress while the "AI" drafts (5 steps). */
-  const setMakingStep = useCallback(
-    (id: string, step: number) =>
-      update((d) => ({ ...d, lessons: d.lessons.map((l) => (l.id === id ? { ...l, makingStep: step } : l)) })),
-    [update],
-  )
-
-  /** Drafting finished: the lesson gets its draft questions and a To do. */
-  const finishMaking = useCallback(
-    (id: string) =>
-      update((d) => {
-        const lesson = d.lessons.find((l) => l.id === id)
-        if (!lesson || lesson.status !== 'making') return d
-        // TODO: the drafts come from the backend (AI) once it exists.
-        const drafts = fakeDraftsFor(id, lesson.topic).filter((q) => lesson.games.includes(q.game))
-        const todo: TodoItem = {
-          id: `t-${id}`,
-          title: `Check ${drafts.length} AI-drafted questions`,
-          detail: `${lesson.title} · hidden until approved`,
-          action: 'Review',
-          primary: true,
-          target: { kind: 'check', lessonId: id },
-          done: false,
-        }
-        return {
-          ...d,
-          lessons: d.lessons.map((l) => (l.id === id ? { ...l, status: 'toCheck', makingStep: 5 } : l)),
-          drafts: [...d.drafts, ...drafts],
-          todos: [todo, ...d.todos],
-        }
-      }),
     [update],
   )
 
@@ -164,7 +198,13 @@ export function useLessons() {
     [update],
   )
 
-  return { lessons, addLesson, setMakingStep, finishMaking, assignLesson }
+  /** The games switched on for the review pack. */
+  const setPackGames = useCallback(
+    (id: string, games: TemplateId[]) => update((d) => ({ ...d, lessons: d.lessons.map((l) => (l.id === id ? { ...l, games } : l)) })),
+    [update],
+  )
+
+  return { lessons, addLesson, assignLesson, setPackGames }
 }
 
 export function useLesson(id: string | undefined) {
@@ -173,9 +213,9 @@ export function useLesson(id: string | undefined) {
   return lesson ? withCounts(data)(lesson) : undefined
 }
 
-/** After a draft changes: a lesson with nothing left to check is Ready. */
+/** After a card changes: a lesson with nothing left to check is Ready. */
 const settle = (d: TeacherData, lessonId: string): TeacherData => {
-  const left = d.drafts.some((q) => q.lessonId === lessonId && q.status === 'toCheck')
+  const left = d.cards.some((c) => c.lessonId === lessonId && c.status === 'draft')
   if (left) return d
   return {
     ...d,
@@ -184,56 +224,100 @@ const settle = (d: TeacherData, lessonId: string): TeacherData => {
   }
 }
 
-export function useDrafts(lessonId: string | undefined) {
+/** A lesson's question cards, and the Check page's changes to them. */
+export function useCards(lessonId: string | undefined) {
   const { data, update } = useTestData()
-  const drafts = useMemo(() => data.drafts.filter((q) => q.lessonId === lessonId), [data.drafts, lessonId])
+  const cards = useMemo(() => data.cards.filter((c) => c.lessonId === lessonId), [data.cards, lessonId])
+  const { sourceQuotes, editedCardIds } = data
 
-  const updateDraft = useCallback(
-    (id: string, patch: Partial<Draft>) =>
-      update((d) => {
-        const next = { ...d, drafts: d.drafts.map((q) => (q.id === id ? { ...q, ...patch } : q)) }
-        return lessonId ? settle(next, lessonId) : next
-      }),
-    [update, lessonId],
+  /** FAKE: the lesson quote for a card (not a card field). */
+  const quoteFor = useCallback((id: string) => sourceQuotes[id], [sourceQuotes])
+  const isEdited = useCallback((id: string) => editedCardIds.includes(id), [editedCardIds])
+
+  /** An edit on the Check page (shown with a pencil until approved). */
+  const editCard = useCallback(
+    (id: string, patch: Partial<QuestionCard>) =>
+      update((d) => ({
+        ...d,
+        cards: d.cards.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        editedCardIds: d.editedCardIds.includes(id) ? d.editedCardIds : [...d.editedCardIds, id],
+      })),
+    [update],
   )
 
-  const deleteDraft = useCallback(
+  /** The caller checks the card with QuestionCardSchema first. */
+  const approveCard = useCallback(
     (id: string) =>
       update((d) => {
-        const next = { ...d, drafts: d.drafts.filter((q) => q.id !== id) }
+        const next = {
+          ...d,
+          cards: d.cards.map((c) => (c.id === id ? { ...c, status: 'approved' as const } : c)),
+          editedCardIds: d.editedCardIds.filter((x) => x !== id),
+        }
         return lessonId ? settle(next, lessonId) : next
       }),
     [update, lessonId],
   )
 
-  /** "+ Add my own question": an empty Quiz Show question. Returns its id. */
-  const addDraft = useCallback(() => {
+  const deleteCard = useCallback(
+    (id: string) =>
+      update((d) => {
+        const next = { ...d, cards: d.cards.filter((c) => c.id !== id), editedCardIds: d.editedCardIds.filter((x) => x !== id) }
+        return lessonId ? settle(next, lessonId) : next
+      }),
+    [update, lessonId],
+  )
+
+  /** "+ Add my own question": an empty Quiz Show card, no right answer yet. Returns its id. */
+  const addCard = useCallback(() => {
     if (!lessonId) return undefined
     const id = `${lessonId}-own${Date.now().toString(36)}`
     update((d) => {
       const lesson = d.lessons.find((l) => l.id === lessonId)
-      const draft: Draft = {
+      const card: QuestionCard = {
         id,
         lessonId,
-        text: '',
-        game: 'quiz',
+        type: 'multiple_choice',
+        prompt: '',
         choices: ['', '', '', ''],
-        right: 0,
+        answer: '',
+        subject: lesson?.subject ?? 'Math',
         topic: lesson?.topic ?? '',
+        grade: activeSection(d).grade,
         level: 'easy',
-        status: 'toCheck',
-        source: { page: 0, quote: '', highlight: '' },
+        status: 'draft',
       }
       return {
         ...d,
-        drafts: [...d.drafts, draft],
+        cards: [...d.cards, card],
         lessons: d.lessons.map((l) => (l.id === lessonId && l.status === 'ready' ? { ...l, status: 'toCheck' } : l)),
       }
     })
     return id
   }, [update, lessonId])
 
-  return { drafts, updateDraft, deleteDraft, addDraft }
+  return { cards, quoteFor, isEdited, editCard, approveCard, deleteCard, addCard }
+}
+
+/** Per game: approved cards, cards still to check, and whether it has enough to play (MIN_CARDS). */
+export function useLessonGames(lessonId: string | undefined) {
+  const { cards } = useCards(lessonId)
+  return useMemo(() => {
+    const count = (status: QuestionCard['status']) => {
+      const n: Record<TemplateId, number> = { 'quiz-show': 0, 'match-up': 0, 'fill-blank': 0 }
+      for (const c of cards) if (c.status === status) n[TEMPLATE_FOR_TYPE[c.type]]++
+      return n
+    }
+    const approved = count('approved')
+    return {
+      approved,
+      toCheck: count('draft'),
+      ready: availableTemplates(cards),
+      min: MIN_CARDS,
+      approvedTotal: cards.filter((c) => c.status === 'approved').length,
+      toCheckTotal: cards.filter((c) => c.status === 'draft').length,
+    }
+  }, [cards])
 }
 
 /** The topics a question can belong to (Check page dropdown). */

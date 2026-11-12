@@ -2,6 +2,7 @@
  * The shapes of the Teacher Dashboard data. The fake data (src/mock/teacherMock.ts)
  * and, later, the real API both fill these in.
  */
+import type { QuestionCard, TemplateId } from '../../content/questionCard'
 
 /** Buddy heads shown in the student list (src/assets/teacher/h_*.png). */
 export type BuddyHead = 'axolotl' | 'dog' | 'fox' | 'kitty' | 'monkey' | 'otter' | 'raccoon' | 'ram'
@@ -54,7 +55,11 @@ export type TodoTarget =
 
 export interface TodoItem {
   id: string
-  title: string
+  /**
+   * Left out on "check" items: useTodos makes their title from the lesson's
+   * draft cards ("Check 7 AI-drafted questions"), so the number is always live.
+   */
+  title?: string
   detail: string
   /** A small red tag after the title, e.g. "below 50%". */
   tag?: string
@@ -95,8 +100,9 @@ export interface Student {
   needsHelp?: boolean
 }
 
-export type GameType = 'quiz' | 'match' | 'blank'
-export type FileType = 'PDF' | 'PPT'
+/** The mini games, named the same everywhere: 'quiz-show' | 'match-up' | 'fill-blank'. */
+export type { QuestionCard, TemplateId } from '../../content/questionCard'
+export type FileType = 'PDF' | 'PPT' | 'DOC'
 
 /**
  * making   = the AI is drafting questions
@@ -121,32 +127,25 @@ export interface Lesson {
   uploaded: string
   topic: string
   subject: string
-  games: GameType[]
+  /** The games picked at upload, and later the ones switched on for the review pack. */
+  games: TemplateId[]
   status: LessonStatus
   /** Assigned: "due Fri" or "done". */
   assignedNote?: string
-  /** While making: how many of the 5 steps are done (0–5). */
-  makingStep?: number
+  /** While making: when the upload started (ms), for the timer and the fake progress. */
+  makingStartedAt?: number
 }
 
-export type DraftStatus = 'toCheck' | 'approved'
-export type Level = 'easy' | 'medium' | 'hard'
+export type Level = QuestionCard['level']
 
-export interface Draft {
-  id: string
-  lessonId: string
-  text: string
-  game: GameType
-  choices: string[]
-  /** Index of the right choice. */
-  right: number
-  topic: string
-  level: Level
-  status: DraftStatus
-  /** The Teacher changed the AI's draft (shown with a pencil). */
-  edited?: boolean
-  /** Where in the lesson the AI found it (page 0 = the Teacher's own question). */
-  source: { page: number; quote: string; highlight: string }
+/**
+ * FAKE: the words in the lesson a card came from, shown as "From your lesson · page N".
+ * Not part of the question card; kept beside it by card id. The page is the card's sourcePage.
+ */
+export interface SourceQuote {
+  quote: string
+  /** The part of the quote to highlight. */
+  highlight: string
 }
 
 /** Everything the dashboard shows, for one test mode. */
@@ -167,7 +166,12 @@ export interface TeacherData {
   ollieNote: string
   students: Student[]
   lessons: Lesson[]
-  drafts: Draft[]
+  /** Every lesson's question cards. status 'draft' = still to check. */
+  cards: QuestionCard[]
+  /** FAKE: lesson quotes by card id (see SourceQuote). */
+  sourceQuotes: Record<string, SourceQuote>
+  /** Cards the Teacher changed (shown with a pencil until approved). */
+  editedCardIds: string[]
   /** The default review pack due date, e.g. "Fri, Nov 14" */
   nextDueLabel: string
 }

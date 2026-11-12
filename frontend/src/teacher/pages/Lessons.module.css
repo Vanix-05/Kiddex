@@ -176,18 +176,89 @@ button.lessonButton:hover .lessonTitle {
   color: var(--color-ok-text);
 }
 
+.howText {
+  max-width: 96px;
+}
+
 /* ---------- Add a lesson ---------- */
 
+/* 1 Pick your file — 2 Name the topic — 3 Make questions */
+.guide {
+  display: flex;
+  align-items: center;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guideStep {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
+/* Steps 2 and 3 start with the line from the step before; the lines share the spare width. */
+.guideStep + .guideStep {
+  flex: 1;
+}
+
+.guideStep + .guideStep::before {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  max-width: 36px;
+  height: 2.5px;
+  margin: 0 8px 0 10px;
+  border-radius: 2px;
+  background: var(--color-neutral-line);
+}
+
+.guideDot {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2.5px solid var(--color-neutral-line);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+  font: 600 15px/1 var(--font-display);
+}
+
+.guide_done {
+  color: var(--color-ok-text);
+}
+
+.guide_done .guideDot {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
+}
+
+.guide_now {
+  color: var(--color-planner-ink);
+}
+
+.guide_now .guideDot {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  box-shadow: 0 0 0 4px var(--color-warn-bg);
+  color: var(--color-planner-ink);
+}
+
+/* No file yet: the big drop zone. */
 .drop {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  height: 198px;
-  margin-top: 24px;
-  padding-top: 12px;
-  border: 2.5px dashed var(--color-warn-line);
-  border-radius: 18px;
+  height: 338px;
+  margin-top: 18px;
+  padding-top: 40px;
+  border: 3px dashed var(--color-button-bg);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-input-bg) 70%, transparent);
   text-align: center;
 }
 
@@ -196,89 +267,230 @@ button.lessonButton:hover .lessonTitle {
   background: var(--color-warn-bg);
 }
 
-.dropIcon {
+/* Three tilted paper pages (PDF, PPT, DOC) with an upload badge. */
+.dropArt {
+  position: relative;
+  width: 160px;
+  height: 104px;
+  flex: none;
+}
+
+.artPdf,
+.artPpt,
+.artDoc {
+  position: absolute;
+  width: 54px;
+  height: 70px;
+  padding-bottom: 12px;
+  box-shadow: 0 3px 0 rgba(74, 52, 38, 0.12);
+}
+
+.artPdf {
+  left: 6px;
+  top: 12px;
+  transform: rotate(-14deg);
+}
+
+.artPpt {
+  left: 53px;
+  top: 0;
+  align-items: flex-start;
+  padding-top: 40px;
+  padding-bottom: 0;
+  color: var(--color-button-border);
+  z-index: 1;
+}
+
+.artDoc {
+  right: 6px;
+  top: 12px;
+  transform: rotate(14deg);
+}
+
+.artIcon {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 2;
   display: grid;
   place-items: center;
-  width: 62px;
-  height: 62px;
+  width: 44px;
+  height: 44px;
+  border: 2.5px solid var(--color-button-border);
   border-radius: 50%;
-  background: var(--color-warn-bg);
-  color: var(--color-warn-text);
+  background: var(--color-button-bg);
+  color: var(--color-planner-ink);
+  transform: translateX(-50%);
 }
 
 .dropTitle {
-  margin-top: 4px;
-  font: 600 19px/1.2 var(--font-display);
+  margin-top: 14px;
+  font: 600 23px/1.2 var(--font-display);
   color: var(--color-planner-ink);
 }
 
-.dropHint {
-  margin-bottom: 4px;
+.dropOr {
+  margin-top: 8px;
   font-size: 15px;
   color: var(--color-text-subtle);
 }
 
-.fileSlot {
-  height: 62px;
-  margin-top: 14px;
+.choose {
+  height: 58px;
+  margin-top: 8px;
+  padding: 0 34px;
+  border-radius: 14px;
+  font-size: 20px;
 }
 
-.fileCard {
+.dropSlot {
   display: flex;
   align-items: center;
-  gap: 14px;
-  height: 62px;
-  padding: 0 14px;
-  border: 2.5px solid var(--color-card-border);
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 22px;
+}
+
+.dropHint {
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.dropError,
+.changeError {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--color-danger-text);
+  text-align: left;
+}
+
+.dropError svg,
+.changeError svg {
+  flex: none;
+}
+
+/* Works great / Not yet */
+.fit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.fitBox {
+  display: flex;
+  gap: 12px;
+  min-height: 80px;
+  padding: 12px 14px;
+  border: 2px solid;
   border-radius: 14px;
-  background: var(--color-input-bg);
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--color-text-subtle);
+}
+
+.fitBox strong {
+  display: block;
+  margin-bottom: 2px;
+  font: 600 16px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.fitIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--color-text-on-dark);
+}
+
+.fitYes {
+  border-color: var(--color-ok-line);
+  background: color-mix(in srgb, var(--color-ok-bg) 60%, transparent);
+}
+
+.fitYes .fitIcon {
+  background: var(--color-ok-fill);
+}
+
+.fitNo {
+  border-color: color-mix(in srgb, var(--color-bar-red) 60%, transparent);
+  background: color-mix(in srgb, var(--color-bar-red) 12%, transparent);
+}
+
+.fitNo .fitIcon {
+  background: var(--color-danger-text);
+}
+
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--color-text-subtle);
+}
+
+.privacy svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* File picked: "Got it!" */
+.gotIt {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 80px;
+  margin-top: 16px;
+  padding: 0 18px;
+  border: 2.5px solid var(--color-ok-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-ok-bg) 70%, transparent);
 }
 
 .fileName {
-  font-size: 16px;
+  font-size: 18px;
 }
 
-.removeFile {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.removeFile:hover {
-  background: var(--color-neutral-bg);
-}
-
-.fileError {
-  display: flex;
+.gotItLine {
+  display: inline-flex;
   align-items: center;
-  height: 62px;
-  margin: 0;
-  padding: 0 16px;
-  border: 2px solid var(--color-warn-line);
-  border-radius: 14px;
-  background: var(--color-warn-bg);
-  font-size: 15px;
-  color: var(--color-warn-text);
+  gap: 6px;
+  font: 600 16px/1.2 var(--font-display);
+  color: var(--color-ok-text);
+}
+
+.change {
+  flex: none;
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.changeError {
+  margin: 6px 0 -6px;
 }
 
 .fields {
   display: flex;
   gap: 16px;
-  margin-top: 20px;
+  margin-top: 18px;
 }
 
 .field {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .fieldSmall {
@@ -288,6 +500,12 @@ button.lessonButton:hover .lessonTitle {
 .label {
   font: 600 15px/1 var(--font-display);
   color: var(--color-planner-ink);
+}
+
+.labelHint {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--color-text-subtle);
 }
 
 .input,
@@ -317,69 +535,98 @@ button.lessonButton:hover .lessonTitle {
 .gamesBlock {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.gameChips {
-  display: flex;
   gap: 10px;
+  margin-top: 18px;
 }
 
-.gameChip {
-  display: inline-flex;
+/* The 3 game picture cards. */
+.gamePics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.gamePic {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  height: 40px;
-  padding: 0 14px;
-  border: 2px solid var(--color-neutral-line);
-  border-radius: 10px;
+  height: 120px;
+  padding: 8px 8px 0;
+  border: 2.5px solid var(--color-neutral-line);
+  border-radius: 14px;
   background: var(--color-input-bg);
-  font: 600 16px/1 var(--font-display);
-  color: var(--color-text-subtle);
   cursor: pointer;
 }
 
-.gameChipOn {
-  border-color: var(--color-ok-line);
-  background: var(--color-ok-bg);
-  color: var(--color-ok-text);
+.gamePicOn {
+  border-color: var(--color-ok-fill);
+  background: color-mix(in srgb, var(--color-ok-bg) 45%, var(--color-input-bg));
 }
 
-.makeRow {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-top: 22px;
+.gamePicImg {
+  width: 100%;
+  height: 72px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 8px;
+  object-fit: cover;
+  opacity: 0.45;
+  filter: grayscale(0.6);
 }
 
-.makeButton {
-  flex: none;
-  width: 250px;
-  height: 50px;
-  font-size: 18px;
+.gamePicOn .gamePicImg {
+  opacity: 1;
+  filter: none;
 }
 
-.privacy {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.35;
+.gamePicName {
+  font: 600 16px/1.1 var(--font-display);
   color: var(--color-text-subtle);
 }
 
-.privacy svg {
-  flex: none;
-  margin-top: 2px;
+.gamePicOn .gamePicName {
+  color: var(--color-planner-ink);
+}
+
+.gamePicTick {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--color-input-bg);
+  border-radius: 50%;
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
+}
+
+.makeButton {
+  width: 100%;
+  height: 62px;
+  margin-top: 20px;
+  border-radius: 16px;
+  font-size: 22px;
+}
+
+.takes {
+  margin: 14px 0 0;
+  font-size: 15px;
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+
+.takes + .privacy {
+  margin-top: 10px;
 }
 
 /* ---------- Making questions ---------- */
 
 .steps {
   position: relative;
-  margin: 26px 0 0;
+  margin: 22px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -388,7 +635,7 @@ button.lessonButton:hover .lessonTitle {
   position: relative;
   display: flex;
   gap: 16px;
-  min-height: 70px;
+  min-height: 66px;
 }
 
 /* The line joining the step dots. */
@@ -427,6 +674,11 @@ button.lessonButton:hover .lessonTitle {
   box-shadow: 0 0 0 6px var(--color-warn-bg);
 }
 
+.stepBody {
+  flex: 1;
+  min-width: 0;
+}
+
 .stepTitle {
   display: flex;
   align-items: center;
@@ -446,21 +698,34 @@ button.lessonButton:hover .lessonTitle {
   color: var(--color-text-subtle);
 }
 
+.elapsed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  font: 600 15px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-warn-text);
+}
+
+/* An honest bar: it moves, but doesn't pretend to know how far along it is. */
 .progress {
   position: relative;
   display: block;
   width: 360px;
   height: 14px;
-  margin-top: 8px;
+  margin: 7px 0 2px;
   border-radius: var(--radius-pill);
   background: var(--color-bar-track);
   overflow: hidden;
 }
 
-/* Striped orange bar. */
 .progressFill {
   position: absolute;
-  inset: 0 auto 0 0;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
   border-radius: var(--radius-pill);
   background: repeating-linear-gradient(
     -45deg,
@@ -468,8 +733,9 @@ button.lessonButton:hover .lessonTitle {
     var(--color-button-bg-hover) 10px 20px
   );
   background-size: 28px 28px;
-  transition: width 140ms linear;
-  animation: stripes 600ms linear infinite;
+  animation:
+    stripes 600ms linear infinite,
+    sweep 1800ms ease-in-out infinite alternate;
 }
 
 @keyframes stripes {
@@ -478,14 +744,47 @@ button.lessonButton:hover .lessonTitle {
   }
 }
 
+@keyframes sweep {
+  from {
+    transform: translateX(-20%);
+  }
+  to {
+    transform: translateX(142%);
+  }
+}
+
+/* "You don't have to wait here" */
+.noWait {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+  padding: 10px 14px 10px 20px;
+  border: 2.5px dashed var(--color-neutral-line);
+  border-radius: 14px;
+}
+
+.noWait p {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.noWait button {
+  height: 44px;
+  font-size: 16px;
+}
+
 .goCheck {
   align-self: flex-start;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .progressFill {
+    width: 100%;
     animation: none;
-    transition: none;
   }
 }

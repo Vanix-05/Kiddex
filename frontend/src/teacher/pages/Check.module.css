@@ -43,6 +43,9 @@
 }
 
 .pills {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 12px;
 }
 
@@ -124,6 +127,57 @@
   color: var(--color-text-subtle);
 }
 
+/* Game colors: Quiz orange, Match blue, Blank green. */
+.tone_warn {
+  border-color: var(--color-warn-line);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+.tone_info {
+  border-color: var(--color-info-line);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.tone_ok {
+  border-color: var(--color-ok-line);
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+/* The big game tag at the top-right of the editor. */
+.gameChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px;
+  border: 2px solid;
+  border-radius: var(--radius-pill);
+  font: 600 16px/1 var(--font-display);
+  white-space: nowrap;
+}
+
+/* "Only Match Up ×" next to the pills. */
+.onlyGame {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 2px solid;
+  border-radius: var(--radius-pill);
+  font: 600 15px/1 var(--font-display);
+  cursor: pointer;
+}
+
+.noneShown {
+  padding: 14px 4px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
 .dot {
   flex: none;
   display: grid;
@@ -172,14 +226,8 @@
   color: var(--color-planner-ink);
 }
 
-.game {
+.headGame {
   margin-left: auto;
-  font-size: 15px;
-  color: var(--color-text-subtle);
-}
-
-.game strong {
-  color: var(--color-planner-ink);
 }
 
 .label {
@@ -371,6 +419,230 @@
   margin: 18px 0 0;
   font-size: 15px;
   color: var(--color-text-subtle);
+}
+
+/* "Why it's right" */
+.why {
+  width: 100%;
+  height: 60px;
+  padding: 7px 16px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 12px;
+  background: var(--color-input-bg);
+  font: 400 16px/1.35 var(--font-body);
+  color: var(--color-text);
+  resize: none;
+}
+
+.why::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+/* Fill the Blank: the sentence with its ___ highlighted. */
+.sentence {
+  position: relative;
+}
+
+.sentenceBack {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding: 10px 16px;
+  border: 2.5px solid transparent;
+  font: 500 18px/1.4 var(--font-body);
+  color: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  pointer-events: none;
+}
+
+.blank {
+  border-bottom: 3px solid var(--color-button-bg);
+  border-radius: 4px 4px 0 0;
+  background: var(--color-warn-bg);
+  color: transparent;
+}
+
+.sentenceInput {
+  position: relative;
+  display: block;
+  background: transparent;
+}
+
+/* The box's paper color, drawn under the highlight (the text box itself is see-through). */
+.sentence::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: var(--color-input-bg);
+}
+
+.sentenceBack,
+.sentenceInput {
+  z-index: 1;
+}
+
+/* Match Up: left ↔ right. */
+.pair {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pairSide {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  padding: 0 14px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  font: 600 22px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  text-align: center;
+}
+
+.pairLeft {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-title-pill-bg) 60%, transparent);
+}
+
+.pairSide::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.pairLink {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--color-info-line);
+  border-radius: 50%;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.pairs {
+  max-height: 156px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 12px;
+  background: var(--color-input-bg);
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.pairs li + li {
+  border-top: 2px dashed var(--color-neutral-line);
+}
+
+.pairRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 37px;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pairRow:hover {
+  background: color-mix(in srgb, var(--color-title-pill-bg) 25%, transparent);
+}
+
+.pairRowOn,
+.pairRowOn:hover {
+  background: color-mix(in srgb, var(--color-title-pill-bg) 70%, transparent);
+}
+
+.pairL {
+  width: 74px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pairArrow {
+  flex: none;
+  color: var(--color-info-text);
+}
+
+.pairR {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-body);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pairOk,
+.pairNow,
+.pairTodo {
+  flex: none;
+  font: 600 14px/1 var(--font-display);
+}
+
+.pairOk {
+  color: var(--color-ok-text);
+}
+
+.pairNow {
+  color: var(--color-warn-text);
+}
+
+.pairTodo {
+  color: var(--color-text-subtle);
+}
+
+.pairCount {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.squares {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.sq {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--color-ok-fill);
+  border-radius: 4px;
+  background: var(--color-bar-green);
+}
+
+.sqEmpty {
+  border: 2px dashed var(--color-neutral-line);
+  background: none;
+}
+
+/* The friendly line when Approve finds a problem. */
+.problem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 12px 0 -6px;
+  font: 600 16px/1.2 var(--font-display);
+  color: var(--color-danger-text);
+}
+
+.problem:empty {
+  margin: 0;
 }
 
 .actions {

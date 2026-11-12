@@ -1,13 +1,14 @@
-import { startTransition, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
+import { startTransition, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, ChartNoAxesColumn, Flower, Flower2, House, Plus, Rose, TreePalm, Users, type LucideIcon } from 'lucide-react'
+import { BookOpen, ChartNoAxesColumn, Flower, Flower2, House, Maximize, Plus, Rose, TreePalm, Users, type LucideIcon } from 'lucide-react'
 import { characterArt } from '../../assets/art'
 import { KiddexLogo } from '../../components/KiddexLogo/KiddexLogo'
 import { SceneBackground } from '../../components/SceneBackground/SceneBackground'
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
+import { enterFullscreen, exitFullscreen, useIsFullscreen } from '../fullscreen'
 import { TestDataProvider } from '../data/TestDataProvider'
-import { sectionLabel, useSection, useTeacher } from '../data/useTeacherData'
+import { sectionLabel, useFakeMaking, useSection, useTeacher } from '../data/useTeacherData'
 import type { SectionIcon } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
 import { isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
@@ -98,9 +99,16 @@ type WindowState = 'hidden' | 'open' | 'closing'
 export function TeacherPlanner() {
   return (
     <TestDataProvider>
+      <FakeMaking />
       <Planner />
     </TestDataProvider>
   )
+}
+
+/** FAKE "AI": finishes lessons being made, even after the Teacher leaves the Making page. */
+function FakeMaking() {
+  useFakeMaking()
+  return null
 }
 
 function Planner() {
@@ -141,6 +149,8 @@ function Planner() {
   }, [bookPath])
 
   const { style: fitStyle, logo } = usePlannerFit()
+  const fullscreen = useIsFullscreen()
+  const { tabsRef, rowRef, buttonRef, switchRef, iconOnly, switchVars } = useTopRow(!fullscreen)
   const page = resolvePage(bookUrl).key
   const activeMark: BookmarkKey = win === 'open' ? 'students' : bookmarkFor(page)
 
@@ -199,11 +209,14 @@ function Planner() {
         />
       )}
 
-      <div className={`${styles.stage} ${styles.chromeStage}`} style={fitStyle}>
-        <SectionTabs />
+      <div className={`${styles.stage} ${styles.chromeStage}`} style={{ ...fitStyle, ...switchVars }}>
+        <SectionTabs tabsRef={tabsRef} />
         <Bookmarks active={activeMark} onGo={(to) => navigate(to)} />
-        <ProfileChip />
-        {SHOW_TEST_SWITCH && <TestViewSwitch />}
+        <div ref={rowRef} className={styles.topRight}>
+          {!fullscreen && <FullscreenButton iconOnly={iconOnly} buttonRef={buttonRef} />}
+          <ProfileChip />
+        </div>
+        {SHOW_TEST_SWITCH && <TestViewSwitch boxRef={switchRef} />}
         {win !== 'hidden' && (
           <StudentsWindow
             closing={win === 'closing'}
@@ -285,10 +298,10 @@ const TAB_ICONS: Record<SectionIcon, LucideIcon> = { flower: Flower, tulip: Flow
 const TAB_COLORS = { yellow: styles.tabYellow, pink: styles.tabPink, coral: styles.tabCoral }
 
 /** Tabs sit in a row, each as wide as its own label (never squeezed). */
-function SectionTabs() {
+function SectionTabs({ tabsRef }: { tabsRef: Ref<HTMLDivElement> }) {
   const { sections, active, setActive } = useSection()
   return (
-    <div className={styles.tabs} role="group" aria-label="Sections">
+    <div ref={tabsRef} className={styles.tabs} role="group" aria-label="Sections">
       {sections.map((s) => {
         const Icon = TAB_ICONS[s.icon]
         const on = s.id === active.id
@@ -361,7 +374,92 @@ function Bookmarks({ active, onGo }: { active: BookmarkKey; onGo: (to: string) =
   )
 }
 
-// ---------- Ms. Cruz ----------
+// ---------- Full screen button + Ms. Cruz ----------
+
+/** Stage px: the round icon-only button, and the space kept around the test switch. */
+const FULLSCREEN_ICON_W = 44
+const SWITCH_GAP = 8
+
+interface TopRow {
+  tabsRef: RefObject<HTMLDivElement | null>
+  rowRef: RefObject<HTMLDivElement | null>
+  buttonRef: RefObject<HTMLButtonElement | null>
+  switchRef: RefObject<HTMLDivElement | null>
+  iconOnly: boolean
+  switchVars: CSSProperties | undefined
+}
+
+/**
+ * The top row: tabs, test switch, Full screen button, chip. While the button
+ * shows, the test switch is centered in the space between the tabs and the
+ * button, and the button drops its label when the switch wouldn't fit beside
+ * it. All in stage px (offsetLeft/Width ignore the planner's scale).
+ */
+function useTopRow(showButton: boolean): TopRow {
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const switchRef = useRef<HTMLDivElement>(null)
+  /** The labelled button's width, kept from when it last showed its label. */
+  const labelW = useRef(0)
+  const [iconOnly, setIconOnly] = useState(false)
+  const [slot, setSlot] = useState<{ left: number; right: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const tabs = tabsRef.current
+    const row = rowRef.current
+    const sw = switchRef.current
+    if (!showButton || !tabs || !row || !sw) return
+    const measure = () => {
+      const button = buttonRef.current
+      const chip = row.lastElementChild as HTMLElement | null
+      const lastTab = tabs.lastElementChild as HTMLElement | null
+      if (!button || !chip || !lastTab) return
+      if (!button.classList.contains(styles.fullscreenIconOnly)) labelW.current = button.offsetWidth
+      // The tabs row clips at its own right edge.
+      const tabsEnd = tabs.offsetLeft + Math.min(lastTab.offsetLeft + lastTab.offsetWidth, tabs.offsetWidth)
+      const gap = parseFloat(getComputedStyle(row).columnGap) || 0
+      const chipLeft = row.offsetLeft + chip.offsetLeft
+      const free = (w: number) => chipLeft - gap - w - tabsEnd - sw.offsetWidth
+      const label = free(labelW.current) >= 2 * SWITCH_GAP
+      setIconOnly(!label)
+      const left = tabsEnd
+      const right = (row.offsetParent as HTMLElement).offsetWidth - (chipLeft - gap - (label ? labelW.current : FULLSCREEN_ICON_W))
+      setSlot((s) => (s && s.left === left && s.right === right ? s : { left, right }))
+    }
+    // Runs once right away, then whenever the switch or button change size,
+    // or the tabs change (their row keeps its size, so watch the tabs inside).
+    const ro = new ResizeObserver(measure)
+    for (const el of [sw, row, buttonRef.current]) if (el) ro.observe(el)
+    const mo = new MutationObserver(measure)
+    mo.observe(tabs, { childList: true, subtree: true, characterData: true })
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+    }
+  }, [showButton, iconOnly])
+
+  const switchVars =
+    showButton && slot ? ({ '--switch-left': `${slot.left}px`, '--switch-right': `${slot.right}px` } as CSSProperties) : undefined
+  return { tabsRef, rowRef, buttonRef, switchRef, iconOnly, switchVars }
+}
+
+/** Only shows while the page isn't full screen (the Teacher may leave it with Esc). */
+function FullscreenButton({ iconOnly, buttonRef }: { iconOnly: boolean; buttonRef: Ref<HTMLButtonElement> }) {
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      className={iconOnly ? `${styles.fullscreen} ${styles.fullscreenIconOnly}` : styles.fullscreen}
+      aria-label={iconOnly ? 'Full screen' : undefined}
+      title={iconOnly ? 'Full screen' : undefined}
+      onClick={enterFullscreen}
+    >
+      <Maximize size={18} strokeWidth={2.4} aria-hidden="true" />
+      {!iconOnly && 'Full screen'}
+    </button>
+  )
+}
 
 function ProfileChip() {
   const teacher = useTeacher()
@@ -382,6 +480,7 @@ function ProfileChip() {
           // One transition: the router changes pages in a transition, so a
           // separate log-out would render first, on the old Teacher page,
           // and the guard would send us to the Welcome card instead.
+          exitFullscreen()
           startTransition(() => {
             navigate(paths.teacher.login)
             logOut()

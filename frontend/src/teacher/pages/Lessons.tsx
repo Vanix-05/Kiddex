@@ -1,27 +1,19 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ArrowRight,
-  Check,
-  Clock,
-  FileUp,
-  Gamepad2,
-  Lock,
-  Package,
-  Pencil,
-  Sparkles,
-  X,
-} from 'lucide-react'
+import { ArrowRight, Check, Clock, FileUp, Gamepad2, Lock, Package, Pencil, Sparkles, TriangleAlert, X } from 'lucide-react'
 import { paths } from '../../routes/paths'
-import { useLesson, useLessons, useSection, type LessonWithCounts } from '../data/useTeacherData'
-import type { FileType, GameType } from '../data/types'
-import { GAME_INFO, GAME_ORDER } from '../assets'
+import { fakeFileFacts, MAKING_MS, useLesson, useLessons, useSection, type LessonWithCounts } from '../data/useTeacherData'
+import type { FileType, TemplateId } from '../data/types'
+import { GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
 import { Btn, Chip, EmptyLine, FileBadge, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Lessons.module.css'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const SUBJECTS = ['Math', 'Science', 'English', 'Filipino', 'Araling Panlipunan']
+
+/** "Word" for DOC, "PowerPoint" for PPT. */
+const TYPE_NAME: Record<FileType, string> = { PDF: 'PDF', PPT: 'PowerPoint', DOC: 'Word' }
 
 // ---------- Left page: My lessons ----------
 
@@ -95,6 +87,7 @@ function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
                 <span className={styles.lessonText}>
                   <span className={styles.lessonTitle}>{l.title}</span>
                   <span className={styles.lessonInfo}>
+                    {l.fileType === 'DOC' && 'Word · '}
                     {l.size} · {l.uploaded}
                   </span>
                 </span>
@@ -131,7 +124,7 @@ export function MakingLeft() {
 
 function HowItWorks() {
   const steps = [
-    { icon: FileUp, a: 'You upload', b: 'PDF or slides', tone: styles.howBrown },
+    { icon: FileUp, a: 'You upload', b: 'PDF, slides, Word', tone: styles.howBrown },
     { icon: Sparkles, a: 'AI drafts', b: 'questions', tone: styles.howPurple },
     { icon: Pencil, a: 'You check', b: 'and approve', tone: styles.howOrange },
     { icon: Gamepad2, a: 'Kids play', b: 'mini games', tone: styles.howGreen },
@@ -147,7 +140,7 @@ function HowItWorks() {
               <Icon size={28} strokeWidth={2} />
             </span>
             <strong>{a}</strong>
-            <span>{b}</span>
+            <span className={styles.howText}>{b}</span>
           </li>
         ))}
       </ol>
@@ -158,18 +151,57 @@ function HowItWorks() {
 // ---------- Right page: Add a lesson ----------
 
 const typeOf = (file: File): FileType | null =>
-  /\.pdf$/i.test(file.name) ? 'PDF' : /\.pptx$/i.test(file.name) ? 'PPT' : null
+  /\.pdf$/i.test(file.name) ? 'PDF' : /\.pptx$/i.test(file.name) ? 'PPT' : /\.docx$/i.test(file.name) ? 'DOC' : null
 
 const sizeLabel = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
 
-/** "Equivalent-Fractions-Wk3.pdf" -> "Equivalent Fractions" (a starting guess). */
+/** A friendly line for a file KIDDEX can't use, or '' if it's fine. */
+function fileProblem(file: File): string {
+  if (!typeOf(file)) {
+    const ext = /\.([a-z0-9]+)$/i.exec(file.name)?.[1]?.toLowerCase() ?? ''
+    if (['jpg', 'jpeg', 'png', 'heic', 'gif', 'webp', 'bmp'].includes(ext)) {
+      return 'That’s a photo. KIDDEX needs typed text: please pick a PDF, PowerPoint or Word file.'
+    }
+    if (ext === 'ppt' || ext === 'doc') {
+      return `That’s an older .${ext} file. Please save it as .${ext}x and try again.`
+    }
+    return 'KIDDEX can read PDF, PowerPoint (.pptx) and Word (.docx) files. Please pick one of those.'
+  }
+  if (file.size === 0) return 'That file is empty. Please pick another one.'
+  if (file.size > MAX_BYTES) return `That file is ${sizeLabel(file.size)}. Please pick one up to 10 MB.`
+  return ''
+}
+
+/** "Equivalent-Fractions-Wk3.docx" -> "Equivalent Fractions" (a starting guess). */
 const topicFromName = (name: string) =>
   name
-    .replace(/\.(pdf|pptx)$/i, '')
+    .replace(/\.(pdf|pptx|docx)$/i, '')
     .replace(/[-_]+/g, ' ')
     .replace(/\b(wk|week)\s*\d+\b/gi, '')
+    .replace(/\s+/g, ' ')
     .trim()
+
+/** 1 Pick your file → 2 Name the topic → 3 Make questions. */
+function UploadSteps({ current }: { current: number }) {
+  const steps = ['Pick your file', 'Name the topic', 'Make questions']
+  return (
+    <ol className={styles.guide} aria-label="Steps">
+      {steps.map((s, i) => {
+        const state = i < current ? 'done' : i === current ? 'now' : 'next'
+        return (
+          <li key={s} className={`${styles.guideStep} ${styles[`guide_${state}`]}`} aria-current={state === 'now' ? 'step' : undefined}>
+            <span className={styles.guideDot} aria-hidden="true">
+              {state === 'done' ? <Check size={18} strokeWidth={3.2} /> : i + 1}
+            </span>
+            {s}
+            {state === 'done' && <span className="visually-hidden"> (done)</span>}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
 
 export function UploadRight({ live }: PageProps) {
   const navigate = useNavigate()
@@ -180,193 +212,233 @@ export function UploadRight({ live }: PageProps) {
   const [error, setError] = useState('')
   const [topic, setTopic] = useState('')
   const [subject, setSubject] = useState('Math')
-  const [games, setGames] = useState<GameType[]>(['quiz', 'match', 'blank'])
+  const [games, setGames] = useState<TemplateId[]>(GAME_ORDER)
   const [dragging, setDragging] = useState(false)
+  const tab = live ? undefined : -1
 
   const pick = (f: File | undefined) => {
     if (!f) return
-    if (!typeOf(f)) {
-      setError('Please pick a PDF or PowerPoint (.pptx) file.')
-      return
-    }
-    if (f.size > MAX_BYTES) {
-      setError(`That file is ${sizeLabel(f.size)}. Please pick one up to 10 MB.`)
-      return
-    }
-    setError('')
+    const problem = fileProblem(f)
+    setError(problem)
+    if (problem) return
     setFile(f)
-    if (!topic.trim()) setTopic(topicFromName(f.name))
+    setTopic(topicFromName(f.name))
   }
 
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    pick(e.dataTransfer.files[0])
+  const dropProps = {
+    onDragOver: (e: DragEvent) => {
+      e.preventDefault()
+      setDragging(true)
+    },
+    onDragLeave: () => setDragging(false),
+    onDrop: (e: DragEvent) => {
+      e.preventDefault()
+      setDragging(false)
+      pick(e.dataTransfer.files[0])
+    },
   }
 
-  const toggleGame = (g: GameType) =>
-    setGames((gs) => (gs.includes(g) ? gs.filter((x) => x !== g) : GAME_ORDER.filter((x) => x === g || gs.includes(x))))
+  /** At least one game stays on. */
+  const toggleGame = (g: TemplateId) =>
+    setGames((gs) => (gs.includes(g) ? (gs.length > 1 ? gs.filter((x) => x !== g) : gs) : GAME_ORDER.filter((x) => x === g || gs.includes(x))))
 
-  const ready = !!file && topic.trim() !== '' && games.length > 0
+  const type = file ? typeOf(file) : null
+  const ready = !!file && !!type && topic.trim() !== '' && games.length > 0
 
   const make = () => {
-    if (!file || !ready) return
-    const type = typeOf(file) ?? 'PDF'
+    if (!file || !type || !ready) return
     // TODO: upload the file to the backend; it sends only the lesson text to the AI.
     const id = addLesson({ fileName: file.name, fileType: type, fileSize: sizeLabel(file.size), topic: topic.trim(), subject, games })
     navigate(lessonStepPath(id, 'making'))
   }
 
+  const fileInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept=".pdf,.pptx,.docx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      className="visually-hidden"
+      tabIndex={-1}
+      aria-hidden="true"
+      onChange={(e) => {
+        pick(e.target.files?.[0])
+        e.target.value = ''
+      }}
+    />
+  )
+
+  const privacy = (
+    <p className={styles.privacy}>
+      <Lock size={16} aria-hidden="true" />
+      <span>Only the lesson text goes to the AI. Never student names or scores.</span>
+    </p>
+  )
+
   return (
     <PageBody side="R">
       <Title color="blue">Add a lesson</Title>
-      <Sub>Upload your file. KIDDEX turns it into game questions.</Sub>
+      <Sub>Turn your lesson into games in 3 easy steps.</Sub>
+      <UploadSteps current={file ? 1 : 0} />
+      {fileInput}
 
-      <div
-        className={dragging ? `${styles.drop} ${styles.dropOver}` : styles.drop}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragging(true)
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-      >
-        <span className={styles.dropIcon} aria-hidden="true">
-          <FileUp size={30} strokeWidth={2} />
-        </span>
-        <strong className={styles.dropTitle}>Drop your lesson file here</strong>
-        <span className={styles.dropHint}>PDF or PowerPoint · up to 10 MB · typed text, not scanned photos</span>
-        <Btn onClick={() => inputRef.current?.click()} tabIndex={live ? undefined : -1}>
-          Choose file
-        </Btn>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-          className="visually-hidden"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(e) => {
-            pick(e.target.files?.[0])
-            e.target.value = ''
-          }}
-        />
-      </div>
-
-      <div className={styles.fileSlot} aria-live="polite">
-        {error ? (
-          <p className={styles.fileError} role="alert">
-            {error}
-          </p>
-        ) : (
-          file && (
-            <div className={styles.fileCard}>
-              <FileBadge type={typeOf(file) ?? 'PDF'} />
-              <span className={styles.lessonText}>
-                <span className={styles.fileName}>{file.name}</span>
-                <span className={styles.lessonInfo}>
-                  {sizeLabel(file.size)} · {typeOf(file) === 'PPT' ? 'PowerPoint' : 'PDF'} · ready to upload
-                </span>
+      {!file || !type ? (
+        <>
+          <div className={dragging ? `${styles.drop} ${styles.dropOver}` : styles.drop} {...dropProps}>
+            <span className={styles.dropArt} aria-hidden="true">
+              <FileBadge type="PDF" className={styles.artPdf} />
+              <FileBadge type="PPT" className={styles.artPpt} />
+              <FileBadge type="DOC" className={styles.artDoc} />
+              <span className={styles.artIcon}>
+                <FileUp size={22} strokeWidth={2.4} />
               </span>
-              <button type="button" className={styles.removeFile} aria-label={`Remove ${file.name}`} onClick={() => setFile(null)}>
-                <X size={22} aria-hidden="true" />
-              </button>
+            </span>
+            <strong className={styles.dropTitle}>Drag your lesson file here</strong>
+            <span className={styles.dropOr}>or</span>
+            <Btn variant="primary" className={styles.choose} icon={<FileUp size={22} aria-hidden="true" />} tabIndex={tab} onClick={() => inputRef.current?.click()}>
+              Choose a file
+            </Btn>
+            <span className={styles.dropSlot} aria-live="polite">
+              {error ? (
+                <span className={styles.dropError} role="alert">
+                  <TriangleAlert size={17} aria-hidden="true" />
+                  {error}
+                </span>
+              ) : (
+                <span className={styles.dropHint}>PDF, PowerPoint or Word · up to 10 MB</span>
+              )}
+            </span>
+          </div>
+
+          <div className={styles.fit}>
+            <div className={`${styles.fitBox} ${styles.fitYes}`}>
+              <span className={styles.fitIcon} aria-hidden="true">
+                <Check size={18} strokeWidth={3.2} />
+              </span>
+              <span>
+                <strong>Works great</strong>
+                Typed handouts, worksheets, slides
+              </span>
             </div>
-          )
-        )}
-      </div>
+            <div className={`${styles.fitBox} ${styles.fitNo}`}>
+              <span className={styles.fitIcon} aria-hidden="true">
+                <X size={18} strokeWidth={3.2} />
+              </span>
+              <span>
+                <strong>Not yet</strong>
+                Photos or scanned pages
+              </span>
+            </div>
+          </div>
+          {privacy}
+        </>
+      ) : (
+        <>
+          <div className={dragging ? `${styles.gotIt} ${styles.dropOver}` : styles.gotIt} {...dropProps}>
+            <FileBadge type={type} />
+            <span className={styles.lessonText}>
+              <span className={styles.fileName}>{file.name}</span>
+              <span className={styles.gotItLine}>
+                <Check size={17} strokeWidth={3} aria-hidden="true" /> Got it! {fakeFileFacts(type).size} · {fakeFileFacts(type).words.toLocaleString()} words
+              </span>
+            </span>
+            <Btn variant="link" className={styles.change} tabIndex={tab} onClick={() => inputRef.current?.click()}>
+              Change
+            </Btn>
+          </div>
+          {error && (
+            <p className={styles.changeError} role="alert">
+              <TriangleAlert size={16} aria-hidden="true" /> {error}
+            </p>
+          )}
 
-      <div className={styles.fields}>
-        <label className={styles.field}>
-          <span className={styles.label}>Topic</span>
-          <input
-            className={styles.input}
-            value={topic}
-            placeholder="e.g. Equivalent Fractions"
-            onChange={(e) => setTopic(e.target.value)}
-          />
-        </label>
-        <label className={`${styles.field} ${styles.fieldSmall}`}>
-          <span className={styles.label}>Subject</span>
-          <select className={styles.select} value={subject} onChange={(e) => setSubject(e.target.value)}>
-            {SUBJECTS.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-      </div>
+          <div className={styles.fields}>
+            <label className={styles.field}>
+              <span className={styles.label}>What is this lesson about?</span>
+              <input className={styles.input} value={topic} placeholder="e.g. Equivalent Fractions" tabIndex={tab} onChange={(e) => setTopic(e.target.value)} />
+            </label>
+            <label className={`${styles.field} ${styles.fieldSmall}`}>
+              <span className={styles.label}>Subject</span>
+              <select className={styles.select} value={subject} tabIndex={tab} onChange={(e) => setSubject(e.target.value)}>
+                {SUBJECTS.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-      <div className={styles.gamesBlock} role="group" aria-labelledby={`${ids}-games`}>
-        <span id={`${ids}-games`} className={styles.label}>
-          Games to make
-        </span>
-        <div className={styles.gameChips}>
-          {GAME_ORDER.map((g) => {
-            const on = games.includes(g)
-            return (
-              <button
-                key={g}
-                type="button"
-                aria-pressed={on}
-                className={on ? `${styles.gameChip} ${styles.gameChipOn}` : styles.gameChip}
-                onClick={() => toggleGame(g)}
-              >
-                {on && <Check size={18} strokeWidth={3} aria-hidden="true" />}
-                {GAME_INFO[g].name}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+          <div className={styles.gamesBlock} role="group" aria-labelledby={`${ids}-games`}>
+            <span id={`${ids}-games`} className={styles.label}>
+              Which games? <span className={styles.labelHint}>· pick one or more</span>
+            </span>
+            <div className={styles.gamePics}>
+              {GAME_ORDER.map((g) => {
+                const on = games.includes(g)
+                const last = on && games.length === 1
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    aria-pressed={on}
+                    title={last ? 'Pick at least one game' : undefined}
+                    tabIndex={tab}
+                    className={on ? `${styles.gamePic} ${styles.gamePicOn}` : styles.gamePic}
+                    onClick={() => toggleGame(g)}
+                  >
+                    <img src={gameThumbs[g]} alt="" className={styles.gamePicImg} draggable={false} />
+                    <span className={styles.gamePicName}>{GAME_INFO[g].name}</span>
+                    {on && (
+                      <span className={styles.gamePicTick} aria-hidden="true">
+                        <Check size={16} strokeWidth={3.4} />
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-      <div className={styles.makeRow}>
-        <Btn variant="primary" className={styles.makeButton} disabled={!ready} onClick={make} icon={<Sparkles size={20} aria-hidden="true" />}>
-          Make questions
-        </Btn>
-        <p className={styles.privacy}>
-          <Lock size={16} aria-hidden="true" />
-          <span>Only the lesson text is sent to the AI. No student data.</span>
-        </p>
-      </div>
+          <Btn variant="primary" className={styles.makeButton} disabled={!ready} tabIndex={tab} onClick={make} icon={<Sparkles size={24} aria-hidden="true" />}>
+            Make questions
+          </Btn>
+          <p className={styles.takes}>Takes about a minute. You check every question before students see it.</p>
+          {privacy}
+        </>
+      )}
     </PageBody>
   )
 }
 
 // ---------- Right page: Making questions ----------
 
-/** About 4s in all: read 0.7s, drafting 2s, format 0.7s, ready 0.6s. */
-const STEP_MS = [0, 700, 2000, 700, 600]
-const ABOUT = 15
+/** FAKE timing of the steps, in ms after the upload (the whole run is MAKING_MS). */
+const READ_DONE = 800
+const WRITE_DONE = MAKING_MS - 1000
+
+/** "0:32" */
+const clock = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
 
 export function MakingRight({ lessonId, live }: PageProps) {
   const lesson = useLesson(lessonId)
-  const { setMakingStep, finishMaking } = useLessons()
   const navigate = useNavigate()
-  const id = lesson?.id
-  const step = lesson?.makingStep ?? 5
   const making = lesson?.status === 'making'
-  const [written, setWritten] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
 
-  // Fake progress, only on the live page (never on a turning copy).
+  // The elapsed timer ticks on the live page only (never on a turning copy).
   useEffect(() => {
-    if (!live || !id || !making) return
-    if (step < 4) {
-      const t = window.setTimeout(() => setMakingStep(id, step + 1), STEP_MS[step])
-      return () => window.clearTimeout(t)
-    }
-    const t = window.setTimeout(() => {
-      finishMaking(id)
-      navigate(lessonStepPath(id, 'check'))
-    }, STEP_MS[4])
-    return () => window.clearTimeout(t)
-  }, [live, id, making, step, setMakingStep, finishMaking, navigate])
-
-  // "N of about 15 written" ticks up while the AI drafts.
-  useEffect(() => {
-    if (!live || step !== 2) return
-    const t = window.setInterval(() => setWritten((n) => Math.min(ABOUT, n + 1)), STEP_MS[2] / ABOUT)
+    if (!live || !making) return
+    const t = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(t)
-  }, [live, step])
+  }, [live, making])
+
+  // Done while the Teacher is still here: turn to Check by itself.
+  const wasMaking = useRef(making)
+  useEffect(() => {
+    if (live && wasMaking.current && !making && lesson) navigate(lessonStepPath(lesson.id, 'check'))
+    wasMaking.current = making
+  }, [live, making, lesson, navigate])
 
   if (!lesson) {
     return (
@@ -379,13 +451,16 @@ export function MakingRight({ lessonId, live }: PageProps) {
     )
   }
 
-  const shown = step > 2 ? ABOUT : written
+  const elapsed = now - (lesson.makingStartedAt ?? now)
+  // Which step is happening (0–4); 5 = all done.
+  const step = !making ? 5 : elapsed < READ_DONE ? 1 : elapsed < WRITE_DONE ? 2 : 3
+  const facts = fakeFileFacts(lesson.fileType)
   const steps = [
-    { title: 'File uploaded', detail: `${lesson.fileSize ?? lesson.size} · ${lesson.fileType}` },
-    { title: 'Read the lesson text', detail: lesson.size },
-    { title: 'AI is drafting questions', detail: `${shown} of about ${ABOUT} written`, ai: true },
-    { title: 'Checking the format', detail: 'Every question needs one right answer' },
-    { title: 'Ready for you to check', detail: 'We’ll add it to your To do list' },
+    { title: 'File uploaded', detail: `${TYPE_NAME[lesson.fileType]} · ${lesson.fileSize ?? lesson.size}` },
+    { title: 'Read the lesson text', detail: `${lesson.size} · ${facts.words.toLocaleString()} words` },
+    { title: 'AI is writing questions', detail: 'This usually takes under a minute', ai: true },
+    { title: 'Checking every question', detail: 'A broken question gets written again by itself' },
+    { title: 'Ready for you to check', detail: 'It will show up in your To do list' },
   ]
 
   return (
@@ -395,16 +470,16 @@ export function MakingRight({ lessonId, live }: PageProps) {
         {lesson.fileName} · {lesson.topic}
       </Sub>
 
-      <ol className={styles.steps} aria-live={live ? 'polite' : undefined}>
+      <ol className={styles.steps}>
         {steps.map((s, i) => {
-          const state = i < step ? 'done' : i === step && making ? 'now' : 'next'
+          const state = i < step ? 'done' : i === step ? 'now' : 'next'
           return (
             <li key={s.title} className={`${styles.step} ${styles[state]}`}>
               <span className={styles.stepDot} aria-hidden="true">
                 {state === 'done' && <Check size={20} strokeWidth={3} />}
                 {state === 'now' && <Sparkles size={18} strokeWidth={2.4} />}
               </span>
-              <div>
+              <div className={styles.stepBody}>
                 <p className={styles.stepTitle}>
                   {s.title}
                   {s.ai && (
@@ -412,12 +487,19 @@ export function MakingRight({ lessonId, live }: PageProps) {
                       AI
                     </Chip>
                   )}
+                  {s.ai && state === 'now' && (
+                    <span className={styles.elapsed}>
+                      <Clock size={16} strokeWidth={2.4} aria-hidden="true" />
+                      <span className="visually-hidden">Time so far: </span>
+                      {clock(elapsed)}
+                    </span>
+                  )}
                   <span className="visually-hidden">{state === 'done' ? ' (done)' : state === 'now' ? ' (now)' : ''}</span>
                 </p>
                 <p className={styles.stepDetail}>{s.detail}</p>
                 {s.ai && state === 'now' && (
                   <span className={styles.progress} aria-hidden="true">
-                    <span className={styles.progressFill} style={{ width: `${(shown / ABOUT) * 100}%` }} />
+                    <span className={styles.progressFill} />
                   </span>
                 )}
               </div>
@@ -425,8 +507,18 @@ export function MakingRight({ lessonId, live }: PageProps) {
           )
         })}
       </ol>
+      <p className="visually-hidden" aria-live={live ? 'polite' : undefined}>
+        {making ? '' : 'Your questions are ready to check.'}
+      </p>
 
-      {!making && (
+      {making ? (
+        <div className={styles.noWait}>
+          <p>You don’t have to wait here. You can keep working and come back later.</p>
+          <Btn tabIndex={live ? undefined : -1} onClick={() => navigate(paths.teacher.home)}>
+            Back to Home
+          </Btn>
+        </div>
+      ) : (
         <Btn variant="primary" className={styles.goCheck} onClick={() => navigate(lessonStepPath(lesson.id, 'check'))}>
           Check the questions <ArrowRight size={18} aria-hidden="true" />
         </Btn>

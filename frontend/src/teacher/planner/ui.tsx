@@ -98,10 +98,10 @@ export function Bar({ percent, className }: { percent: number; className?: strin
   )
 }
 
-/** A page with a folded corner and "PDF" / "PPT". */
-export function FileBadge({ type }: { type: string }) {
+/** A page with a folded corner and "PDF" / "PPT" / "DOC" (DOC is blue, like Word). */
+export function FileBadge({ type, className }: { type: string; className?: string }) {
   return (
-    <span className={styles.file} aria-hidden="true">
+    <span className={[styles.file, type === 'DOC' && styles.fileDoc, className].filter(Boolean).join(' ')} aria-hidden="true">
       <span className={styles.fileFold} />
       {type}
     </span>

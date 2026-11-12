@@ -3,12 +3,14 @@
 /*
  * Sits on the stage (stage px), in the free space at the top between the
  * "+ New" tab (ends at x 848 with three sections) and the Ms. Cruz chip
- * (starts at x 1206), centered on the chip's middle (y 72).
+ * (starts at x 1206), centered on the chip's middle (y 72). While the Full
+ * screen button shows, TeacherPlanner sets --switch-left / --switch-right to
+ * the free space between the tabs and that button.
  */
 div.slot {
   position: absolute;
-  left: 848px;
-  right: 234px;
+  left: var(--switch-left, 848px);
+  right: var(--switch-right, 234px);
   top: 46px;
   display: flex;
   justify-content: center;

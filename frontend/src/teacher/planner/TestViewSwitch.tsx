@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { useTestData, type TestMode } from '../data/testDataContext'
 import styles from './TestViewSwitch.module.css'
 
@@ -14,11 +15,11 @@ const MODES: { mode: TestMode; label: string }[] = [
  * section tabs and the Ms. Cruz chip. Swaps the fake data right away (no
  * flip, no reload).
  */
-export function TestViewSwitch() {
+export function TestViewSwitch({ boxRef }: { boxRef?: Ref<HTMLDivElement> }) {
   const { mode, setMode } = useTestData()
   return (
     <div className={styles.slot}>
-      <div className={styles.switch} role="group" aria-label="Test view (testing tool)">
+      <div ref={boxRef} className={styles.switch} role="group" aria-label="Test view (testing tool)">
         <span className={styles.label} title="Testing tool. Removed when the database is connected.">
           Test view:
         </span>

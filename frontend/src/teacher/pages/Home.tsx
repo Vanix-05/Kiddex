@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, CalendarDays, Check, Gamepad2, Package, User, type LucideIcon } from 'lucide-react'
 import { paths } from '../../routes/paths'
-import { useClassSummary, useLessons, useSection, useStudents, useTeacher, useTodos } from '../data/useTeacherData'
-import type { TodoItem, TodoTarget } from '../data/types'
+import { useClassSummary, useLessons, useSection, useStudents, useTeacher, useTodos, type ShownTodo } from '../data/useTeacherData'
+import type { TodoTarget } from '../data/types'
 import { lessonStepPath, studentsPath, type PageProps } from '../planner/pages'
 import { Bar, Btn, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Home.module.css'
@@ -28,7 +28,15 @@ export function HomeLeft({ live }: PageProps) {
 
       <Stats />
 
-      {isNew ? <GetStarted live={live} /> : <TodoList live={live} />}
+      {isNew ? (
+        <>
+          <GetStarted live={live} />
+          {/* A new Teacher's first upload still gets its "Check the questions" row. */}
+          <TodoList live={live} openOnly />
+        </>
+      ) : (
+        <TodoList live={live} />
+      )}
     </PageBody>
   )
 }
@@ -73,12 +81,16 @@ const targetPath = (t: TodoTarget) =>
         ? studentsPath(t.filter)
         : null
 
-function TodoList({ live }: { live: boolean }) {
+/** openOnly: under Get started, just the open items (up to 2) and no Coming up. */
+function TodoList({ live, openOnly = false }: { live: boolean; openOnly?: boolean }) {
   const { todos, upcoming, toggle } = useTodos()
   const navigate = useNavigate()
   const left = todos.filter((t) => !t.done).length
   // Open items first, then up to 5 rows in all (the page has room for 5).
-  const rows = [...todos.filter((t) => !t.done), ...todos.filter((t) => t.done)].slice(0, 5)
+  const rows = openOnly
+    ? todos.filter((t) => !t.done).slice(0, 2)
+    : [...todos.filter((t) => !t.done), ...todos.filter((t) => t.done)].slice(0, 5)
+  if (openOnly && rows.length === 0) return null
 
   return (
     <>
@@ -109,7 +121,7 @@ function TodoList({ live }: { live: boolean }) {
         </ul>
       </section>
 
-      {upcoming.length > 0 && (
+      {!openOnly && upcoming.length > 0 && (
         <section className={styles.coming}>
           <Heading>Coming up</Heading>
           <ul className={styles.comingRows}>
@@ -134,7 +146,7 @@ function TodoList({ live }: { live: boolean }) {
   )
 }
 
-function TodoRow({ item, onToggle, onGo }: { item: TodoItem; onToggle: () => void; onGo: () => void }) {
+function TodoRow({ item, onToggle, onGo }: { item: ShownTodo; onToggle: () => void; onGo: () => void }) {
   return (
     <li className={item.done ? `${styles.row} ${styles.rowDone}` : styles.row}>
       <button

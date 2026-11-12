@@ -538,12 +538,47 @@
   outline-color: var(--color-focus-ring);
 }
 
-/* ---------- Ms. Cruz chip ---------- */
+/* ---------- Full screen button + Ms. Cruz chip ---------- */
 
-.chip {
+/* The chip's spot (right 40, top 50); the Full screen button sits just left of it. */
+.topRight {
   position: absolute;
   right: 40px;
   top: 50px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Same pill as the chip. */
+.fullscreen {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px 0 13px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card-bg);
+  box-shadow: 0 4px 0 rgba(74, 52, 38, 0.2);
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fullscreen:hover {
+  background: var(--color-tint-peach);
+}
+
+/* No room for the label: a round icon button (FULLSCREEN_ICON_W in TeacherPlanner.tsx). */
+.fullscreenIconOnly {
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+}
+
+.chip {
   height: 44px;
   display: flex;
   align-items: center;

@@ -17,19 +17,114 @@
   list-style: none;
 }
 
+/* Thumbnail | text | switch; a short game's "Needs N more" row goes under the text and switch. */
 .card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 18px;
-  height: 114px;
-  padding: 0 18px 0 10px;
+  column-gap: 18px;
+  min-height: 114px;
+  padding: 10px 18px 10px 10px;
   border: 2px solid var(--color-neutral-line);
   border-radius: 16px;
   background: color-mix(in srgb, var(--color-input-bg) 90%, transparent);
 }
 
+/* Ready, but switched off for this pack. */
 .cardOff {
   opacity: 0.6;
+}
+
+/* Not enough approved cards yet: greyed, dashed. */
+.cardShort {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--color-neutral-bg) 55%, transparent);
+}
+
+.cardShort .thumb {
+  opacity: 0.55;
+  filter: grayscale(0.7);
+}
+
+.cardShort .cardName {
+  color: var(--color-text-muted);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-ok-text);
+}
+
+.thumb {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.cardText {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.switch {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.needs {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.needsText {
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-warn-text);
+  white-space: nowrap;
+}
+
+.checkMore {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.noneLeft {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.stillToCheck {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.4;
+  gap: 10px;
+  margin: 18px 0 0;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.stillToCheck svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+}
+
+.stillToCheck strong {
+  font-family: var(--font-display);
+  color: var(--color-planner-ink);
 }
 
 .thumb {
@@ -74,6 +169,12 @@
   background: var(--color-bar-green);
 }
 
+/* A card still missing. */
+.squareEmpty {
+  border: 2px dashed var(--color-neutral-line);
+  background: none;
+}
+
 /* On/off switch. */
 .switch {
   flex: none;
@@ -106,6 +207,15 @@
 
 .switch[aria-checked='true'] .knob {
   transform: translateX(20px);
+}
+
+.switch:disabled {
+  border-color: var(--color-neutral-line);
+  cursor: not-allowed;
+}
+
+.switch:disabled .knob {
+  box-shadow: none;
 }
 
 .try {
@@ -148,6 +258,58 @@
   padding: 0 12px;
   border-color: var(--color-neutral-line);
   cursor: pointer;
+}
+
+/* "Games in this pack": a chip per game in its color; not in the pack = crossed out. */
+.packGames {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.packGame {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 2px solid;
+  border-radius: var(--radius-pill);
+  font: 600 16px/1 var(--font-display);
+  white-space: nowrap;
+}
+
+.tone_warn {
+  border-color: var(--color-warn-line);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+.tone_info {
+  border-color: var(--color-info-line);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.tone_ok {
+  border-color: var(--color-ok-line);
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+.packGameOut {
+  border: 2px dashed var(--color-neutral-line);
+  color: var(--color-text-subtle);
+}
+
+.assignHint {
+  margin: 12px 0 0;
+  font-size: 15px;
+  text-align: center;
+  color: var(--color-text-subtle);
 }
 
 .giveTo {

@@ -272,6 +272,10 @@
   color: var(--color-danger-text);
 }
 
+.fileDoc {
+  color: var(--color-info-text);
+}
+
 .fileFold {
   position: absolute;
   top: -2.5px;
