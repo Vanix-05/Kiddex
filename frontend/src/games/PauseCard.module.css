@@ -1,0 +1,73 @@
+.dim {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--color-game-dim);
+}
+
+.card {
+  width: min(380px, 100%);
+  padding: 24px;
+  border: 4px solid var(--color-card-border);
+  border-radius: 26px;
+  background: var(--color-card-bg);
+  box-shadow: 0 8px 0 var(--color-lobby-shadow);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font: 600 28px/1.1 var(--font-display);
+  color: var(--color-text);
+}
+
+.text {
+  margin: 8px 0 0;
+  font: 500 17px/1.3 var(--font-body);
+  color: var(--color-text-muted);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+  font: 600 19px/1 var(--font-display);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-lobby-chip);
+}
+
+.primary {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  box-shadow: 0 4px 0 var(--color-button-border);
+  color: var(--color-button-text);
+}
+
+.primary:hover {
+  background: var(--color-button-bg-hover);
+}
+
+.button:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}

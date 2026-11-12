@@ -33,6 +33,15 @@ function deck(lessonId: string, topic: string, status: QuestionCard['status']) {
   }
 }
 
+/**
+ * FAKE: the lessons the mini games can be played with (src/games/useGameCards.ts),
+ * in order. The first one with enough cards for a game is that game's default.
+ */
+export const fakeGameLessons = [
+  { id: 'g4-fractions', name: 'Fractions', teacher: 'Ms. Cruz', subject: 'Math' },
+  { id: 'mixed', name: 'Mixed Numbers', teacher: 'Ms. Cruz', subject: 'Math' },
+]
+
 // ---------- For the mini games: 20 approved + 2 drafts ----------
 
 const g4 = deck('g4-fractions', 'Fractions', 'approved')

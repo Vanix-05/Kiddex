@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview",
     "trace:otter": "node scripts/trace-otter.mjs",
     "rig:otter": "node --max-old-space-size=4096 scripts/rig-otter.mjs",
@@ -48,6 +49,7 @@
     "sharp": "^0.34.4",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "^5.1.0"
   }
 }

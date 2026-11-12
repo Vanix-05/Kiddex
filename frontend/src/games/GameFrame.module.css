@@ -1,0 +1,537 @@
+/*
+ * The shared game frame. The stage is drawn at a design size (1440x900, or
+ * 1160x640 on short windows) and scaled as one group; --s is that scale.
+ * Small text uses max(N, 15px / --s) so it never shows below 15px.
+ */
+
+.root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-stage-wall);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  user-select: none;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+}
+
+.scene > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+/* ---------- Top bar ---------- */
+
+.top {
+  position: absolute;
+  top: 22px;
+  left: 27px;
+  right: 27px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  z-index: 3;
+}
+
+.root[data-short] .top {
+  top: 6px;
+  left: 12px;
+  right: 12px;
+  gap: 8px;
+}
+
+.topButton,
+.chip,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: max(56px, calc(44px / var(--s)));
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+  white-space: nowrap;
+}
+
+.root[data-short] .topButton,
+.root[data-short] .chip,
+.root[data-short] .pill {
+  height: max(48px, calc(44px / var(--s)));
+  border-radius: 15px;
+}
+
+.root[data-short] .topButton {
+  padding: 0 14px 0 8px;
+}
+
+.root[data-short] .chip {
+  gap: 8px;
+  padding: 0 14px 0 6px;
+}
+
+.root[data-short] .pill {
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.root[data-short] .chipName {
+  font-size: max(19px, calc(15px / var(--s)));
+}
+
+.root[data-short] .dots {
+  gap: 4px;
+}
+
+.root[data-short] .dot {
+  width: 14px;
+  height: 14px;
+}
+
+.topButton {
+  justify-self: start;
+  gap: 10px;
+  min-width: 44px;
+  padding: 0 22px 0 12px;
+  font: 600 max(19px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.topButton:hover {
+  background: var(--color-card-bg);
+}
+
+.topButton:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.pauseIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.chip {
+  gap: 12px;
+  padding: 0 22px 0 9px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 10px;
+  color: var(--color-text-on-dark);
+}
+
+.iconQuiz {
+  background: var(--color-game-quiz);
+}
+
+.iconMatch {
+  background: var(--color-game-match);
+}
+
+.chipName {
+  font: 600 max(22px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.chipLine {
+  width: 2.5px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--color-neutral-line);
+}
+
+.chipLesson {
+  font: 500 max(17px, calc(15px / var(--s))) / 1 var(--font-body);
+  color: var(--color-text-subtle);
+}
+
+.progress {
+  justify-self: end;
+}
+
+.pill {
+  gap: 14px;
+  padding: 0 22px;
+}
+
+.pillLabel {
+  font: 600 max(17px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--color-neutral-line);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+}
+
+.dot_right {
+  border-color: var(--color-game-right);
+  background: var(--color-lobby-online);
+}
+
+.dot_wrong {
+  border-color: var(--color-game-wrong);
+  background: var(--color-stage-curtain-light);
+}
+
+.dot_current {
+  border: 3px solid var(--color-game-bulb-edge);
+  background: var(--color-game-bulb);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-game-current) 35%, transparent);
+}
+
+/* ---------- Board, strip, spotlight ---------- */
+
+.board,
+.strip {
+  position: absolute;
+  z-index: 1;
+}
+
+.strip:empty {
+  pointer-events: none;
+}
+
+.spotlight {
+  position: absolute;
+  left: 360px;
+  top: -20px;
+  width: 720px;
+  height: 900px;
+  background:
+    radial-gradient(ellipse 50% 9% at 50% 92%, var(--color-game-spotlight), transparent 70%),
+    linear-gradient(to bottom, var(--color-game-spotlight), color-mix(in srgb, var(--color-game-spotlight) 30%, transparent) 85%, transparent);
+  clip-path: polygon(38% 0, 62% 0, 100% 96%, 0 96%);
+  animation: spotOn 400ms ease-out both;
+  pointer-events: none;
+}
+
+.root[data-short] .spotlight {
+  left: 60px;
+  width: 500px;
+  height: 420px;
+}
+
+@keyframes spotOn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Speech bubbles ---------- */
+
+.bubble {
+  position: absolute;
+  margin: 0;
+  padding: 13px 18px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 20px;
+  background: var(--color-lobby-chip);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+  font: 600 max(17px, calc(15px / var(--s))) / 1.32 var(--font-body);
+  color: var(--color-text);
+}
+
+/* The tail: a brown triangle with a white one on top. */
+.bubble::before,
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: var(--tail, 50%);
+  border-style: solid;
+  transform: translateX(-50%);
+}
+
+.bubble::before {
+  bottom: -17px;
+  border-width: 16px 13px 0;
+  border-color: var(--color-card-border) transparent transparent;
+}
+
+.bubble::after {
+  bottom: -11px;
+  border-width: 12px 9.5px 0;
+  border-color: var(--color-lobby-chip) transparent transparent;
+}
+
+/* ---------- Ollie (left) ---------- */
+
+.ollie {
+  position: absolute;
+  left: 40px;
+  top: 393px;
+  width: 260px;
+  height: 430px;
+  pointer-events: none;
+}
+
+.ollieBubble {
+  left: 0;
+  top: 0;
+  width: 245px;
+  --tail: 47%;
+}
+
+.ollieArt {
+  position: absolute;
+  left: 22px;
+  top: 118px;
+  width: 210px;
+}
+
+.podium {
+  position: absolute;
+  left: 30px;
+  top: 323px;
+  display: grid;
+  place-items: center;
+  width: 184px;
+  height: 100px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 -12px 0 rgba(0, 0, 0, 0.12),
+    0 6px 0 var(--color-game-shadow);
+}
+
+.podium::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 5px;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.podiumQuiz {
+  background: var(--color-game-quiz);
+}
+
+.podiumMatch {
+  background: var(--color-game-match);
+}
+
+/* ---------- The Student and their buddy (right) ---------- */
+
+.kids {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.kidBubble {
+  left: 1215px;
+  top: 405px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  --tail: 50%;
+}
+
+.kidPair {
+  position: absolute;
+  left: 1040px;
+  top: 470px;
+  width: 400px;
+  height: 360px;
+}
+
+.figure {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 340px;
+  height: 340px;
+}
+
+.buddy {
+  left: 170px;
+  width: 300px;
+  height: 300px;
+  bottom: -6px;
+}
+
+.rig {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.floorShadow {
+  position: absolute;
+  left: 50%;
+  bottom: 1%;
+  width: 46%;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-game-shadow);
+  transform: translateX(-50%);
+}
+
+/* Short windows: small, in the corner under the strip. */
+.root[data-short] .kidPair {
+  left: 636px;
+  top: 296px;
+  width: 260px;
+  height: 120px;
+}
+
+.root[data-short] .figure {
+  left: 20px;
+  width: 124px;
+  height: 124px;
+}
+
+.root[data-short] .buddy {
+  left: 124px;
+  width: 110px;
+  height: 110px;
+  bottom: -2px;
+}
+
+.root[data-short] .floorShadow {
+  height: 12px;
+}
+
+/* A happy jump (both, the buddy a moment later). Two copies so a new jump restarts it. */
+.jumpA {
+  animation: jumpA 700ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.jumpB {
+  animation: jumpB 700ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+.buddy.jumpA,
+.buddy.jumpB {
+  animation-delay: 110ms;
+}
+
+@keyframes jumpA {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-38px);
+  }
+  70% {
+    transform: translateY(0) scaleY(0.96);
+  }
+}
+
+@keyframes jumpB {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-38px);
+  }
+  70% {
+    transform: translateY(0) scaleY(0.96);
+  }
+}
+
+/* ---------- Phones held upright ---------- */
+
+.rotate {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  place-items: center;
+  padding: 16px;
+  background: var(--color-stage-wall);
+  text-align: center;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate {
+    display: grid;
+  }
+}
+
+.rotateCard {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 4px solid var(--color-card-border);
+  border-radius: 26px;
+  background: var(--color-input-bg);
+  box-shadow: 0 8px 0 var(--color-lobby-shadow);
+}
+
+.rotateCard svg {
+  fill: none;
+  stroke: var(--color-card-border);
+  stroke-width: 4;
+}
+
+.rotateCard h1 {
+  margin: 8px 0 0;
+  font: 600 24px/1.1 var(--font-display);
+}
+
+.rotateCard p {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.rotateCard button {
+  min-height: 48px;
+  margin-top: 16px;
+  padding: 0 24px;
+  border: 3px solid var(--color-button-border);
+  border-radius: 16px;
+  background: var(--color-button-bg);
+  font: 600 18px/1 var(--font-display);
+  color: var(--color-button-text);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight,
+  .jumpA,
+  .jumpB {
+    animation: none;
+  }
+}
+
+.root[data-calm] .spotlight {
+  animation: none;
+}

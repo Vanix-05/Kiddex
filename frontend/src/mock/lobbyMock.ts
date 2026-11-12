@@ -31,25 +31,32 @@ export const lobbyMock: LobbyData = {
     },
   ],
 
+  // The Fractions lesson in src/mock/questionCards.ts (fakeGameLessons): its
+  // name is the title, so the mission, the chalkboard and the game chip match.
   mission: {
+    lessonId: 'g4-fractions',
     teacher: 'Ms. Cruz',
-    title: 'Parts of a Plant',
-    subject: 'Science',
-    games: 3,
+    title: 'Fractions',
+    subject: 'Math',
+    // Quiz Show and Match Up.
+    games: 2,
+    // The hook (useLobbyData) counts the games finished today.
+    gamesDone: 0,
     due: 'Friday',
-    xp: 60,
-    stars: 5,
+    // Most a perfect run can earn: Quiz Show 8 x 5 + 10, Match Up 5 x 5 + 10; 3 stars each.
+    xp: 85,
+    stars: 6,
     lesson: [
-      { icon: '🌱', word: 'Roots', text: 'drink water from the soil' },
-      { icon: '🌿', word: 'Stem', text: 'holds the plant up' },
-      { icon: '🍃', word: 'Leaves', text: 'make food from sunlight' },
-      { icon: '🌸', word: 'Flower', text: 'makes seeds' },
+      { icon: '🍕', word: 'Fraction', text: 'equal parts of a whole' },
+      { icon: '⬆️', word: 'Numerator', text: 'the top number' },
+      { icon: '⬇️', word: 'Denominator', text: 'the bottom number' },
+      { icon: '🟰', word: 'Equivalent', text: 'the same amount, like 1/2 = 2/4' },
     ],
   },
 
   ollieLines: [
     'Hoo! Tap me for today’s mission!',
-    'Don’t forget: Parts of a Plant!',
+    'Don’t forget: Fractions!',
     'Try the Quiz Stage! Hoo!',
     'Be kind to your classmates!',
   ],

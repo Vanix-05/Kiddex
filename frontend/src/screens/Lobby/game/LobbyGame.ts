@@ -54,6 +54,8 @@ export interface LobbyOptions {
   classmateEmotes: boolean
   /** Moving effects: Less. No parallax, bob or drifting clouds. */
   lessMotion: boolean
+  /** Back from a mini game: the Student starts at that game's corner. */
+  startAt?: ZoneId
 }
 
 /** What the Student can do right now (the action button, or E). */
@@ -323,7 +325,8 @@ export class LobbyGame {
       onTapKid: () => this.petBuddy(),
       onTapBuddy: () => this.petBuddy(),
     })
-    this.me.place(START.x, START.y)
+    const start = this.options.startAt ? ZONES[this.options.startAt].spot : START
+    this.me.place(start.x, start.y)
 
     this.classmates = classmates.map((mate, i) => {
       const walker: Walker = new Walker({

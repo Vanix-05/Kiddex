@@ -1,0 +1,313 @@
+/* Match Up: the cork board, its cards and the yarn. Design px (see useStage.ts). */
+
+.frame {
+  position: relative;
+  border: 4px solid var(--color-card-border);
+  border-radius: 30px;
+  background: var(--color-wood-frame);
+  box-shadow:
+    inset 0 0 0 6px color-mix(in srgb, var(--color-wood-frame-dark) 45%, transparent),
+    0 8px 0 var(--color-game-shadow);
+}
+
+.cork {
+  position: absolute;
+  inset: 18px;
+  border-radius: 18px;
+  background-color: var(--color-cork-board);
+  background-image: radial-gradient(circle, var(--color-cork-dot) 1.6px, transparent 2.2px);
+  background-size: 18px 18px;
+  box-shadow: inset 0 0 0 3px var(--color-card-border);
+}
+
+/* The play area covers the whole board (cork inset 18 + frame border 4), so cards and pins use board px. */
+.play {
+  position: absolute;
+  inset: -22px;
+  touch-action: none;
+}
+
+.note {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 18px 0 12px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+}
+
+.note > span:first-child {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.noteTitle {
+  flex: 1;
+  font: 600 max(18px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.noteFrom {
+  font: 500 max(15px, calc(15px / var(--s))) / 1 var(--font-body);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
+.yarns {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.column {
+  display: contents;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 0 26px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+  font: 600 max(25px, calc(15px / var(--s))) / 1.1 var(--font-display);
+  color: var(--color-text);
+  cursor: pointer;
+  touch-action: none;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 200ms ease;
+}
+
+.card:hover:not([aria-disabled='true']) {
+  transform: translateY(-2px);
+}
+
+.card:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.card[aria-disabled='true'] {
+  cursor: default;
+}
+
+.cardText {
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The round pin on the card's inner side. */
+.pin {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-cork-dot);
+}
+
+.cardL .pin {
+  right: -11px;
+}
+
+.cardR .pin {
+  left: -11px;
+}
+
+/* Picked: lifted, tilted, an orange glow (its yarn hangs from the pin). */
+.picked,
+.picked:hover:not([aria-disabled='true']) {
+  z-index: 3;
+  background: var(--color-lobby-chip);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--color-yarn-picked) 45%, transparent),
+    0 10px 0 var(--color-game-shadow);
+  transform: translateY(-6px) rotate(-2deg);
+}
+
+.picked .pin {
+  background: var(--color-yarn-picked);
+}
+
+/* Tied: the pair's color on both cards and the pins. */
+.pair_teal {
+  background: var(--color-pair-teal);
+}
+.pair_teal .pin {
+  background: var(--color-pair-teal-yarn);
+}
+.pair_pink {
+  background: var(--color-pair-pink);
+}
+.pair_pink .pin {
+  background: var(--color-pair-pink-yarn);
+}
+.pair_yellow {
+  background: var(--color-pair-yellow);
+}
+.pair_yellow .pin {
+  background: var(--color-pair-yellow-yarn);
+}
+.pair_blue {
+  background: var(--color-pair-blue);
+}
+.pair_blue .pin {
+  background: var(--color-pair-blue-yarn);
+}
+.pair_purple {
+  background: var(--color-pair-purple);
+}
+.pair_purple .pin {
+  background: var(--color-pair-purple-yarn);
+}
+
+/* Not partners: coral, one shake, a little tilt. */
+.miss,
+.missCalm {
+  border-color: var(--color-game-wrong);
+  background: var(--color-game-wrong-bg);
+}
+
+.miss .pin,
+.missCalm .pin {
+  background: var(--color-game-wrong);
+}
+
+.missL {
+  transform: rotate(-2.4deg) translateY(4px);
+  animation: shakeL 420ms ease-in-out;
+}
+
+.missR {
+  transform: rotate(2.4deg);
+  animation: shakeR 420ms ease-in-out;
+}
+
+@keyframes shakeL {
+  20% {
+    transform: translateX(-8px);
+  }
+  45% {
+    transform: translateX(7px) rotate(-3deg);
+  }
+  70% {
+    transform: translateX(-4px);
+  }
+}
+
+@keyframes shakeR {
+  20% {
+    transform: translateX(8px);
+  }
+  45% {
+    transform: translateX(-7px) rotate(3deg);
+  }
+  70% {
+    transform: translateX(4px);
+  }
+}
+
+/* ---------- Results: a cream sheet on the cork ---------- */
+
+.sheet {
+  position: absolute;
+  inset: 22px 18px 18px;
+  padding-top: 38px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+}
+
+/* ---------- Short windows ---------- */
+
+:global([data-short]) .frame {
+  border-radius: 24px;
+}
+
+/* A thinner cork border (the play area follows: cork inset 10 + frame border 4). */
+:global([data-short]) .cork {
+  inset: 10px;
+  border-radius: 14px;
+}
+
+:global([data-short]) .play {
+  inset: -14px;
+}
+
+:global([data-short]) .note {
+  top: 6px;
+  left: 10px;
+  right: 10px;
+  height: 36px;
+  gap: 8px;
+  padding: 0 10px 0 6px;
+  border-radius: 11px;
+}
+
+:global([data-short]) .note > span:first-child {
+  width: 28px;
+  height: 28px;
+}
+
+:global([data-short]) .noteTitle {
+  font-size: max(16px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .card {
+  padding: 0 18px;
+  border-radius: 13px;
+  font-size: max(20px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .pin {
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+}
+
+:global([data-short]) .cardL .pin {
+  right: -9px;
+}
+
+:global([data-short]) .cardR .pin {
+  left: -9px;
+}
+
+:global([data-short]) .sheet {
+  inset: 8px;
+  padding-top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .missL,
+  .missR {
+    animation: none;
+  }
+}

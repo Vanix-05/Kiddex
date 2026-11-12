@@ -12,6 +12,7 @@ import { PetStep } from '../screens/Setup/PetStep'
 import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
 import { LazyDevLobbyScreen, LazyLobbyScreen } from '../screens/Lobby/LazyLobby'
 import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
+import { LazyPlayScreen } from '../games/LazyPlay'
 
 export const router = createBrowserRouter([
   // Login: one beach scene, the card on the right changes per step. The
@@ -49,6 +50,8 @@ export const router = createBrowserRouter([
       { path: paths.customize, element: <CustomizeScreen /> },
       // Its own download, with Pixi (screens/Lobby/preloadLobby.ts).
       { path: paths.lobby, element: <LazyLobbyScreen /> },
+      // Mini games (Quiz Show, Match Up): their own download too.
+      { path: `${paths.play}/:gameId`, element: <LazyPlayScreen /> },
     ],
   },
 
@@ -94,6 +97,15 @@ export const router = createBrowserRouter([
         },
         // The Main Lobby with a sample Student, no login needed: ?p=a|b, &fps shows the frame rate.
         { path: '/dev/lobby', element: <LazyDevLobbyScreen /> },
+        // Every mini game and state with a sample Student: links at /dev/games.
+        {
+          path: '/dev/games',
+          lazy: () => import('../games/dev/DevGamesScreen').then((m) => ({ Component: m.DevGamesScreen })),
+        },
+        {
+          path: '/dev/play/:gameId',
+          lazy: () => import('../games/dev/DevGamesScreen').then((m) => ({ Component: m.DevPlayScreen })),
+        },
       ]
     : []),
 

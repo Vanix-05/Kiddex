@@ -15,6 +15,13 @@ export function MissionCard({ mission, onStart, onClose }: { mission: Mission; o
       <p className={styles.sub}>
         Hoo! {mission.teacher} made {mission.games} games from today's {mission.subject} lesson. Due {mission.due}.
       </p>
+      <p className={styles.sub}>
+        <b>
+          {mission.gamesDone === mission.games ? 'All done today! ' : ''}
+          {mission.gamesDone} of {mission.games} games
+        </b>{' '}
+        finished today
+      </p>
       <div className={styles.badges}>
         <span className={styles.badge}>
           <LobbyIcon name="star" size={16} /> +{mission.xp} XP

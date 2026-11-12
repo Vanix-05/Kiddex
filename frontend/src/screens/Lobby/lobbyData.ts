@@ -26,10 +26,14 @@ export interface Classmate {
 }
 
 export interface Mission {
+  /** The lesson the mission games use (the game chip shows its name, = title). */
+  lessonId: string
   teacher: string
   title: string
   subject: string
   games: number
+  /** Mission games finished today for this lesson. */
+  gamesDone: number
   due: string
   xp: number
   stars: number

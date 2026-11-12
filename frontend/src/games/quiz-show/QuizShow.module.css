@@ -1,0 +1,304 @@
+/* Quiz Show: the marquee board and the question. Design px (see useStage.ts). */
+
+.marquee {
+  position: relative;
+}
+
+.rope {
+  position: absolute;
+  top: -84px;
+  width: 5px;
+  height: 88px;
+  border-radius: 3px;
+  background: var(--color-stage-gold-dark);
+  box-shadow: 0 0 0 1.5px var(--color-card-border);
+}
+
+.frameArt {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 7px 0 var(--color-game-shadow));
+}
+
+.panel {
+  position: absolute;
+  inset: 24px;
+  overflow: visible;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+}
+
+/* ---------- The question ---------- */
+
+.question {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: 58px;
+  padding: 0 18px 0 14px;
+  border-bottom: 3px solid var(--color-card-border);
+  border-radius: 11px 11px 0 0;
+  background: var(--color-game-quiz-soft);
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--color-game-quiz-edge);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+  font: 600 max(17px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-game-quiz-edge);
+}
+
+.ask {
+  flex: 1;
+  font: 600 max(18px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.from {
+  font: 500 max(15px, calc(15px / var(--s))) / 1 var(--font-body);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
+.prompt {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  margin: 0;
+  padding: 8px 40px;
+  font: 600 max(40px, calc(15px / var(--s))) / 1.15 var(--font-display);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex: none;
+  padding: 0 28px 28px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: max(98px, calc(44px / var(--s)));
+  padding: 0 20px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 20px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    opacity 200ms ease;
+}
+
+.tile:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--color-lobby-chip);
+}
+
+.tile:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--color-game-shadow);
+}
+
+.tile:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.tile:disabled {
+  cursor: default;
+  color: inherit;
+}
+
+.letter {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 13px;
+  font: 600 max(28px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text-on-dark);
+  text-shadow: 0 1.5px 0 rgba(0, 0, 0, 0.25);
+}
+
+.letterA {
+  background: var(--color-game-letter-a);
+}
+
+.letterB {
+  background: var(--color-game-letter-b);
+}
+
+.letterC {
+  background: var(--color-game-letter-c);
+}
+
+.letterD {
+  background: var(--color-game-letter-d);
+}
+
+.choice {
+  flex: 1;
+  min-width: 0;
+  font: 600 max(32px, calc(15px / var(--s))) / 1.1 var(--font-display);
+  color: var(--color-text);
+}
+
+/* ---------- After a pick ---------- */
+
+.right,
+.rightShown {
+  border-color: var(--color-game-right);
+  background: var(--color-game-right-bg);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--color-game-right) 28%, transparent),
+    0 5px 0 var(--color-game-shadow);
+}
+
+.check,
+.cross {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 50%;
+  color: var(--color-text-on-dark);
+}
+
+.check {
+  background: var(--color-game-right);
+}
+
+.cross {
+  background: var(--color-game-wrong);
+}
+
+.rightTag {
+  flex: none;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--color-game-right-pill);
+  font: 600 max(15px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text-on-dark);
+}
+
+/* The wrong pick: coral, a little tilt and one shake. */
+.wrong,
+.wrongCalm {
+  border-color: var(--color-game-wrong);
+  background: var(--color-game-wrong-bg);
+}
+
+.wrong {
+  transform: rotate(1.6deg) translateY(4px);
+  animation: shake 420ms ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: rotate(1.6deg) translateY(4px);
+  }
+  20% {
+    transform: translateX(-8px) rotate(-1deg);
+  }
+  45% {
+    transform: translateX(7px) rotate(2.5deg);
+  }
+  70% {
+    transform: translateX(-4px) rotate(0.5deg);
+  }
+}
+
+.faded {
+  opacity: 0.5;
+}
+
+/* ---------- Short windows ---------- */
+
+:global([data-short]) .head {
+  height: 40px;
+  gap: 8px;
+  padding: 0 12px 0 8px;
+}
+
+:global([data-short]) .num {
+  width: 28px;
+  height: 28px;
+}
+
+:global([data-short]) .prompt {
+  padding: 2px 16px;
+  font-size: max(27px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .tiles {
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+:global([data-short]) .tile {
+  gap: 10px;
+  height: max(56px, calc(44px / var(--s)));
+  padding: 0 10px;
+  border-radius: 14px;
+}
+
+:global([data-short]) .letter {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: max(20px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .choice {
+  font-size: max(23px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .check,
+:global([data-short]) .cross {
+  width: 32px;
+  height: 32px;
+}
+
+:global([data-short]) .rightTag {
+  padding: 5px 8px;
+}
+
+:global([data-short]) .rope {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrong {
+    animation: none;
+  }
+  .tile {
+    transition: none;
+  }
+}

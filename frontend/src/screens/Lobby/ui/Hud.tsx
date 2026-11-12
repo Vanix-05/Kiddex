@@ -95,7 +95,7 @@ export function Hud({
           <div className={styles.kicker}>Today's mission · {mission.teacher}</div>
           <h2 className={styles.noteTitle}>{mission.title}</h2>
           <div className={styles.noteSub}>
-            {mission.subject} · {mission.games} games · due {mission.due}
+            {mission.subject} · {mission.gamesDone} of {mission.games} games · due {mission.due}
           </div>
           <div className={styles.noteRow}>
             <span className={styles.chip}>+{mission.xp} XP</span>

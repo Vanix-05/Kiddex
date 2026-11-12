@@ -1,0 +1,403 @@
+.results {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 0 26px 24px;
+  text-align: center;
+}
+
+/* ---------- Stars, sitting on top of the board ---------- */
+
+.stars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 110px;
+  margin-top: -40px;
+}
+
+.star {
+  width: 92px;
+  height: 92px;
+  filter: drop-shadow(0 4px 0 var(--color-game-shadow));
+}
+
+.star:first-child {
+  transform: rotate(-12deg) translateY(4px);
+}
+
+.star:last-child {
+  transform: rotate(12deg) translateY(4px);
+}
+
+.starBig {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 10px;
+  animation: pop 500ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+.title {
+  margin: 6px 0 0;
+  font: 600 max(40px, calc(15px / var(--s))) / 1.05 var(--font-display);
+  color: var(--color-text);
+}
+
+.line {
+  margin: 8px 0 0;
+  font: 500 max(18px, calc(15px / var(--s))) / 1.3 var(--font-body);
+  color: var(--color-text-subtle);
+}
+
+/* ---------- Stat cards ---------- */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 76px;
+  padding: 0 14px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-input-bg);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+  text-align: left;
+}
+
+.statIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 12px;
+  color: var(--color-text);
+}
+
+.statText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.statText b {
+  font: 600 max(24px, calc(15px / var(--s))) / 1.05 var(--font-display);
+  color: var(--color-text);
+}
+
+.statText small {
+  margin-top: 3px;
+  overflow: hidden;
+  font: 500 max(15px, calc(15px / var(--s))) / 1.2 var(--font-body);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- XP bar ---------- */
+
+.xpRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.lv {
+  flex: none;
+  font: 600 max(17px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.xpBar {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  overflow: hidden;
+  border: 3px solid var(--color-card-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-input-bg);
+}
+
+.xpOld,
+.xpNew {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.xpOld {
+  width: var(--old);
+  background: var(--color-lobby-online);
+}
+
+/* The XP from this round: yellow stripes after the green. */
+.xpNew {
+  width: var(--new);
+  background: repeating-linear-gradient(-45deg, var(--color-game-xp-new) 0 9px, var(--color-game-xp-new-stripe) 9px 18px);
+  animation: grow 900ms 200ms ease-out both;
+  transform-origin: left;
+}
+
+@keyframes grow {
+  from {
+    width: var(--old);
+  }
+}
+
+/* ---------- One to look at again ---------- */
+
+.again {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px 18px;
+  border: 2.5px dashed var(--color-neutral-line);
+  border-radius: 18px;
+  text-align: left;
+}
+
+.againTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 600 max(17px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.againList {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.againList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.againPrompt {
+  overflow: hidden;
+  font: 600 max(18px, calc(15px / var(--s))) / 1.2 var(--font-body);
+  color: var(--color-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pill {
+  flex: none;
+  padding: 5px 14px;
+  border-radius: 12px;
+  background: var(--color-game-right-pill);
+  font: 600 max(18px, calc(15px / var(--s))) / 1.1 var(--font-display);
+  color: var(--color-text-on-dark);
+}
+
+/* ---------- Buttons ---------- */
+
+.buttons {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  margin-top: auto;
+}
+
+.again2,
+.next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: max(64px, calc(44px / var(--s)));
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  font: 600 max(22px, calc(15px / var(--s))) / 1 var(--font-display);
+  cursor: pointer;
+}
+
+.again2 {
+  flex: none;
+  padding: 0 24px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+  color: var(--color-text);
+}
+
+.next {
+  flex: 1;
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  box-shadow: 0 5px 0 var(--color-button-border);
+  color: var(--color-text-on-dark);
+  text-shadow: 0 1px 0 var(--color-button-border);
+}
+
+.again2:hover {
+  background: var(--color-lobby-chip);
+}
+
+.next:hover {
+  background: var(--color-button-bg-hover);
+}
+
+.again2:focus-visible,
+.next:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+/* ---------- Mission pill (top right) ---------- */
+
+.mission {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  height: 56px;
+  padding: 0 22px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+  white-space: nowrap;
+}
+
+.missionLabel,
+.missionCount {
+  font: 600 max(17px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.missionDots {
+  display: flex;
+  gap: 8px;
+}
+
+.mDot {
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--color-neutral-line);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+}
+
+.mDone {
+  border-color: var(--color-game-right);
+  background: var(--color-lobby-online);
+}
+
+.mNext {
+  border: 3px solid var(--color-game-bulb-edge);
+  background: var(--color-game-bulb);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-game-current) 35%, transparent);
+}
+
+/* Short windows: a tighter board. */
+:global([data-short]) .results {
+  padding: 0 14px 12px;
+}
+
+:global([data-short]) .xpRow {
+  display: none;
+}
+
+:global([data-short]) .stars {
+  height: 64px;
+  margin-top: -30px;
+}
+
+:global([data-short]) .star {
+  width: 52px;
+  height: 52px;
+}
+
+:global([data-short]) .starBig {
+  width: 68px;
+  height: 68px;
+  margin-bottom: 4px;
+}
+
+:global([data-short]) .title {
+  margin-top: 2px;
+  font-size: max(28px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .line {
+  margin-top: 4px;
+}
+
+:global([data-short]) .stats {
+  gap: 8px;
+}
+
+:global([data-short]) .stat {
+  gap: 8px;
+  padding: 0 8px;
+}
+
+:global([data-short]) .statIcon {
+  width: 36px;
+  height: 36px;
+}
+
+:global([data-short]) .statText b {
+  font-size: max(19px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .stats,
+:global([data-short]) .xpRow,
+:global([data-short]) .again {
+  margin-top: 10px;
+}
+
+:global([data-short]) .again {
+  padding: 8px 14px;
+}
+
+:global([data-short]) .stat {
+  height: 56px;
+}
+
+:global([data-short]) .againList li {
+  min-height: 28px;
+}
+
+:global([data-short]) .again2,
+:global([data-short]) .next {
+  height: max(48px, calc(44px / var(--s)));
+  font-size: max(19px, calc(15px / var(--s)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .starBig,
+  .xpNew {
+    animation: none;
+  }
+}
+
+:global([data-calm]) .starBig,
+:global([data-calm]) .xpNew {
+  animation: none;
+}

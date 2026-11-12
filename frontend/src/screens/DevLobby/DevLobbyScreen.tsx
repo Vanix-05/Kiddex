@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MainLobby } from '../Lobby/MainLobby'
 import { useLobbyData } from '../Lobby/useLobbyData'
 import type { LobbyStudent } from '../Lobby/useLobbyCast'
@@ -31,6 +31,16 @@ const PRESETS: Record<string, LobbyStudent> = {
 export function DevLobbyScreen() {
   const [params] = useSearchParams()
   const data = useLobbyData()
+  const navigate = useNavigate()
   const student = PRESETS[params.get('p') ?? 'a'] ?? PRESETS.a
-  return <MainLobby student={student} data={data} onLogOut={() => window.location.assign('/')} />
+  const at = params.get('at')
+  return (
+    <MainLobby
+      student={student}
+      data={data}
+      onLogOut={() => window.location.assign('/')}
+      startAt={at === 'stage' || at === 'match' ? at : undefined}
+      onPlay={(game, from) => navigate(`/dev/play/${game}?from=${from}&lesson=${data.mission.lessonId}`)}
+    />
+  )
 }

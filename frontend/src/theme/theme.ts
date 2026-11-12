@@ -157,6 +157,73 @@ export const theme = {
     lobbyXp: '#8BC97A', // XP bar stripes
     lobbyXpStripe: '#7DBB6C',
     lobbyKeyEdge: '#C8B39C', // bottom edge of a keyboard key
+
+    // Mini games (src/games). Quiz Show is purple, Match Up is teal.
+    gameQuiz: '#7F74D6', // chip square, board frame, podium
+    gameQuizEdge: '#5D53B0',
+    gameQuizSoft: '#E8E5FA', // board header row
+    gameMatch: '#3FB3A0',
+    gameMatchEdge: '#2A8C7C',
+    gameMatchSoft: '#D3F1EA',
+    gameBulb: '#FFE07A', // marquee bulbs, footlights
+    gameBulbEdge: '#E0B23C',
+    // Answer letters: A orange, B green, C purple, D blue (white letters, large bold)
+    gameLetterA: '#EE9A45',
+    gameLetterB: '#4FAE66',
+    gameLetterC: '#8A7DE0',
+    gameLetterD: '#4A9BE0',
+    gameRight: '#4E9F62', // right answer border, dots (= okFill)
+    gameRightBg: '#E3F3E5',
+    gameRightPill: '#3A8A50', // "Right answer" pill (white text 4.6:1)
+    gameWrong: '#E8655A', // coral: a wrong pick, its X, dots
+    gameWrongBg: '#FDE6E1',
+    gameCurrent: '#F2C14E', // the current progress dot's ring
+    gameStar: '#F7C948',
+    gameStarEdge: '#B98A1A',
+    gameStarPale: '#EFE5CF',
+    gameXpNew: '#F7D154', // new XP stripes
+    gameXpNewStripe: '#EDBB32',
+    gameSpotlight: 'rgba(255, 246, 214, 0.55)',
+    gameShadow: 'rgba(74, 52, 38, 0.22)', // soft floor shadows
+    gameDim: 'rgba(60, 40, 25, 0.5)', // behind the Pause card
+    // Theater stage
+    stageCurtain: '#E0584E',
+    stageCurtainDark: '#B8413A',
+    stageCurtainLight: '#EF7D70',
+    stageGold: '#F2C14E',
+    stageGoldDark: '#C9952E',
+    stageWall: '#C8C0EE',
+    stageWallLight: '#DCD6F7',
+    stageFloor: '#E6BC88',
+    stageFloorDark: '#C99560',
+    stageRug: '#A79DE6',
+    stageRugEdge: '#8F84D9',
+    stageFootBase: '#7A5338',
+    // Match Corner room
+    roomWall: '#FBEBD3',
+    roomPanel: '#F1D6AE',
+    roomPanelLine: '#DDB988',
+    roomFloor: '#EBC48E',
+    roomFloorLine: '#D7A86E',
+    roomRug: '#7FD0BE',
+    roomRugLight: '#A2DFD0',
+    roomWindow: '#FFFDF7',
+    corkBoard: '#E3B67E',
+    corkDot: '#D29E62',
+    woodFrame: '#C98A4B',
+    woodFrameDark: '#9C6230',
+    // Match Up pair colors: card fill + yarn
+    pairTeal: '#D3F1EA',
+    pairTealYarn: '#2FA593',
+    pairPink: '#FBDCE6',
+    pairPinkYarn: '#E2668F',
+    pairYellow: '#FCEFB4',
+    pairYellowYarn: '#D9A920',
+    pairBlue: '#D7EAFB',
+    pairBlueYarn: '#3E8FD6',
+    pairPurple: '#E5DFFA',
+    pairPurpleYarn: '#8073D9',
+    yarnPicked: '#EE9A45', // the yarn hanging from a picked card
   },
 
   fonts: {
