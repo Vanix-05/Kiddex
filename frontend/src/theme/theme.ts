@@ -96,8 +96,24 @@ export const theme = {
     ollieFace: '#FEF3E2', // eyelids
     ollieMouth: '#8A3A1C', // inside of the open beak
 
+    // The desk under the setup storybook (screens/Setup/Desk), until the bedroom comes.
+    deskWood: '#A8703F',
+    deskWoodMid: '#8C5A31',
+    deskWoodDark: '#7A4C29',
+    deskPlankGap: 'rgba(52, 26, 10, 0.55)', // dark line between planks
+    deskPlankShine: 'rgba(255, 220, 170, 0.12)', // light edge under it
+    deskGrainLight: 'rgba(255, 235, 200, 0.05)',
+    deskGrainDark: 'rgba(70, 36, 14, 0.07)',
+    deskLamp: 'rgba(255, 214, 150, 0.42)', // lamp glow, top-left
+    deskVignette: 'rgba(30, 14, 4, 0.55)', // darker edges
+    deskPropShadow: 'rgba(30, 14, 4, 0.35)',
+    pencilBody: '#F6C453',
+    pencilStripe: '#E0A93A',
+    pencilWood: '#F3D9B1',
+    eraserPink: '#F7A9A0',
+    eraserBlue: '#7FB7D9',
+
     // Storybook setup screens
-    bookCover: '#B9764A', // book cover, around the pages
     stickerFill: '#FFFFFF', // white fill of the bubbly sticker text
 
     // Logo

@@ -2,7 +2,11 @@
 export const paths = {
   /** Welcome card: "I'm a Student" (popup + notebook pages) or "I'm a Teacher". */
   welcome: '/',
-  /** First-time setup, for students with no buddy yet: quiz -> gender -> reveal -> pet. */
+  /**
+   * First-time setup, for students with no buddy yet: one storybook at /setup
+   * (Boy or Girl -> quiz -> "your perfect buddy is..." -> Pick your buddy).
+   * gender, reveal and pet are old links that now redirect to /setup.
+   */
   setup: {
     quiz: '/setup',
     gender: '/setup/gender',

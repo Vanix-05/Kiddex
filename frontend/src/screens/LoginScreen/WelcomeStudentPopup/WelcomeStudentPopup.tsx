@@ -1,7 +1,7 @@
 import { useState, type Ref } from 'react'
 import { companionArt, ollieLayers } from '../../../assets/art'
 import { Icon } from '../../../components/Icon/Icon'
-import { OllieLive } from '../StoryBook/OllieLive'
+import { OllieLive } from '../../../components/StoryBook/OllieLive'
 import styles from './WelcomeStudentPopup.module.css'
 
 /** Which plate was picked: New Student ("Start here") or Returning Student ("Log in"). */

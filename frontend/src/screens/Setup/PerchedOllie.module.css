@@ -1,0 +1,63 @@
+/* Ollie on the top edge of the setup book, in the book's own pixels
+   (the book is 1216 wide; its top edge is y 0). */
+
+.ollie {
+  position: absolute;
+  left: 1036px;
+  top: -118px;
+  z-index: 8;
+  width: 100px;
+  filter: drop-shadow(0 5px 0 rgba(40, 20, 8, 0.25));
+  pointer-events: none;
+}
+
+/* The bubble's right edge sits just left of Ollie, its tail pointing at him. */
+.bubble {
+  position: absolute;
+  right: 196px;
+  top: -92px;
+  z-index: 8;
+  max-width: 620px;
+  margin: 0;
+  padding: 10px 20px;
+  border: 3.5px solid var(--color-card-border);
+  border-radius: 20px;
+  background: var(--color-sticker-fill);
+  box-shadow: 0 5px 0 rgba(40, 20, 8, 0.25);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.bubble::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: -13px;
+  width: 20px;
+  height: 20px;
+  border-top: 3.5px solid var(--color-card-border);
+  border-right: 3.5px solid var(--color-card-border);
+  background: var(--color-sticker-fill);
+  transform: rotate(45deg);
+}
+
+.text {
+  display: block;
+  animation: line-in 220ms ease-out;
+}
+
+@keyframes line-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text {
+    animation-duration: 120ms;
+  }
+}

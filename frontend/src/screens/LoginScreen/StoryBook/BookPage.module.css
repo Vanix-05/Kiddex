@@ -5,28 +5,16 @@
  */
 
 .paper {
-  --shade: color-mix(in srgb, var(--color-card-border) 9%, var(--color-card-bg));
-  --shade-deep: color-mix(in srgb, var(--color-card-border) 24%, var(--color-card-bg));
-  position: relative;
-  width: 572px;
-  height: 698px;
-  overflow: hidden;
-  border: 3px solid var(--color-card-border);
-  color: var(--color-text);
+  composes: paper from '../../../components/StoryBook/bookParts.module.css';
 }
 
-/* Cream paper with a soft shade near the spine. */
 .left {
-  border-right-width: 0;
-  border-radius: 12px 4px 4px 12px;
-  background: linear-gradient(90deg, var(--color-card-bg) 78%, var(--shade) 92%, var(--shade-deep) 100%);
+  composes: paperLeft from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .right {
+  composes: paperRight from '../../../components/StoryBook/bookParts.module.css';
   padding: 38px 46px 0 52px;
-  border-left-width: 0;
-  border-radius: 4px 12px 12px 4px;
-  background: linear-gradient(270deg, var(--color-card-bg) 78%, var(--shade) 92%, var(--shade-deep) 100%);
 }
 
 .pageNumber {

@@ -1,0 +1,78 @@
+/* The wooden desk under the setup storybook (see Desk.tsx). */
+
+/* Fills the window, behind everything: wood planks, grain, lamp glow, vignette. */
+.desk {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 22% 8%, var(--color-desk-lamp), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, var(--color-desk-vignette) 100%),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 176px,
+      var(--color-desk-plank-gap) 176px 179px,
+      var(--color-desk-plank-shine) 179px 181px
+    ),
+    repeating-linear-gradient(
+      176deg,
+      var(--color-desk-grain-light) 0 2px,
+      transparent 2px 9px,
+      var(--color-desk-grain-dark) 9px 11px,
+      transparent 11px 23px
+    ),
+    linear-gradient(180deg, var(--color-desk-wood), var(--color-desk-wood-mid) 60%, var(--color-desk-wood-dark));
+}
+
+/* The props, on the 1440 x 900 stage (the book covers part of each). */
+.props {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.note {
+  position: absolute;
+  left: 6px;
+  top: 150px;
+  width: 96px;
+  height: 96px;
+  border: 2.5px solid color-mix(in srgb, var(--color-card-border) 50%, transparent);
+  background: var(--color-sticky-yellow);
+  box-shadow: 3px 6px 0 var(--color-desk-prop-shadow);
+  transform: rotate(-8deg);
+}
+
+.eraser {
+  position: absolute;
+  left: 20px;
+  top: 770px;
+  width: 70px;
+  height: 40px;
+  overflow: hidden;
+  border: 3px solid var(--color-card-border);
+  border-radius: 9px;
+  background: var(--color-eraser-pink);
+  box-shadow: 3px 6px 0 var(--color-desk-prop-shadow);
+  transform: rotate(-14deg);
+}
+
+/* The blue end of the eraser. */
+.eraser::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 26px;
+  border-left: 3px solid var(--color-card-border);
+  background: var(--color-eraser-blue);
+}
+
+.pencil {
+  position: absolute;
+  left: 1286px;
+  top: 660px;
+  width: 150px;
+  filter: drop-shadow(4px 6px 3px var(--color-desk-prop-shadow));
+  transform: rotate(-58deg);
+}

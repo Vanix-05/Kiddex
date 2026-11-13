@@ -30,7 +30,6 @@
   --fly-dy: 187px;
   --fly-scale: 1.7143;
   --closed-book: translate(-288px, 74px) scale(0.92);
-  --paper-edge: repeating-linear-gradient(90deg, var(--color-input-bg) 0 3px, var(--color-input-border) 3px 4.5px);
 
   position: fixed;
   inset: 0;
@@ -107,15 +106,7 @@
 }
 
 .floorShadow {
-  position: absolute;
-  left: 10px;
-  right: -10px;
-  bottom: -34px;
-  height: 70px;
-  border-radius: 50%;
-  background: rgba(40, 22, 10, 0.45);
-  filter: blur(18px);
-  transform-origin: 100% 50%;
+  composes: floorShadow from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .choose .floorShadow {
@@ -133,29 +124,15 @@
 /* Maroon boards behind the pages, with a thin gold line and a darker strip
    at the spine. */
 .board {
-  position: absolute;
-  top: 0;
-  width: 608px;
-  height: 748px;
-  border: 4px solid var(--color-story-cover-edge);
-  box-shadow:
-    inset 0 0 0 7px var(--color-story-board),
-    inset 0 0 0 9px color-mix(in srgb, var(--color-story-gold) 70%, transparent),
-    0 10px 0 var(--color-story-cover-edge);
+  composes: board from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .boardRight {
-  left: 608px;
-  border-left-width: 0;
-  border-radius: 0 22px 22px 0;
-  background: linear-gradient(90deg, var(--color-story-cover) 0 20px, var(--color-story-board) 20px);
+  composes: boardRight from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .boardLeft {
-  left: 0;
-  border-right-width: 0;
-  border-radius: 22px 0 0 22px;
-  background: linear-gradient(270deg, var(--color-story-cover) 0 20px, var(--color-story-board) 20px);
+  composes: boardLeft from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* The closed book's pages, seen from the side: a little past the cover at
@@ -187,22 +164,15 @@
 
 /* Page edges showing at the sides and bottom of the open book. */
 .stack {
-  position: absolute;
-  top: 20px;
-  width: 584px;
-  height: 710px;
-  border: 3px solid var(--color-card-border);
-  background: var(--paper-edge);
+  composes: stack from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .stackRight {
-  left: 614px;
-  border-radius: 0 14px 14px 0;
+  composes: stackRight from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .stackLeft {
-  left: 18px;
-  border-radius: 14px 0 0 14px;
+  composes: stackLeft from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .pageRight,
@@ -226,25 +196,14 @@
 
 /* The shadow line at the spine. */
 .gutter {
-  position: absolute;
-  left: 606px;
-  top: 23px;
-  width: 4px;
-  height: 692px;
-  background: color-mix(in srgb, var(--color-card-border) 40%, transparent);
+  composes: gutter from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* Orange ribbon bookmark. .ribbonUnder hangs out from under the book (it is
    what shows on the closed book); .ribbonTop is its top end, lying over the
    boards at the bottom of the spine once the book is open. */
 .ribbon {
-  position: absolute;
-  left: 572px;
-  width: 40px;
-  border: 3px solid var(--color-card-border);
-  border-top: 0;
-  background: var(--color-button-bg);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+  composes: ribbon from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .ribbonUnder {
@@ -310,16 +269,13 @@
 }
 
 .face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  composes: face from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* Laid out in the book's own coordinates: turned over, the flap covers the
    left half of the book. */
 .faceBack {
-  transform: rotateY(180deg);
+  composes: faceBack from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* Closing: Ollie slips out of the picture (he comes back on the cover). */
@@ -330,41 +286,26 @@
 /* ---------- Next: the page turn ---------- */
 
 .turn {
-  position: absolute;
-  left: 608px;
-  top: 20px;
-  z-index: 6;
-  width: 572px;
-  height: 698px;
-  transform-origin: 0 50%;
-  transform-style: preserve-3d;
-  animation: pageTurn 820ms cubic-bezier(0.45, 0.05, 0.3, 1) both;
+  composes: turn from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* A slight lift in the middle of the turn. */
 .turnLift {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  animation: pageLift 820ms ease-in-out both;
+  composes: turnLift from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* A soft shadow from the spine: it darkens the front as the page lifts, and
    fades from the back as it lands. */
 .shade {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+  composes: shade from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .shadeFront {
-  background: linear-gradient(90deg, rgba(60, 35, 15, 0.35), rgba(60, 35, 15, 0) 60%);
-  animation: fadeIn 410ms cubic-bezier(0.45, 0.05, 0.3, 1) both;
+  composes: shadeFront from '../../../components/StoryBook/bookParts.module.css';
 }
 
 .shadeBack {
-  background: linear-gradient(270deg, rgba(60, 35, 15, 0.35), rgba(60, 35, 15, 0) 60%);
-  animation: fadeOut 410ms ease-out 410ms both;
+  composes: shadeBack from '../../../components/StoryBook/bookParts.module.css';
 }
 
 /* Ollie's small hop when he lands on a page. */
@@ -516,20 +457,7 @@
   }
 }
 
-@keyframes pageTurn {
-  from {
-    transform: perspective(2600px) rotateY(0deg);
-  }
-  to {
-    transform: perspective(2600px) rotateY(-180deg);
-  }
-}
 
-@keyframes pageLift {
-  50% {
-    transform: translateZ(14px);
-  }
-}
 
 @keyframes hop {
   0%,

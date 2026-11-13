@@ -1,26 +1,49 @@
-/* Bubbly sticker text: white fill, thick dark outline, chunky drop shadow. */
+/*
+ * "your perfect buddy is..." (RevealSpread.tsx), in the open book's own
+ * pixels (left page x 36-608, right page x 608-1180).
+ * Bubbly sticker text: white fill, thick dark outline, chunky drop shadow.
+ */
 .sticker {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  column-gap: 0.35em;
-  max-width: 100%;
+  position: absolute;
+  top: 250px;
+  width: 572px;
+  margin: 0;
   color: var(--color-sticker-fill);
   font-family: var(--font-display);
-  font-size: clamp(2.2rem, 7vh, 4.2rem);
+  font-size: 66px;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.25;
+  text-align: center;
   text-transform: lowercase;
   -webkit-text-stroke: 0.22em var(--color-card-border);
   /* outline behind the fill, so the letters stay chunky */
   paint-order: stroke fill;
   text-shadow: 0 0.09em 0 var(--color-card-border);
+  caret-color: transparent;
+  user-select: none;
+}
+
+.sticker:focus {
+  outline: none;
+}
+
+.left {
+  left: 36px;
+}
+
+.right {
+  left: 608px;
 }
 
 .word {
   display: inline-flex;
   white-space: nowrap;
+}
+
+/* A space between words (the words are flex boxes, so it's a margin). */
+.word + .word {
+  margin-left: 0.3em;
 }
 
 /* Each letter pops in, one after another (45ms apart, 450ms each). */
@@ -36,8 +59,47 @@
   }
 }
 
+/* The page arriving (turning in): blank until it lands and the letters play. */
+.waiting .letter {
+  opacity: 0;
+  animation: none;
+}
+
+/* The page turning away: the finished line, no pop. */
+.still .letter {
+  animation: none;
+}
+
+/* Small gold four-point sparkles that twinkle once the letters are in. */
+.sparkle {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: var(--color-story-gold);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0;
+  animation: twinkle 1.8s ease-in-out var(--sparkle-delay) infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.15) rotate(45deg);
+  }
+}
+
+/* Reduced motion: the line is just there; the sparkles sit still. */
 @media (prefers-reduced-motion: reduce) {
   .letter {
     animation: none;
+  }
+  .sparkle {
+    animation: none;
+    opacity: 0.8;
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { ollieLarge } from '../../../assets/art'
+import { ollieLarge } from '../../assets/art'
 import styles from './OllieLive.module.css'
 
 /** One blink: the eyelid slides down over the eye and back up. */

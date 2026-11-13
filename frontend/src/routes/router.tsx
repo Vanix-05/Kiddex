@@ -5,10 +5,7 @@ import { LoginScreen } from '../screens/LoginScreen/LoginScreen'
 import { WelcomeStep } from '../screens/LoginScreen/steps/WelcomeStep'
 import { TeacherLoginStep } from '../screens/LoginScreen/steps/TeacherLoginStep'
 import { SetupFrame } from '../screens/Setup/SetupFrame'
-import { QuizStep } from '../screens/Setup/QuizStep'
-import { RevealStep } from '../screens/Setup/RevealStep'
-import { GenderStep } from '../screens/Setup/GenderStep'
-import { PetStep } from '../screens/Setup/PetStep'
+import { SetupBook } from '../screens/Setup/SetupBook'
 import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
 import { LazyDevLobbyScreen, LazyLobbyScreen } from '../screens/Lobby/LazyLobby'
 import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
@@ -36,14 +33,16 @@ export const router = createBrowserRouter([
   {
     element: <RequireRole role="student" />,
     children: [
-      // First-time setup (no buddy yet): storybook quiz -> gender -> reveal -> pet.
+      // First-time setup (no buddy yet): one storybook, Boy or Girl -> quiz ->
+      // "your perfect buddy is..." -> Pick your buddy, all at /setup.
       {
         element: <SetupFrame />,
         children: [
-          { path: paths.setup.quiz, element: <QuizStep /> },
-          { path: paths.setup.gender, element: <GenderStep /> },
-          { path: paths.setup.reveal, element: <RevealStep /> },
-          { path: paths.setup.pet, element: <PetStep /> },
+          { path: paths.setup.quiz, element: <SetupBook /> },
+          // The old separate pages: the storybook starts at /setup.
+          { path: paths.setup.gender, element: <Navigate to={paths.setup.quiz} replace /> },
+          { path: paths.setup.reveal, element: <Navigate to={paths.setup.quiz} replace /> },
+          { path: paths.setup.pet, element: <Navigate to={paths.setup.quiz} replace /> },
         ],
       },
       // After setup (outside SetupFrame, which sends anyone with a buddy away).

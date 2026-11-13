@@ -1,0 +1,119 @@
+/*
+ * The setup storybook screen (SetupBook.tsx). One 1440 x 900 stage, scaled
+ * as one piece to fit the window (--stage, set by SetupBook.tsx), so every
+ * size here and in the spreads is in stage / book pixels.
+ * The open book is 1216 x 748 at (96, 130); the look of its parts is shared
+ * with the Student login (components/StoryBook/bookParts.module.css).
+ */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 900px;
+  color: var(--color-text);
+  transform: var(--stage);
+  transform-origin: 0 0;
+}
+
+.book {
+  position: absolute;
+  left: 96px;
+  top: 130px;
+  width: 1216px;
+  height: 748px;
+  animation: fade-in 300ms ease-out both;
+}
+
+/* Step tabs, sticking out from behind the pages at the right edge. */
+.tabs {
+  position: absolute;
+  left: 1196px;
+  top: 86px;
+}
+
+/* The two blank pages, under whatever is written on them. */
+.pageLeft,
+.pageRight {
+  position: absolute;
+  top: 20px;
+}
+
+.pageLeft {
+  left: 36px;
+}
+
+.pageRight {
+  left: 608px;
+}
+
+/* The ribbon's top end over the boards at the bottom of the spine. */
+.ribbon {
+  top: 722px;
+  height: 84px;
+}
+
+/* What's written on the open book: one layer over both pages, in book pixels. */
+.spread {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1216px;
+  height: 748px;
+}
+
+/* During a page turn: only the left page's half, or only the right page's
+   (inside the pages' borders). */
+.clipLeft {
+  clip-path: inset(23px 608px 33px 39px);
+}
+
+.clipRight {
+  clip-path: inset(23px 39px 33px 608px);
+}
+
+/* On the turning page: the spread placed so its left or right half lands
+   inside that page (the page's border is 3px; the right page has no left border). */
+.onLeftPage {
+  left: -39px;
+  top: -23px;
+}
+
+.onRightPage {
+  left: -608px;
+  top: -23px;
+}
+
+/* Back on Pick your buddy: fade out, then question 5 fades in. */
+.fadeOut {
+  animation: fade-out 250ms ease both;
+}
+
+.fadeIn {
+  animation: fade-in 250ms ease-out both;
+}
+
+.blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}

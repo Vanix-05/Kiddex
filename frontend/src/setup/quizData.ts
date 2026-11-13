@@ -80,11 +80,11 @@ export const quizQuestions: QuizQuestion[] = [
   },
 ]
 
-/** What Ollie says after the last page, and when the gender page opens. */
-export const ollieQuizDone = 'Hmm, I think I know your buddy… but first, who are you?'
+/** What Ollie says when the storybook opens on Boy or Girl. */
+export const ollieWhoIsTheHero = 'Every story needs a hero! Who is this one about?'
 
-/** What Ollie says once a Boy or Girl tile is picked on the gender page. */
+/** What Ollie says once a Boy or Girl tile is picked. */
 export const ollieGenderPicked = 'Nice to meet you, hero!'
 
-/** What Ollie says on the reveal page (/setup/reveal). */
+/** What Ollie says on "your perfect buddy is...". */
 export const ollieReveal = 'The book has spoken!'

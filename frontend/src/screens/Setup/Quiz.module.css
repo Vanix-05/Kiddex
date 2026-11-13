@@ -1,13 +1,18 @@
 /*
- * Quiz page contents (the book itself is StoryBook.module.css).
- * The pop must match POP_MS (420ms) in QuizStep.tsx.
+ * Quiz spread (QuizSpread.tsx), in the open book's own pixels (1216 x 748;
+ * left page x 36-608, right page x 608-1180). The pop must match POP_MS
+ * (420ms) in bookPages.ts.
  */
 
-/* Large title written at the top of the book page (quiz and gender). */
+/* Large title across the top of the open book (quiz and Boy or Girl). */
 .question {
+  position: absolute;
+  top: 52px;
+  left: 60px;
+  right: 60px;
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: clamp(1.4rem, 4vh, 2.3rem);
+  font-size: 42px;
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
@@ -28,26 +33,27 @@
   opacity: 0;
 }
 
-/* ---------- Answer bubbles ---------- */
-
-/* 2x2 cells: the left column sits on the left page, the right column on the
-   right page, with a wide gap so nothing lands on the spine. */
-.bubbles {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  column-gap: 10%;
-  row-gap: clamp(6px, 1.4vh, 14px);
-  min-height: 0;
+/* "Page 1 of 5", bottom-left. */
+.pageNumber {
+  position: absolute;
+  left: 62px;
+  bottom: 46px;
+  color: var(--color-text-subtle);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
 }
 
-/* Each bubble is a different size and sits a little off-center in its cell. */
+/* ---------- Answer bubbles ---------- */
+
+/* Each bubble has a cell (placed by QuizSpread.tsx) and sits a little
+   off-center in it, at its own size. */
 .cell {
+  position: absolute;
   display: flex;
   align-items: center;
-  min-width: 0;
-  min-height: 0;
+  width: 430px;
+  height: 240px;
 }
 
 .float {
@@ -63,7 +69,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-9px);
   }
 }
 
@@ -72,15 +78,15 @@
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: clamp(76px, 13vh, 124px);
-  padding: 10px clamp(14px, 1.8vw, 26px);
+  min-height: 172px;
+  padding: 14px 40px;
   border: 4px solid var(--color-card-border);
   /* oval */
   border-radius: 50%;
-  box-shadow: 0 5px 0 rgba(107, 74, 51, 0.25);
+  box-shadow: 0 6px 0 rgba(107, 74, 51, 0.25);
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: calc(clamp(1rem, 2.4vh, 1.3rem) * var(--text));
+  font-size: calc(29px * var(--text));
   font-weight: 600;
   line-height: 1.15;
   text-align: center;
@@ -98,7 +104,7 @@
   position: absolute;
   top: 14%;
   left: 14%;
-  width: 18%;
+  width: 16%;
   height: 22%;
   border-radius: 50%;
   background: var(--color-sticker-fill);
@@ -163,6 +169,12 @@
   pointer-events: none;
 }
 
+/* Already popped (the copy of the page turning away). */
+.bubble[data-state='gone'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .lavender {
   background: var(--color-tint-lavender);
 }
@@ -176,7 +188,7 @@
   background: var(--color-tint-periwinkle);
 }
 
-/* Reduced motion: no floating or popping. */
+/* Reduced motion: no floating or popping, just fades. */
 @media (prefers-reduced-motion: reduce) {
   .float {
     animation: none;

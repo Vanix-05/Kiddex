@@ -10,21 +10,14 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { ollieLarge } from '../../../assets/art'
-import { OllieLive } from './OllieLive'
-import { StepTabs } from './StepTabs'
+import { fitStage, FULL_STAGE as FULL, type StageView as View } from '../../../components/StoryBook/fitStage'
+import { OllieLive } from '../../../components/StoryBook/OllieLive'
+import { StepTabs } from '../../../components/StoryBook/StepTabs'
 import { Wing } from './Wing'
 import type { BookPhase, Step } from './timing'
 import styles from './StoryBook.module.css'
 
-/** A part of the 1440x900 stage that has to fit in the window. */
-interface View {
-  x: number
-  y: number
-  w: number
-  h: number
-}
-/** Laptops: the whole stage, so the open book is about 85% of the screen. */
-const FULL: View = { x: 0, y: 0, w: 1440, h: 900 }
+// Laptops: the whole stage (FULL), so the open book is about 85% of the screen.
 /** Upright tablets and phones: just the closed book and Ollie... */
 const CLOSED: View = { x: 420, y: 10, w: 600, h: 890 }
 /** ...then just the right page and its tabs (Ollie's page is off screen). */
@@ -113,12 +106,7 @@ export function StoryBook({
       const w = overlay.clientWidth
       const h = overlay.clientHeight
       const wide = w / h >= WIDE
-      const show = (name: string, view: View) => {
-        const s = Math.min(w / view.w, h / view.h)
-        const x = (w - view.w * s) / 2 - view.x * s
-        const y = (h - view.h * s) / 2 - view.y * s
-        overlay.style.setProperty(name, `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${s.toFixed(4)})`)
-      }
+      const show = (name: string, view: View) => overlay.style.setProperty(name, fitStage(w, h, view))
       show('--view-closed', wide ? FULL : CLOSED)
       show('--view-open', wide ? FULL : OPEN)
     }
