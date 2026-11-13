@@ -86,6 +86,16 @@ export const theme = {
     ollieWingLine: '#A8713F',
     ollieWingSpot: '#F6DCB6',
 
+    // Student login storybook (the closed cover = the "Welcome, Student!" popup)
+    storyCover: '#7A2634', // maroon hardcover
+    storyCoverEdge: '#3F1019', // cover outline and bottom edge
+    storyBoard: '#5F1B28', // inside of the boards, around the pages
+    storyGold: '#E9C25A', // gold frame, bands and corner pieces
+    storyGoldText: '#F6D27A', // gold words on the cover (6.9:1 on storyCover)
+    // Ollie's live layers (StoryBook/OllieLive)
+    ollieFace: '#FEF3E2', // eyelids
+    ollieMouth: '#8A3A1C', // inside of the open beak
+
     // Storybook setup screens
     bookCover: '#B9764A', // book cover, around the pages
     stickerFill: '#FFFFFF', // white fill of the bubbly sticker text

@@ -1,27 +1,33 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { paths } from '../../../routes/paths'
 import { useSession } from '../../../session/session'
-import { NotebookPage } from '../NotebookPage/NotebookPage'
-import { WelcomeStudentPopup, type PopupRects, type StudentKind } from '../WelcomeStudentPopup/WelcomeStudentPopup'
+import { BookLeftPage } from '../StoryBook/BookLeftPage'
+import { BookRightPage } from '../StoryBook/BookRightPage'
+import { StoryBook } from '../StoryBook/StoryBook'
+import { ENTER_MS, LAND_MS, LEAVE_MS, TURN_MS, type BookPhase, type Step } from '../StoryBook/timing'
+import { CoverOllie, WelcomeCover, type StudentKind } from '../WelcomeStudentPopup/WelcomeStudentPopup'
 import { CodeStep } from './CodeStep'
 import { LoadingVideo } from './LoadingVideo'
 import { Padlock } from './Padlock'
-import { ENTER_MS, LEAVE_MS, NewStudentScreen, TURN_MS, type Step } from './NewStudentScreen'
 
-/**
- * choose = the "Welcome, Student!" popup
- * enter  = "Start here" / "Log in" transition into the steps
- * steps  = the New Student steps (School ID, one-time code, PIN code)
- *          or the Returning Student steps (School ID, PIN code)
- * back   = the steps fading out over the popup (Back on step 1)
- */
-type Phase = 'choose' | 'enter' | 'steps' | 'back'
-
-/** The sticky notes on the notebook page, for each kind of student. */
+/** The step tabs on the right edge of the book, for each kind of student. */
 const STEP_LABELS: Record<StudentKind, readonly string[]> = {
   new: ['School ID', 'One-time code', 'PIN code'],
   returning: ['School ID', 'PIN code'],
+}
+
+/** Ollie's page (the left page) for each step: his title and his one line. */
+const OLLIE_SAYS: Record<StudentKind, readonly { title: string; line: string }[]> = {
+  new: [
+    { title: 'Hi, I’m Ollie!', line: 'This is your storybook. First, your School ID.' },
+    { title: 'Now your one-time code!', line: 'Your teacher gave it to you.' },
+    { title: 'Make your own PIN code!', line: 'Don’t share it with anyone.' },
+  ],
+  returning: [
+    { title: 'Welcome back!', line: 'Type your School ID.' },
+    { title: 'Now your PIN code!', line: 'The one you made last time.' },
+  ],
 }
 
 const ignoreTyping = () => {}
@@ -30,21 +36,26 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 
 /**
  * Everything "I'm a Student" opens, drawn over the login screen without
- * changing the URL: the popup, then the New Student set-up steps or the
- * Returning Student login steps. Both share the same pages, flip and Back.
+ * changing the URL: one storybook. Closed, it is the "Welcome, Student!"
+ * popup; open, it shows the New Student set-up steps or the Returning
+ * Student login steps, one per spread (Ollie's page left, the step right).
  * What the student types is kept here only (fake login, no backend yet).
  */
 export function StudentFlow({ onClose }: { onClose: () => void }) {
-  const [phase, setPhase] = useState<Phase>('choose')
+  const [phase, setPhase] = useState<BookPhase>('choose')
   const [kind, setKind] = useState<StudentKind>('new')
-  const [from, setFrom] = useState<PopupRects | null>(null)
-  // The popup's pop-in and wave only play the first time it opens.
+  // Ollie's pop-in and greeting wave only play the first time the popup opens.
   const [popupIntro, setPopupIntro] = useState(true)
+  const coverTitleId = useId()
+  const firstPlateRef = useRef<HTMLButtonElement>(null)
 
   const [step, setStep] = useState<Step>(1)
   const [turningFrom, setTurningFrom] = useState<Step | null>(null)
+  // Ollie has landed in the open book, but taps are ignored a moment longer.
+  const [settling, setSettling] = useState(false)
   const [fadedIn, setFadedIn] = useState(false)
   const [bounceKey, setBounceKey] = useState(0)
+  const [talkKey, setTalkKey] = useState(0)
 
   const [schoolId, setSchoolId] = useState('')
   const [oneTimeCode, setOneTimeCode] = useState('')
@@ -64,24 +75,38 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
     timer.current = window.setTimeout(then, ms)
   }
 
-  // ---------- Popup <-> steps ----------
+  /** Ollie arrives on a page: his small hop, and he says his line. */
+  const ollieArrives = () => {
+    setBounceKey((k) => k + 1)
+    setTalkKey((k) => k + 1)
+  }
 
-  const startSteps = (next: StudentKind, rects: PopupRects) => {
+  // ---------- Closed book <-> open book ----------
+
+  /** "Start here" / "Log in": the book opens and Ollie flies into it. */
+  const startSteps = (next: StudentKind) => {
     if (phase !== 'choose') return // ignore double taps
     if (next !== kind) {
       setKind(next)
       setStep(1)
     }
+    setFadedIn(false)
     if (reducedMotion()) {
       setPhase('steps')
+      ollieArrives()
       return
     }
-    setFrom(rects)
     setPhase('enter')
-    after(ENTER_MS, () => setPhase('steps'))
+    after(LAND_MS, () => {
+      setPhase('steps')
+      setSettling(true)
+      ollieArrives()
+      after(ENTER_MS - LAND_MS, () => setSettling(false))
+    })
   }
 
-  const backToPopup = () => {
+  /** Back on step 1: the book closes and is the popup again. */
+  const closeBook = () => {
     setPopupIntro(false)
     if (reducedMotion()) {
       setPhase('choose')
@@ -93,38 +118,44 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
 
   // ---------- Step to step ----------
 
-  /** Next: the current page turns up and away, the next step is underneath. */
+  const still = phase === 'steps' && turningFrom === null && !settling
+
+  /** Next: the right page turns over the spine, the next step is underneath. */
   const turnTo = (next: Step) => {
-    if (turningFrom !== null) return // ignore taps while a page turns
+    if (!still) return // ignore taps while anything moves
     setFadedIn(false)
-    setBounceKey((k) => k + 1)
-    if (!reducedMotion()) {
-      setTurningFrom(step)
-      after(TURN_MS, () => setTurningFrom(null))
-    }
     setStep(next)
+    if (reducedMotion()) {
+      ollieArrives()
+      return
+    }
+    setTurningFrom(step)
+    after(TURN_MS, () => {
+      setTurningFrom(null)
+      ollieArrives()
+    })
   }
 
   /** Back: a quick fade to the previous step. Typed values are kept. */
   const goBack = () => {
-    if (turningFrom !== null) return
+    if (!still) return
     if (step === 1) {
-      backToPopup()
+      closeBook()
       return
     }
     setFadedIn(!reducedMotion())
-    setBounceKey((k) => k + 1)
+    ollieArrives()
     setLoggingIn(false)
     setStep((s) => (s - 1) as Step)
   }
 
   const finish = () => {
-    if (turningFrom === null) setLoading(true)
+    if (still) setLoading(true)
   }
 
   /** Returning Student "Log in": any School ID and PIN code work (fake login). */
   const logIn = () => {
-    if (turningFrom !== null) return
+    if (!still) return
     setLoggingIn(true) // the padlock opens
     // TODO: real login + go to the Main Profile
   }
@@ -139,19 +170,31 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
 
   // ---------- Pages ----------
 
-  const renderStep = (s: Step, live: boolean, titleId?: string) =>
+  /** Ollie's page. Step s is pages 2s-1 (left) and 2s (right). */
+  const renderLeft = (s: Step, ollie: ReactNode) => {
+    const says = OLLIE_SAYS[kind][s - 1]
+    return <BookLeftPage chapter={s} title={says.title} line={says.line} pageNumber={s * 2 - 1} ollie={ollie} />
+  }
+
+  const renderRight = (s: Step, live: boolean, titleId?: string) =>
     kind === 'returning' ? renderReturningStep(s, live, titleId) : renderNewStep(s, live, titleId)
+
+  const typePinTitle = (
+    <>
+      Type your <strong>PIN code</strong>
+    </>
+  )
 
   /** Returning Student: School ID, then the PIN code they made before. */
   const renderReturningStep = (s: Step, live: boolean, titleId?: string) => {
-    const page = { titleId, step: s, steps: STEP_LABELS.returning, onBack: goBack }
+    const page = { titleId, onBack: goBack, pageNumber: s * 2 }
     if (s === 1) {
       return (
-        <NotebookPage {...page} title="Hi, Student!" subtitle="Welcome back!">
+        <BookRightPage {...page} title="Hi, Student!">
           <CodeStep
             hint={
               <>
-                Type the <strong>School ID</strong> on your login card.
+                Welcome back! Type the <strong>School ID</strong> on your login card.
               </>
             }
             label="School ID"
@@ -162,21 +205,17 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
             onSubmit={() => turnTo(2)}
             active={live}
           />
-        </NotebookPage>
+        </BookRightPage>
       )
     }
     return (
-      <NotebookPage
+      <BookRightPage
         {...page}
-        longTitle
-        title={
-          <>
-            Type your <strong>PIN code</strong>
-          </>
-        }
+        title={typePinTitle}
+        corner={<Padlock open={loggingIn} />}
         help={
           <>
-            Forgot your PIN code? <strong>Ask your teacher</strong> <span aria-hidden="true">🙋</span>
+            Forgot your PIN code? <strong>Ask your teacher</strong>
           </>
         }
       >
@@ -189,21 +228,20 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
           onChange={loggingIn ? ignoreTyping : setLoginPin}
           masked
           large
-          art={<Padlock open={loggingIn} />}
           submitLabel="Log in"
           onSubmit={logIn}
           active={live && !loggingIn}
         />
-      </NotebookPage>
+      </BookRightPage>
     )
   }
 
   /** New Student: School ID, one-time code, then make a PIN code. */
   const renderNewStep = (s: Step, live: boolean, titleId?: string) => {
-    const page = { titleId, step: s, steps: STEP_LABELS.new, onBack: goBack, subtitle: 'Let’s set up your account.' }
+    const page = { titleId, onBack: goBack, pageNumber: s * 2 }
     if (s === 1) {
       return (
-        <NotebookPage {...page} title="Hi, Student!">
+        <BookRightPage {...page} title="Hi, Student!">
           <CodeStep
             hint={
               <>
@@ -218,12 +256,12 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
             onSubmit={() => turnTo(2)}
             active={live}
           />
-        </NotebookPage>
+        </BookRightPage>
       )
     }
     if (s === 2) {
       return (
-        <NotebookPage {...page} title="Hi, Student!">
+        <BookRightPage {...page} title="Hi, Student!">
           <CodeStep
             hint={
               <>
@@ -238,21 +276,11 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
             onSubmit={() => turnTo(3)}
             active={live}
           />
-        </NotebookPage>
+        </BookRightPage>
       )
     }
-    // PIN code: no "Let's set up your account." line, just the hint.
     return (
-      <NotebookPage
-        {...page}
-        subtitle={undefined}
-        longTitle
-        title={
-          <>
-            Type your <strong>PIN code</strong>
-          </>
-        }
-      >
+      <BookRightPage {...page} title={typePinTitle} corner={<Padlock open={pin.length === 4} />}>
         <CodeStep
           hint="Pick 4 numbers you can remember."
           label="PIN code"
@@ -261,32 +289,41 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
           onChange={setPin}
           masked
           large
-          art={<Padlock open={pin.length === 4} />}
           submitLabel="Done!"
           onSubmit={finish}
           active={live && !loading}
         />
-      </NotebookPage>
+      </BookRightPage>
     )
   }
 
   return (
     <>
-      {(phase === 'choose' || phase === 'back') && (
-        <WelcomeStudentPopup onClose={onClose} onStart={startSteps} intro={popupIntro} />
-      )}
-      {phase !== 'choose' && (
-        <NewStudentScreen
-          kind={kind}
-          mode={phase === 'enter' ? 'enter' : phase === 'back' ? 'leave' : 'shown'}
-          from={from}
-          step={step}
-          turningFrom={turningFrom}
-          fadedIn={fadedIn}
-          bounceKey={bounceKey}
-          renderStep={renderStep}
-        />
-      )}
+      <StoryBook
+        phase={phase}
+        cover={
+          <WelcomeCover
+            titleId={coverTitleId}
+            firstPlateRef={firstPlateRef}
+            onStart={startSteps}
+            onClose={onClose}
+            pressing={phase === 'enter' ? kind : undefined}
+          />
+        }
+        coverTitleId={coverTitleId}
+        coverOllie={<CoverOllie intro={popupIntro} leaving={phase === 'enter'} />}
+        coverFocusRef={firstPlateRef}
+        tabs={STEP_LABELS[kind]}
+        step={step}
+        turningFrom={turningFrom}
+        settling={settling}
+        fadedIn={fadedIn}
+        bounceKey={bounceKey}
+        talkKey={talkKey}
+        renderLeft={renderLeft}
+        renderRight={renderRight}
+        onClose={onClose}
+      />
       {loading && <LoadingVideo onDone={startQuiz} />}
     </>
   )

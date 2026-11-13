@@ -1,0 +1,93 @@
+/* Ollie's live layers. Everything is in % of his picture (428:600). */
+
+.ollie {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 428 / 600;
+}
+
+/* Breathing: a slow scale from his feet. */
+.breathe {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  animation: breathe 3.2s ease-in-out infinite;
+}
+
+.art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* An eyelid: an ellipse over the eye that clips a face-colored shape with a
+   thin brown line at its bottom edge. OllieLive.tsx slides it down and up. */
+.lid {
+  position: absolute;
+  top: 32.8%;
+  width: 17%;
+  height: 15%;
+  overflow: hidden;
+  border-radius: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.lidLeft {
+  left: 34.5%;
+}
+
+.lidRight {
+  left: 71.6%;
+}
+
+.lid i {
+  position: absolute;
+  inset: 0;
+  border-bottom: 2px solid var(--color-card-border);
+  background: var(--color-ollie-face);
+  transform: translateY(-102%);
+}
+
+/* The inside of his beak, right under it. It opens and closes 8 times
+   (0.2s each way, ~1.7s) and then stays shut. */
+.mouth {
+  position: absolute;
+  left: 52.5%;
+  top: 42.6%;
+  width: 6.4%;
+  height: 3.6%;
+  border: 1.5px solid var(--color-card-border);
+  border-radius: 40% 40% 50% 50%;
+  background: var(--color-ollie-mouth);
+  translate: -50% 0;
+  transform: scaleY(0);
+  transform-origin: 50% 0;
+  animation: talk 200ms ease-in-out 50ms 8 alternate;
+}
+
+@keyframes breathe {
+  50% {
+    transform: scale(1.008, 1.018);
+  }
+}
+
+@keyframes talk {
+  from {
+    transform: scaleY(0.1);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* Reduce motion: no breathing and no talking (he still blinks). */
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .mouth {
+    animation: none;
+  }
+}

@@ -1,0 +1,596 @@
+/*
+ * The Student login storybook. One 1440x900 stage, scaled as one piece to
+ * fit the window (StoryBook.tsx sets --view-closed / --view-open), so every
+ * size below is in stage pixels. The open book is 1216x748 at (96, 92).
+ * The closed book is its right half, moved to the middle at 92% (560x688).
+ *
+ * Opening (.enter), times from the tap. ENTER_MS / LAND_MS in timing.ts:
+ *   0.00s  the tapped plate's button presses down               (0.16s)
+ *   0.00s  the closed book slides to the middle and grows       (0.7s)
+ *   0.25s  Ollie hops off the cover and flies to the frame      (1.4s)
+ *   0.45s  the cover swings open to the left around the spine   (0.85s)
+ *   1.25s  the step tabs fade in                                (0.3s)
+ *   1.65s  Ollie lands: he is swapped for the Ollie in the page (.steps)
+ *   1.90s  taps work again
+ *
+ * Closing (.back), LEAVE_MS: the cover swings shut (0.85s), then the book
+ * shrinks back to the popup's spot (0.7s) and Ollie drops back onto it.
+ *
+ * Next (.turn), TURN_MS: the right page turns over the spine (0.82s).
+ */
+
+/* ---------- Layers ---------- */
+
+.overlay {
+  /* Ollie sitting on the closed book, and where he lands in the page. */
+  --ollie-x: 810px;
+  --ollie-y: 32px;
+  --ollie-w: 140px;
+  --fly-dx: -509px;
+  --fly-dy: 187px;
+  --fly-scale: 1.7143;
+  --closed-book: translate(-288px, 74px) scale(0.92);
+  --paper-edge: repeating-linear-gradient(90deg, var(--color-input-bg) 0 3px, var(--color-input-border) 3px 4.5px);
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-text) 40%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fadeIn 200ms ease-out both;
+}
+
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 900px;
+  outline: none;
+  color: var(--color-text);
+  transform: var(--view-open);
+  transform-origin: 0 0;
+}
+
+.choose .stage,
+.back .stage {
+  transform: var(--view-closed);
+}
+
+/* Only upright screens have two different views; they move with the book. */
+.enter .stage {
+  transition: transform 700ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.back .stage {
+  transition: transform 700ms cubic-bezier(0.3, 0.7, 0.2, 1) 850ms;
+}
+
+/* The popup slides up when it first opens. */
+.rise {
+  position: absolute;
+  inset: 0;
+  animation: slideUp 300ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  outline: none;
+}
+
+/* ---------- The book ---------- */
+
+.book {
+  position: absolute;
+  left: 96px;
+  top: 92px;
+  width: 1216px;
+  height: 748px;
+  /* The middle of the right half, which is the closed book. */
+  transform-origin: 912px 374px;
+}
+
+.choose .book {
+  transform: var(--closed-book);
+}
+
+.enter .book {
+  animation: bookOpen 700ms cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+
+.back .book {
+  animation: bookClose 700ms cubic-bezier(0.3, 0.7, 0.2, 1) 850ms both;
+}
+
+.floorShadow {
+  position: absolute;
+  left: 10px;
+  right: -10px;
+  bottom: -34px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(40, 22, 10, 0.45);
+  filter: blur(18px);
+  transform-origin: 100% 50%;
+}
+
+.choose .floorShadow {
+  transform: scaleX(0.5);
+}
+
+.enter .floorShadow {
+  animation: shadowOpen 700ms ease both;
+}
+
+.back .floorShadow {
+  animation: shadowClose 700ms ease 850ms both;
+}
+
+/* Maroon boards behind the pages, with a thin gold line and a darker strip
+   at the spine. */
+.board {
+  position: absolute;
+  top: 0;
+  width: 608px;
+  height: 748px;
+  border: 4px solid var(--color-story-cover-edge);
+  box-shadow:
+    inset 0 0 0 7px var(--color-story-board),
+    inset 0 0 0 9px color-mix(in srgb, var(--color-story-gold) 70%, transparent),
+    0 10px 0 var(--color-story-cover-edge);
+}
+
+.boardRight {
+  left: 608px;
+  border-left-width: 0;
+  border-radius: 0 22px 22px 0;
+  background: linear-gradient(90deg, var(--color-story-cover) 0 20px, var(--color-story-board) 20px);
+}
+
+.boardLeft {
+  left: 0;
+  border-right-width: 0;
+  border-radius: 22px 0 0 22px;
+  background: linear-gradient(270deg, var(--color-story-cover) 0 20px, var(--color-story-board) 20px);
+}
+
+/* The closed book's pages, seen from the side: a little past the cover at
+   the right and bottom, with the back cover's edge beyond them. */
+.pageBlock {
+  position: absolute;
+  left: 614px;
+  top: 8px;
+  width: 608px;
+  height: 752px;
+  border: 3.5px solid var(--color-card-border);
+  border-left: 0;
+  border-radius: 0 18px 18px 0;
+  background: repeating-linear-gradient(180deg, var(--color-input-bg) 0 3px, var(--color-input-border) 3px 4.5px);
+  box-shadow: 5px 6px 0 var(--color-story-cover-edge);
+}
+
+.enter .pageBlock {
+  animation: fadeOut 300ms ease 450ms both;
+}
+
+.steps .pageBlock {
+  opacity: 0;
+}
+
+.back .pageBlock {
+  animation: fadeIn 300ms ease 550ms both;
+}
+
+/* Page edges showing at the sides and bottom of the open book. */
+.stack {
+  position: absolute;
+  top: 20px;
+  width: 584px;
+  height: 710px;
+  border: 3px solid var(--color-card-border);
+  background: var(--paper-edge);
+}
+
+.stackRight {
+  left: 614px;
+  border-radius: 0 14px 14px 0;
+}
+
+.stackLeft {
+  left: 18px;
+  border-radius: 14px 0 0 14px;
+}
+
+.pageRight,
+.pageLeft {
+  position: absolute;
+  top: 20px;
+}
+
+.pageRight {
+  left: 608px;
+}
+
+.pageLeft {
+  left: 36px;
+}
+
+/* Back: the previous step fades in quickly (no page turn). */
+.arriveFade {
+  animation: fadeIn 280ms ease-out both;
+}
+
+/* The shadow line at the spine. */
+.gutter {
+  position: absolute;
+  left: 606px;
+  top: 23px;
+  width: 4px;
+  height: 692px;
+  background: color-mix(in srgb, var(--color-card-border) 40%, transparent);
+}
+
+/* Orange ribbon bookmark. .ribbonUnder hangs out from under the book (it is
+   what shows on the closed book); .ribbonTop is its top end, lying over the
+   boards at the bottom of the spine once the book is open. */
+.ribbon {
+  position: absolute;
+  left: 572px;
+  width: 40px;
+  border: 3px solid var(--color-card-border);
+  border-top: 0;
+  background: var(--color-button-bg);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+}
+
+.ribbonUnder {
+  top: 740px;
+  height: 46px;
+}
+
+.ribbonTop {
+  top: 722px;
+  height: 64px;
+}
+
+.choose .ribbonUnder {
+  transform: translateX(518px);
+}
+
+.enter .ribbonUnder {
+  animation: ribbonOpen 700ms cubic-bezier(0.3, 0.7, 0.2, 1) both;
+}
+
+.back .ribbonUnder {
+  animation: ribbonClose 700ms cubic-bezier(0.3, 0.7, 0.2, 1) 850ms both;
+}
+
+.enter .ribbonTop,
+.enter .tabs,
+.enter .gutter {
+  animation: fadeIn 300ms ease 1250ms both;
+}
+
+.back .ribbonTop,
+.back .tabs,
+.back .gutter {
+  animation: fadeOut 200ms ease both;
+}
+
+/* Step tabs, sticking out from behind the pages at the right edge. */
+.tabs {
+  position: absolute;
+  left: 1196px;
+  top: 86px;
+}
+
+/* ---------- The cover (a flap around the spine) ---------- */
+
+.flap {
+  position: absolute;
+  left: 608px;
+  top: 0;
+  z-index: 5;
+  width: 608px;
+  height: 748px;
+  transform-origin: 0 50%;
+  transform-style: preserve-3d;
+}
+
+.enter .flap {
+  animation: flapOpen 850ms cubic-bezier(0.45, 0.05, 0.25, 1) 450ms both;
+}
+
+.back .flap {
+  animation: flapClose 850ms cubic-bezier(0.45, 0.05, 0.25, 1) both;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Laid out in the book's own coordinates: turned over, the flap covers the
+   left half of the book. */
+.faceBack {
+  transform: rotateY(180deg);
+}
+
+/* Closing: Ollie slips out of the picture (he comes back on the cover). */
+.ollieGone {
+  animation: fadeOut 200ms ease both;
+}
+
+/* ---------- Next: the page turn ---------- */
+
+.turn {
+  position: absolute;
+  left: 608px;
+  top: 20px;
+  z-index: 6;
+  width: 572px;
+  height: 698px;
+  transform-origin: 0 50%;
+  transform-style: preserve-3d;
+  animation: pageTurn 820ms cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+
+/* A slight lift in the middle of the turn. */
+.turnLift {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: pageLift 820ms ease-in-out both;
+}
+
+/* A soft shadow from the spine: it darkens the front as the page lifts, and
+   fades from the back as it lands. */
+.shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.shadeFront {
+  background: linear-gradient(90deg, rgba(60, 35, 15, 0.35), rgba(60, 35, 15, 0) 60%);
+  animation: fadeIn 410ms cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+
+.shadeBack {
+  background: linear-gradient(270deg, rgba(60, 35, 15, 0.35), rgba(60, 35, 15, 0) 60%);
+  animation: fadeOut 410ms ease-out 410ms both;
+}
+
+/* Ollie's small hop when he lands on a page. */
+.hop {
+  transform-origin: 50% 100%;
+  animation: hop 500ms ease-out both;
+}
+
+/* ---------- Opening: Ollie's flight ---------- */
+
+/* Starts exactly on the Ollie sitting on the cover and ends exactly on the
+   Ollie in the picture frame. Three nested boxes move him sideways, up and
+   down, and bigger, each at its own pace, which makes one smooth arc. */
+.flyer {
+  position: absolute;
+  left: var(--ollie-x);
+  top: var(--ollie-y);
+  z-index: 20;
+  width: var(--ollie-w);
+  pointer-events: none;
+  animation: flyX 1400ms cubic-bezier(0.5, 0, 0.3, 1) 250ms both;
+}
+
+/* The curve dips below 0 first: he hops up before coming down. */
+.flyY {
+  animation: flyY 1400ms cubic-bezier(0.4, -0.75, 0.7, 1) 250ms both;
+}
+
+.flyGrow {
+  transform-origin: 0 0;
+  animation: flyGrow 1400ms cubic-bezier(0.4, 0, 0.4, 1) 250ms both;
+}
+
+/* Leans into the flight. Both wings flap the whole way, then fold. */
+.flyTilt {
+  --wing-time: 1400ms;
+  --wing-delay: 250ms;
+  position: relative;
+  aspect-ratio: 428 / 600;
+  transform-origin: 50% 60%;
+  animation: flyTilt 1400ms ease-in-out 250ms both;
+}
+
+.flyImg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* Dotted trail along the flight. */
+.trail {
+  position: absolute;
+  inset: 0;
+  z-index: 19;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  animation: trail 1500ms linear 200ms both;
+}
+
+.trail path {
+  fill: none;
+  stroke: var(--color-text-on-dark);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 3 16;
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
+@keyframes bookOpen {
+  from {
+    transform: var(--closed-book);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes bookClose {
+  from {
+    transform: none;
+  }
+  to {
+    transform: var(--closed-book);
+  }
+}
+
+@keyframes shadowOpen {
+  from {
+    transform: scaleX(0.5);
+  }
+}
+
+@keyframes shadowClose {
+  to {
+    transform: scaleX(0.5);
+  }
+}
+
+@keyframes ribbonOpen {
+  from {
+    transform: translateX(518px);
+  }
+}
+
+@keyframes ribbonClose {
+  to {
+    transform: translateX(518px);
+  }
+}
+
+@keyframes flapOpen {
+  from {
+    transform: perspective(3200px) rotateY(0deg);
+  }
+  to {
+    transform: perspective(3200px) rotateY(-180deg);
+  }
+}
+
+@keyframes flapClose {
+  from {
+    transform: perspective(3200px) rotateY(-180deg);
+  }
+  to {
+    transform: perspective(3200px) rotateY(0deg);
+  }
+}
+
+@keyframes pageTurn {
+  from {
+    transform: perspective(2600px) rotateY(0deg);
+  }
+  to {
+    transform: perspective(2600px) rotateY(-180deg);
+  }
+}
+
+@keyframes pageLift {
+  50% {
+    transform: translateZ(14px);
+  }
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: none;
+  }
+  40% {
+    transform: translateY(-18px) scaleY(1.03);
+  }
+  70% {
+    transform: translateY(0) scaleY(0.96);
+  }
+}
+
+@keyframes flyX {
+  to {
+    transform: translateX(var(--fly-dx));
+  }
+}
+
+@keyframes flyY {
+  to {
+    transform: translateY(var(--fly-dy));
+  }
+}
+
+@keyframes flyGrow {
+  to {
+    transform: scale(var(--fly-scale));
+  }
+}
+
+@keyframes flyTilt {
+  50% {
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes trail {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  20%,
+  70% {
+    opacity: 0.9;
+  }
+}
+
+/* Reduce motion: nothing moves. StudentFlow skips the opening, the closing
+   and the page turn; the rest just appears. */
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .rise,
+  .arriveFade,
+  .hop {
+    animation: none;
+  }
+
+  .enter .stage,
+  .back .stage {
+    transition: none;
+  }
+}

@@ -1,32 +1,24 @@
-/* New Student step contents (School ID, one-time code, PIN code).
-   Sizes scale with screen height (designed at 900px). */
+/* A step on the storybook's right page (School ID, one-time code, PIN code).
+   Sizes are in the book's own pixels: the whole book is scaled as one piece
+   (StoryBook.module.css), so nothing here uses vw/vh. */
 
 .step {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: clamp(6px, 1.4vh, 14px);
-  /* For the digit boxes' width (100cqi = this column's width). */
-  container-type: inline-size;
 }
 
-/* Digit boxes, number pad and Next, spread over the space that's left.
-   The gap keeps them apart even when there is no space left to spread. */
 .entry {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  justify-content: space-evenly;
-  gap: clamp(8px, 1.6vh, 16px);
 }
 
 /* ---------- Hint (right under the title) ---------- */
 
 .hint {
-  margin: 0;
-  font-size: clamp(1.05rem, 2.4vh, 1.35rem);
+  margin-top: 10px;
+  font-size: 20px;
   font-weight: 500;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .hint strong {
@@ -40,7 +32,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(2px, 0.6vh, 6px);
+  margin: 24px 0 22px;
+}
+
+.large .boxArea {
+  margin: 14px 0 12px;
 }
 
 /* "Show numbers" under the PIN code boxes. Small to look at, but still a
@@ -48,30 +44,29 @@
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-height: var(--size-tap-target);
-  margin-block: -8px;
+  margin: -2px 0 -12px;
   padding: 0 12px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   font-family: var(--font-display);
-  font-size: clamp(0.9rem, 1.9vh, 1.05rem);
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .toggle:hover {
-  color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
 /* A typed PIN digit, hidden. */
 .dot {
-  width: 0.42em;
-  height: 0.42em;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   background: var(--color-text);
 }
@@ -80,59 +75,60 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 1.1vh, 10px);
+  gap: 7px;
 }
 
 .slot {
   display: flex;
   align-items: center;
-  gap: clamp(6px, 1.1vh, 10px);
+  gap: 7px;
 }
 
+/* 8 boxes fit the page at 50px; with 6 there is room for wider ones. */
 .box {
   display: grid;
   place-items: center;
-  /* ~70x86 on a 900px-tall screen; narrower if the 8 boxes wouldn't fit. */
-  width: min(clamp(46px, 7.8vh, 70px), calc((100cqi - 110px) / 8));
-  height: clamp(56px, 9.6vh, 86px);
-  border: 3px solid var(--color-card-border);
-  border-radius: 14px;
+  width: 50px;
+  height: 66px;
+  border: 3.5px solid var(--color-card-border);
+  border-radius: 13px;
   background: var(--color-input-bg);
   font-family: var(--font-display);
-  font-size: clamp(1.7rem, 4.6vh, 2.6rem);
+  font-size: 32px;
   font-weight: 700;
 }
 
-/* PIN code: 4 big boxes (~92x100 on a 900px-tall window) and slightly
-   shorter number keys, to make room for the boxes and the padlock. */
+.roomy .box {
+  width: 60px;
+  height: 72px;
+  font-size: 36px;
+}
+
+/* PIN code: 4 big boxes and slightly shorter number keys. */
+.large .boxes,
+.large .slot {
+  gap: 12px;
+}
+
 .large .box {
-  width: clamp(56px, calc(14vh - 34px), 92px);
-  height: clamp(60px, calc(15vh - 35px), 100px);
-  border-radius: 18px;
-  font-size: clamp(1.9rem, 5.3vh, 3rem);
+  width: 74px;
+  height: 78px;
+  border-radius: 16px;
 }
 
 .large .key {
-  min-height: clamp(38px, 5.6vh, 50px);
+  height: 50px;
 }
 
-/* A little less space between boxes, keys and button on short windows. */
-.large .entry {
-  gap: clamp(6px, calc(2.6vh - 10px), 14px);
-}
-
-/* The padlock, centered above the boxes. */
-.art {
-  display: flex;
-  justify-content: center;
-  margin-bottom: clamp(2px, 0.6vh, 6px);
+.large .next {
+  margin-top: 16px;
 }
 
 /* Where the next digit goes. */
 .current {
   border-color: var(--color-button-bg);
   background: var(--color-tint-peach);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-button-bg) 28%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-button-bg) 30%, transparent);
 }
 
 .empty {
@@ -144,7 +140,7 @@
 .dash {
   color: var(--color-text-subtle);
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.8vh, 2.1rem);
+  font-size: 30px;
   font-weight: 700;
 }
 
@@ -153,23 +149,22 @@
 .pad {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(6px, 1vh, 9px);
-  width: min(100%, 520px);
-  margin: 0 auto;
+  gap: 9px;
+  margin: 0 30px;
 }
 
 .key {
   display: grid;
   place-items: center;
-  min-height: max(var(--size-tap-target), clamp(48px, 6.9vh, 62px));
+  height: 56px;
   padding: 0;
   border: 2.5px solid var(--color-notebook-line);
-  border-radius: 13px;
+  border-radius: 14px;
   background: var(--color-input-bg);
   box-shadow: 0 3px 0 var(--color-notebook-line);
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: clamp(1.15rem, 2.5vh, 1.4rem);
+  font-size: 24px;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -190,7 +185,7 @@
 
 .keySmall {
   color: var(--color-text-subtle);
-  font-size: clamp(0.95rem, 1.9vh, 1.1rem);
+  font-size: 17px;
 }
 
 /* ---------- Next ---------- */
@@ -199,17 +194,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: min(100%, 520px);
-  min-height: clamp(50px, 6.9vh, 62px);
-  margin: 0 auto;
+  gap: 10px;
+  height: 62px;
+  margin: 20px 30px 0;
   border: 3px solid var(--color-button-border);
   border-radius: 18px;
   background: var(--color-button-bg);
-  box-shadow: var(--shadow-button);
+  box-shadow: 0 5px 0 var(--color-button-border);
   color: var(--color-button-text);
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 2.6vh, 1.45rem);
+  font-size: 25px;
   font-weight: 700;
   cursor: pointer;
   transition: transform 80ms ease;
@@ -221,13 +215,13 @@
 
 .next:active:not(:disabled) {
   box-shadow: 0 1px 0 var(--color-button-border);
-  transform: translateY(3px);
+  transform: translateY(4px);
 }
 
 .next:disabled {
   border-color: var(--color-button-disabled-bg);
   background: var(--color-button-disabled-bg);
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--color-button-disabled-text) 30%, transparent);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--color-button-disabled-text) 30%, transparent);
   color: var(--color-button-disabled-text);
   cursor: not-allowed;
 }

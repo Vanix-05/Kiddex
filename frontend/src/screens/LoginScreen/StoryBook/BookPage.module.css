@@ -1,0 +1,247 @@
+/*
+ * The two pages of the open storybook. Each is 572x698, in the book's own
+ * pixels: the whole book is scaled as one piece (StoryBook.module.css), so
+ * nothing here uses vw/vh. Smallest text is 17px (14.5px at 1366x768).
+ */
+
+.paper {
+  --shade: color-mix(in srgb, var(--color-card-border) 9%, var(--color-card-bg));
+  --shade-deep: color-mix(in srgb, var(--color-card-border) 24%, var(--color-card-bg));
+  position: relative;
+  width: 572px;
+  height: 698px;
+  overflow: hidden;
+  border: 3px solid var(--color-card-border);
+  color: var(--color-text);
+}
+
+/* Cream paper with a soft shade near the spine. */
+.left {
+  border-right-width: 0;
+  border-radius: 12px 4px 4px 12px;
+  background: linear-gradient(90deg, var(--color-card-bg) 78%, var(--shade) 92%, var(--shade-deep) 100%);
+}
+
+.right {
+  padding: 38px 46px 0 52px;
+  border-left-width: 0;
+  border-radius: 4px 12px 12px 4px;
+  background: linear-gradient(270deg, var(--color-card-bg) 78%, var(--shade) 92%, var(--shade-deep) 100%);
+}
+
+.pageNumber {
+  position: absolute;
+  bottom: 14px;
+  color: color-mix(in srgb, var(--color-text-subtle) 75%, var(--color-card-bg));
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.left .pageNumber {
+  left: 44px;
+}
+
+.right .pageNumber {
+  right: 44px;
+}
+
+/* ---------- Left page (Ollie's page) ---------- */
+
+.chapter {
+  position: absolute;
+  top: 32px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--color-link);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+/* Short lines on both sides. */
+.chapter::before,
+.chapter::after {
+  content: '';
+  width: 46px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--color-input-border);
+}
+
+/* Picture frame with a rounded-arch top. */
+.picture {
+  position: absolute;
+  left: 62px;
+  top: 74px;
+  width: 448px;
+  height: 350px;
+  overflow: hidden;
+  border: 3px solid var(--color-card-border);
+  border-radius: 150px 150px 26px 26px;
+  background: linear-gradient(to bottom, var(--color-sky) 0%, var(--color-sky-light) 62%);
+  box-shadow: 0 5px 0 rgba(91, 58, 34, 0.15);
+}
+
+/* Pale mat inside the frame, over the picture. */
+.picture::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 147px 147px 23px 23px;
+  box-shadow: inset 0 0 0 6px color-mix(in srgb, var(--color-input-bg) 75%, transparent);
+}
+
+.cloud {
+  position: absolute;
+  left: 9%;
+  top: 17%;
+  width: 30%;
+  opacity: 0.9;
+}
+
+.sea {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 37%;
+  background: linear-gradient(to bottom, var(--color-sea) 0%, var(--color-sea-deep) 100%);
+}
+
+.island {
+  position: absolute;
+  left: 0;
+  bottom: 31%;
+  width: 88%;
+  max-width: none;
+}
+
+/* Ollie stands in the frame; his feet stick out under it. */
+.ollieSpot {
+  position: absolute;
+  left: 166px;
+  top: 104px;
+  width: 240px;
+  filter: drop-shadow(0 6px 0 rgba(60, 40, 20, 0.12));
+}
+
+.story {
+  position: absolute;
+  top: 474px;
+  left: 44px;
+  right: 44px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.story strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.story span {
+  display: block;
+  max-width: 380px;
+  margin: 10px auto 0;
+  color: var(--color-text-muted);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.divider {
+  position: absolute;
+  top: 604px;
+  left: 50%;
+  translate: -50% 0;
+}
+
+/* ---------- Right page ---------- */
+
+.title {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  padding: 0 6px;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.title strong {
+  font-weight: 700;
+}
+
+/* Yellow highlighter stroke behind the words. */
+.title::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  right: -8px;
+  bottom: 2px;
+  z-index: -1;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--color-title-pill-bg);
+  transform: rotate(-1.2deg);
+}
+
+/* The PIN code padlock. */
+.corner {
+  position: absolute;
+  top: 28px;
+  right: 46px;
+}
+
+.footer {
+  position: absolute;
+  left: 52px;
+  right: 46px;
+  bottom: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: var(--size-tap-target);
+  margin-left: -10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.back:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.help {
+  color: var(--color-text-muted);
+  font-size: 17px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.help strong {
+  color: var(--color-link);
+  font-weight: 700;
+}

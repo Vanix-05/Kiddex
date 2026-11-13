@@ -1,10 +1,10 @@
 /*
- * About 100x110 on a 900px-tall window; smaller on shorter windows so the
- * PIN code page still fits.
+ * Sits in the top-right corner of the storybook's PIN code page, in the
+ * book's own pixels (the whole book is scaled as one piece).
  */
 .lock {
   display: block;
-  height: clamp(44px, calc(34vh - 173px), 110px);
+  height: 62px;
   width: auto;
   aspect-ratio: 120 / 132;
   overflow: visible;

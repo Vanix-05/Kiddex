@@ -1,0 +1,63 @@
+/*
+ * Ollie's flying wings. Each is anchored at a shoulder (wing box 230x200,
+ * shoulder at its (20, 70) = 8.7% 35%) and drawn behind his body, so it
+ * sticks out to the side. They open, flap for the whole flight and fold away
+ * at the end. The parent sets --wing-time (how long the flight is) and
+ * --wing-delay (when it starts).
+ */
+.wing {
+  position: absolute;
+  top: 56%;
+  z-index: 0;
+  width: 92%;
+  aspect-ratio: 230 / 200;
+  translate: -8.7% -35%;
+  transform-origin: 8.7% 35%;
+  opacity: 0;
+  pointer-events: none;
+  animation: wingShow var(--wing-time, 1400ms) linear var(--wing-delay, 0ms) both;
+}
+
+.wing svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 8.7% 35%;
+  animation: flap 170ms ease-in-out var(--wing-delay, 0ms) infinite alternate;
+}
+
+.right {
+  left: 66%;
+}
+
+/* Mirrored around its shoulder. */
+.left {
+  left: 34%;
+  scale: -1 1;
+}
+
+@keyframes wingShow {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  7%,
+  90% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+@keyframes flap {
+  from {
+    transform: rotate(-30deg);
+  }
+  to {
+    transform: rotate(24deg);
+  }
+}

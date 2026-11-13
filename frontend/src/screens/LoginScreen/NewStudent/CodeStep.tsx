@@ -17,9 +17,7 @@ interface CodeStepProps {
   onChange: Dispatch<SetStateAction<string>>
   /** PIN code: show dots, with a "Show numbers" toggle under the boxes. */
   masked?: boolean
-  /** A picture centered above the boxes (the PIN code padlock). */
-  art?: ReactNode
-  /** Few boxes (PIN code): bigger boxes, slightly shorter number keys. */
+  /** PIN code: 4 bigger boxes, slightly shorter number keys. */
   large?: boolean
   submitLabel: string
   onSubmit: () => void
@@ -28,7 +26,7 @@ interface CodeStepProps {
 }
 
 /**
- * A New Student step: big digit boxes, a number pad (or the keyboard:
+ * A step on the storybook's right page: big digit boxes, a number pad (or the keyboard:
  * digits, Backspace, Delete) and a button that turns on once all the boxes
  * are filled.
  */
@@ -39,7 +37,6 @@ export function CodeStep({
   value,
   onChange,
   masked = false,
-  art,
   large = false,
   submitLabel,
   onSubmit,
@@ -84,13 +81,11 @@ export function CodeStep({
       : `${label}: ${value.split('').join(' ')}`
 
   return (
-    <div className={large ? `${styles.step} ${styles.large}` : styles.step}>
+    <div className={large ? `${styles.step} ${styles.large}` : length <= 6 ? `${styles.step} ${styles.roomy}` : styles.step}>
       <p className={styles.hint}>{hint}</p>
 
       <div className={styles.entry}>
         <div className={styles.boxArea}>
-          {art && <div className={styles.art}>{art}</div>}
-
           <div className={styles.boxes} role="group" aria-label={label}>
             {Array.from({ length }, (_, i) => {
               const digit = value[i]
