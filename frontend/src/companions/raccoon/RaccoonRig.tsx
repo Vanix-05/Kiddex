@@ -53,6 +53,7 @@ export function RaccoonRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

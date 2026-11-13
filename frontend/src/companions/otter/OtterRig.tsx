@@ -55,6 +55,7 @@ export function OtterRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

@@ -57,6 +57,7 @@ export function AxolotlRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

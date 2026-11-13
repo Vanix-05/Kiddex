@@ -12,6 +12,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { inflateSync } from 'node:zlib'
 import vtracer from '@visioncortex/vtracer'
+import { closeCuts, cutPart } from './close-cuts.mjs'
 
 const who = process.argv[2]
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -48,11 +49,11 @@ const lerpTable = (table) => (v) => {
   return table.at(-1)[1]
 }
 
-// Arms (same on both kids): from just under the shoulder (y 1120) to below the
+// Arms (same on both kids): from the top of the shoulder (y 1085) to below the
 // hands, everything outside the shirt's side seam. The seam's x, by y:
-const ARM_TOP = 1120
+const ARM_TOP = 1085
 const ARM_BOTTOM = 1452
-const armEdge = lerpTable([[1120, 833], [1140, 833], [1170, 824], [1200, 815], [1250, 801], [1300, 790], [1350, 780], [1400, 772], [1452, 768]])
+const armEdge = lerpTable([[1085, 833], [1140, 833], [1170, 824], [1200, 815], [1250, 801], [1300, 790], [1350, 780], [1400, 772], [1452, 768]])
 const NECK_OVERLAP = 20 // body reaches this far under the chin (neck only), so no gap opens when the head tilts
 
 const CONFIG = {
@@ -166,12 +167,15 @@ const { w, h, rgba } = decodePng(readFileSync(resolve(root, `src/assets/companio
 mkdirSync(resolve(outDir, 'parts'), { recursive: true })
 
 const result = { belly: [] } // no separate belly patch on the kids
+// Which pixels go in each part, then close the cuts between the body and arms.
+const masks = {}
 for (const [name, inPart] of Object.entries(PARTS)) {
-  const masked = new Uint8Array(rgba) // copy, then clear everything outside the part
-  for (let Y = 0; Y < h; Y++) for (let X = 0; X < w; X++) {
-    const i = (Y * w + X) * 4
-    if (masked[i + 3] && !inPart(X / K, Y / K)) masked[i + 3] = 0
-  }
+  const m = (masks[name] = new Uint8Array(w * h))
+  for (let Y = 0; Y < h; Y++) for (let X = 0; X < w; X++) if (rgba[(Y * w + X) * 4 + 3] && inPart(X / K, Y / K)) m[Y * w + X] = 1
+}
+const paint = closeCuts({ w, h, rgba, masks })
+for (const name of Object.keys(PARTS)) {
+  const masked = cutPart(rgba, masks[name], name === 'body' ? paint : null, [0x7b, 0x50, 0x62])
   const svg = vtracer.convertPixels(masked, w, h, TRACE).replace(/<svg ([^>]*?)width="(\d+)" height="(\d+)"/, '<svg $1viewBox="0 0 $2 $3" width="$2" height="$3"')
   writeFileSync(resolve(outDir, 'parts', `${name}.svg`), svg)
   // Keep vtracer's back-to-front order; tag each shape with its sub-group.

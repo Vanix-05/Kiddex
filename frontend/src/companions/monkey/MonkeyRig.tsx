@@ -53,6 +53,7 @@ export function MonkeyRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

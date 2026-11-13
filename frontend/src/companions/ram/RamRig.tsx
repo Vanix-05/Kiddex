@@ -55,6 +55,7 @@ export function RamRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

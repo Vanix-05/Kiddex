@@ -53,6 +53,7 @@ export function FoxRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

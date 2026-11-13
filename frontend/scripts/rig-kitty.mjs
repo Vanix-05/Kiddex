@@ -14,6 +14,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { inflateSync } from 'node:zlib'
 import vtracer from '@visioncortex/vtracer'
+import { closeCuts, cutPart } from './close-cuts.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const input = resolve(root, 'src/assets/companions/pet_kitty.png')
@@ -171,6 +172,17 @@ const bxOf = new Float32Array(w), byOf = new Float32Array(h)
 for (let X = 0; X < w; X++) bxOf[X] = toBox(X, 0)[0]
 for (let Y = 0; Y < h; Y++) byOf[Y] = toBox(0, Y)[1]
 
+// Close the cuts between the body and arms (see close-cuts.mjs): the body gets
+// its own outline under each arm, so nothing opens up when the arms swing.
+const cut = {}
+for (const name of ['body', 'armLeft', 'armRight']) {
+  const m = (cut[name] = new Uint8Array(w * h))
+  for (let Y = 0; Y < h; Y++) for (let X = 0; X < w; X++) {
+    const i = Y * w + X
+    if (rgba[i * 4 + 3] && PARTS[name](bxOf[X], byOf[Y], rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]) === true) m[i] = 1
+  }
+}
+const paint = closeCuts({ w, h, rgba, masks: cut })
 const traced = {}
 for (const [name, inPart] of Object.entries(PARTS)) {
   const masked = new Uint8Array(rgba) // copy, then clear everything outside the part
@@ -181,6 +193,7 @@ for (const [name, inPart] of Object.entries(PARTS)) {
     if (!keep) masked[i + 3] = 0
     else if (keep !== true) masked.set([...keep, 255], i) // repaint (the ears' hidden part)
   }
+  if (cut[name]) masked.set(cutPart(rgba, cut[name], name === 'body' ? paint : null, [0x7b, 0x50, 0x62]))
   const svg = vtracer.convertPixels(masked, w, h, TRACE).replace(/<svg ([^>]*?)width="(\d+)" height="(\d+)"/, '<svg $1viewBox="0 0 $2 $3" width="$2" height="$3"')
   writeFileSync(resolve(outDir, 'parts', `${name}.svg`), svg)
   // Keep vtracer's back-to-front order; tag each shape with its sub-group.

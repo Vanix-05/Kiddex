@@ -55,6 +55,7 @@ export function KittyRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }

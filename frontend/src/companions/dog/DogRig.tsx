@@ -54,6 +54,7 @@ export function DogRig({
       {...look}
       label={label}
       className={className}
+      legsBehindBody
     />
   )
 }
