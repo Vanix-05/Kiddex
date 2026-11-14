@@ -14,8 +14,10 @@ const kittyPivots: RigPivots = {
   belly: [2500, 3300], // (no separate belly patch on the kitty)
   neck: [2500, 2615], // under the chin
   eyeLine: [2500, 1775], // middle of the eyes
-  earLeft: [2290, 970], // inner corner of the left ear, where it meets the top of the head
-  earRight: [2705, 970],
+  // The ears turn around the middle of the round top of the head (a circle fitted
+  // to where the ears meet it), so they slide along the head and never lift off it.
+  earLeft: [2507, 1978],
+  earRight: [2507, 1978],
   shoulderLeft: [2090, 2683],
   shoulderRight: [2910, 2683],
   hipLeft: [2157, 3970],

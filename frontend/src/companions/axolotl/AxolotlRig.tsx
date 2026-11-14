@@ -14,10 +14,11 @@ const axolotlPivots: RigPivots = {
   belly: [2500, 3300], // (no separate belly patch on the axolotl)
   neck: [2500, 2615], // under the chin
   eyeLine: [2500, 1775], // middle of the eyes
-  // Top of each side's gill base, where the top gill meets the head. The
-  // wiggle swings the gills down from here, tucking their base behind the head.
-  gillsLeft: [1781, 1229],
-  gillsRight: [3214, 1229],
+  // Each side's gills turn around the middle of that side of the head (a circle
+  // fitted to where the gills meet it), so they slide along the head and never
+  // lift off it.
+  gillsLeft: [2104, 1890],
+  gillsRight: [2896, 1890],
   shoulderLeft: [2090, 2683],
   shoulderRight: [2910, 2683],
   hipLeft: [2157, 3970],

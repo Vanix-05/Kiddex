@@ -28,6 +28,8 @@ const playing = new Set<(move?: Move) => void>()
 export const playAllRigs = (move: Move) => playing.forEach((play) => play(move))
 
 const FIRST_MOVE_S = 1.2
+const EAR_IN = -10 // degrees: furthest the ears / gills tip in (perk up, wind)
+const EAR_OUT = 20 // furthest they droop out and down (sad asks for 26: more slides the ears too far down the head)
 const MAX_DT = 0.05
 const SUBSTEP = 1 / 120 // springs are stepped at 120 Hz or more, for stability
 
@@ -347,8 +349,11 @@ export function useSpringRig(
       // Wind: they blow up and flutter.
       const wind = reduced ? 0 : rigSettings.wind
       const gust = wind * (9 + 4 * Math.sin(time * 5.3) + 2.5 * Math.sin(time * 8.9 + 1))
-      ears.left.target = -(pose.droop.x + lift - gust) + turn + wind * 2 * Math.sin(time * 6.1)
-      ears.right.target = pose.droop.x + lift - gust + turn + wind * 2 * Math.sin(time * 6.7 + 2)
+      // Kept within EAR_IN..EAR_OUT degrees (outward and down = positive): tipped
+      // further in, the ear's base lifts off the head.
+      const earAngle = (a: number) => clamp(a, EAR_IN, EAR_OUT)
+      ears.left.target = -earAngle(pose.droop.x + lift - gust - turn - wind * 2 * Math.sin(time * 6.1))
+      ears.right.target = earAngle(pose.droop.x + lift - gust + turn + wind * 2 * Math.sin(time * 6.7 + 2))
       hair.target = clamp(-vy * 0.006 - gust * 0.9, -18, 18)
 
       // ---- Step the springs and the airborne physics ----
