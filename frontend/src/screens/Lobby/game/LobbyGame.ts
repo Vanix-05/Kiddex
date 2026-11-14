@@ -17,12 +17,12 @@ import type { CharacterPicture } from '../characterTexture'
 import { Camera, type Zoom } from './camera'
 import { sortDepth } from './depth'
 import { drawOutside, type Outside } from './drawOutside'
-import { drawFloor, drawFurniture, drawRailing, drawWalls, type RoomText } from './drawRoom'
+import { drawFloor, drawFurniture, drawRailing, drawWalls, type Furniture, type RoomText } from './drawRoom'
 import { EMOTES } from './emotes'
 import { drawParallax, type Parallax } from './parallax'
 import type { Point } from './pathfind'
 import { makeProjection, type Angle, type Projection } from './projection'
-import { ACTION_SPOTS, floorHeight, insideRoom, OLLIE_AT, onDoorMat, SEATS, STAR_BOARD, START, ZONE_IDS, ZONES, type Seat, type SpotId, type ZoneId } from './room'
+import { ACTION_SPOTS, floorHeight, insideRoom, OLLIE_AT, onDoorMat, SEATS, STAGE, STAR_BOARD, START, ZONE_IDS, ZONES, type Seat, type SpotId, type ZoneId } from './room'
 import { makeLayers, makeScene, type Layers, type Scene } from './scene'
 import { Walker, type Figure, type FigureArt, type SeatBook } from './walker'
 
@@ -56,7 +56,12 @@ export interface LobbyOptions {
   lessMotion: boolean
   /** Back from a mini game: the Student starts at that game's corner. */
   startAt?: ZoneId
+  /** How big the Class Garden has grown: 0 (just planted) .. 4 (in bloom). */
+  gardenStage: number
 }
+
+/** The places with something new to do: they get a "!" and an edge arrow, and their label stays up. */
+export type ZoneNews = Partial<Record<ZoneId, boolean>>
 
 /** What the Student can do right now (the action button, or E). */
 export interface NearAction {
@@ -107,10 +112,15 @@ const SPOT_LABELS: Record<SpotId, string> = {
   ollie: 'Talk to Ollie',
   board: 'Read the board',
   stars: 'Star Students',
-  stage: 'Quiz Stage',
-  match: 'Match Corner',
+  stage: 'Prize Wheel',
+  match: 'Class Garden',
   door: 'Go outside',
 }
+
+/** A zone's label shows when the Student is this close (tiles), or when it has news. */
+const LABEL_NEAR = 4.2
+/** Bubbles the buddy shows while resting in the Buddy Corner. */
+const REST_BUBBLES = ['📖', '💤', '💖', '🎵']
 
 /**
  * The fonts for the words on the walls. Asked for as soon as this file loads
@@ -160,6 +170,10 @@ export class LobbyGame {
   private outside: Outside | null = null
   private parallax: Parallax | null = null
   private ollie: Sprite | null = null
+  private furniture: Furniture | null = null
+  private news: ZoneNews = {}
+  private wheelSpin = 0
+  private restIn = 0
   private marker: Graphics | null = null
   private markerAge = 0
 
@@ -362,7 +376,7 @@ export class LobbyGame {
     this.parallax = drawParallax(scene)
     const floor = drawFloor(scene)
     const walls = drawWalls(scene, this.text)
-    drawFurniture(scene)
+    this.furniture = drawFurniture(scene, this.options.gardenStage)
     drawRailing(scene)
 
     // Ollie, behind the Teacher's Desk.
@@ -449,6 +463,23 @@ export class LobbyGame {
     this.options.lessMotion = options.lessMotion
   }
 
+  /** Which places have something new (React works it out from the mission and the wheel). */
+  setNews(news: ZoneNews) {
+    this.news = { ...news }
+  }
+
+  /** The Prize Wheel's slices spin fast for a moment (the card shows the real spin). */
+  spinWheel(seconds: number) {
+    this.wheelSpin = seconds
+  }
+
+  /** The Class Garden grew: redraw the room with the new stage. */
+  setGardenStage(stage: number) {
+    if (stage === this.options.gardenStage) return
+    this.options.gardenStage = stage
+    if (this.started) this.buildScene()
+  }
+
   /** Off while a card is open: no walking, no actions. */
   setInputEnabled(enabled: boolean) {
     this.inputEnabled = enabled
@@ -489,6 +520,18 @@ export class LobbyGame {
 
   /** Walks to a game corner, Ollie or the door, then opens its card. */
   walkToZone(id: ZoneId) {
+    // Buddy Corner: walk to a free bean bag and sit down there.
+    const me = this.me
+    if (id === 'nook' && me) {
+      const bags = SEATS.filter((s) => s.kind === 'bag' && !this.seats.has(s))
+      bags.sort((a, b) => Math.hypot(a.ax - me.x, a.ay - me.y) - Math.hypot(b.ax - me.x, b.ay - me.y))
+      const bag = bags[0]
+      if (bag) {
+        this.noteMoved()
+        if (me.sitAt(bag, () => this.sitDown(bag))) this.showMarker(bag.ax, bag.ay, true)
+        return
+      }
+    }
     this.walkTo(ZONES[id].spot, () => {
       if (id === 'door') this.reachDoor()
       else this.events.tapZone(id)
@@ -515,6 +558,14 @@ export class LobbyGame {
   /** The Student's emote: a bubble over their head. */
   emote(text: string, emoji: boolean) {
     if (this.me) this.say(this.me, 'kid', text, emoji)
+  }
+
+  /** A happy moment for the Student (a prize): happy face, hop and hearts. */
+  cheer() {
+    const me = this.me
+    if (!me) return
+    this.say(me, 'kid', '🎉', true)
+    this.hearts(me.kid)
   }
 
   /** You wave, and they wave back. */
@@ -690,8 +741,11 @@ export class LobbyGame {
     if (!me || !me.sit(seat)) return
     this.depthDirty = true
     if (seat.kind === 'bag') {
+      // Buddy Corner: the buddy comes and curls up next to the Student.
+      me.rest({ x: seat.x + 0.6, y: seat.y + 0.1 })
       this.say(me, 'kid', '📖', true)
-      this.events.toast('Word Nook games are coming soon')
+      this.restIn = 2.5
+      this.events.toast(`${this.cast.me.buddyName} curled up next to you`)
     }
   }
 
@@ -710,6 +764,7 @@ export class LobbyGame {
         label: 'Stand up',
         run: () => {
           me.stand()
+          me.rest(null)
           this.depthDirty = true
         },
       }
@@ -802,6 +857,24 @@ export class LobbyGame {
       }
     }
 
+    // The Prize Wheel turns slowly when a spin is ready, fast while spinning.
+    const wheel = this.furniture?.wheel
+    if (wheel) {
+      if (this.wheelSpin > 0) {
+        this.wheelSpin = Math.max(0, this.wheelSpin - dt)
+        wheel.rotation += dt * (2 + this.wheelSpin * 6)
+      } else if (!still && this.news.stage) wheel.rotation += dt * 0.6
+    }
+
+    // Resting in the Buddy Corner: the buddy shows a little bubble now and then.
+    if (me.resting) {
+      this.restIn -= dt
+      if (this.restIn <= 0) {
+        this.restIn = 5 + Math.random() * 3
+        this.say(me, 'buddy', REST_BUBBLES[Math.floor(Math.random() * REST_BUBBLES.length)], true)
+      }
+    }
+
     // The classmate shows a random emote every so often.
     this.emoteIn -= dt
     if (this.emoteIn <= 0) {
@@ -883,6 +956,13 @@ export class LobbyGame {
     el.style.visibility = shown ? '' : 'hidden'
   }
 
+  /** Shows or hides with a short fade (the CSS does the fade, on data-shown). */
+  private fade(el: HTMLElement, shown: boolean) {
+    if (this.lastShown.get(el) === shown) return
+    this.lastShown.set(el, shown)
+    el.dataset.shown = shown ? '1' : '0'
+  }
+
   private figureOf(key: string): Figure | null {
     const [id, part] = key.split(':')
     const walker = this.me?.id === id ? this.me : this.classmates.find((c) => c.id === id)
@@ -927,19 +1007,38 @@ export class LobbyGame {
     for (const id of ZONE_IDS) {
       const label = anchors.get(`zone:${id}`)
       const edge = anchors.get(`edge:${id}`)
-      const extra = id === 'ollie' ? anchors.get('excl') : undefined
+      const extra = anchors.get(`excl:${id}`)
       const at = ZONES[id].label
       const [sx, sy] = camera.toScreen(...proj.P(at.x, at.y, at.z))
       const onScreen = sx > 40 && sx < W - 40 && sy > 40 && sy < H - 40
-      const arrow = !onScreen && camera.mode === 'close'
+      const news = !!this.news[id]
+      // Only places with news get an edge arrow; the rest stay quiet until the Student comes close.
+      const arrow = !onScreen && camera.mode === 'close' && news
+      const spot = ZONES[id].spot
+      const close = Math.hypot(me.x - spot.x, me.y - spot.y) < LABEL_NEAR
+      // Ollie's bubble always shows: he is the guide.
+      const labelOn = id === 'ollie' || news || close
+      // Straight view: the Prize Wheel's label hangs under the front of the stage (tail up),
+      // because above the wheel it would cover the banner on the back wall.
+      const below = id === 'stage' && !proj.diag
+      const [lx, ly] = below ? camera.toScreen(...proj.P(at.x, STAGE.y1 + 0.3, 0)) : [sx, sy]
       if (label) {
-        this.show(label, !arrow)
+        this.fade(label, labelOn && !arrow)
+        if (below) label.dataset.below = '1'
+        else delete label.dataset.below
         // Ollie's speech bubble has its tail on the left.
-        this.place(label, sx, sy - 8, id === 'ollie' ? 0.12 : 0.5, 1, zoneScale)
+        if (below) this.place(label, lx, ly + 8, 0.5, 0, zoneScale)
+        else this.place(label, sx, sy - 8, id === 'ollie' ? 0.12 : 0.5, 1, zoneScale)
       }
       if (extra) {
-        this.show(extra, !arrow)
-        const [ex, ey] = camera.toScreen(...proj.P(OLLIE_AT.x - 0.55, OLLIE_AT.y - 0.55, at.z + 8))
+        this.show(extra, news && !arrow)
+        // Ollie's "!" floats beside his bubble; the others sit on top of their label.
+        const [ex, ey] =
+          id === 'ollie'
+            ? camera.toScreen(...proj.P(OLLIE_AT.x - 0.95, OLLIE_AT.y - 0.95, at.z + 8))
+            : below
+              ? [lx, ly + 16]
+              : [sx, sy - 58 * zoneScale]
         this.place(extra, ex, ey - 8, 0.5, 1, zoneScale)
       }
       if (!edge) continue

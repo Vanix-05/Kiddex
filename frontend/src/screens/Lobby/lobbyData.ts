@@ -45,10 +45,29 @@ export interface Mission {
   lesson: { icon: string; word: string; text: string }[]
 }
 
+/** The Class Garden: one plant the whole section grows by finishing missions. */
+export interface ClassGarden {
+  /** Missions finished by anyone in the section since it was planted. */
+  done: number
+  /** Missions it takes to bloom. */
+  goal: number
+}
+
+/** One slice of the Prize Wheel. Every slice is a prize. */
+export interface WheelPrize {
+  label: string
+  icon: string
+  /** Stars it adds (0 for a sticker, which goes to My Room later). */
+  stars: number
+}
+
 export interface LobbyData {
   student: StudentProgress
   classmates: Classmate[]
   mission: Mission
+  garden: ClassGarden
+  /** The Prize Wheel's slices, clockwise from the top. */
+  wheel: WheelPrize[]
   /** Short lines Ollie's speech bubble rotates through. */
   ollieLines: string[]
 }

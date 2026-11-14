@@ -55,10 +55,25 @@ export const lobbyMock: LobbyData = {
     ],
   },
 
+  // The whole section's sampaguita: 9 of 12 missions so far (it shows buds).
+  garden: { done: 9, goal: 12 },
+
+  // 8 slices, matching the wheel's colors in the room. No blanks: every spin wins.
+  wheel: [
+    { label: '+5 stars', icon: '⭐', stars: 5 },
+    { label: 'Sticker', icon: '🌺', stars: 0 },
+    { label: '+10 stars', icon: '🌟', stars: 10 },
+    { label: '+3 stars', icon: '⭐', stars: 3 },
+    { label: 'Sticker', icon: '🐢', stars: 0 },
+    { label: '+5 stars', icon: '⭐', stars: 5 },
+    { label: '+15 stars', icon: '💫', stars: 15 },
+    { label: 'Sticker', icon: '🌈', stars: 0 },
+  ],
+
   ollieLines: [
     'Hoo! Tap me for today’s mission!',
     'Don’t forget: Fractions!',
-    'Try the Quiz Stage! Hoo!',
+    'Finish your mission to spin the Prize Wheel!',
     'Be kind to your classmates!',
   ],
 }

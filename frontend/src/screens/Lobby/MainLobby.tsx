@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { SECTION } from '../../setup/customizeData'
-import { isWalkKey, LobbyGame, type BubbleContent, type NearAction, type ZoneId } from './game/LobbyGame'
+import { isWalkKey, LobbyGame, type BubbleContent, type NearAction, type ZoneId, type ZoneNews } from './game/LobbyGame'
 import { ZONE_IDS } from './game/room'
-import type { LobbyData } from './lobbyData'
+import type { LobbyData, WheelPrize } from './lobbyData'
+import { GardenCard } from './ui/GardenCard'
+import { PrizeWheelCard, type WheelState } from './ui/PrizeWheelCard'
 import { ActionButton } from './ui/ActionButton'
 import { BoardCard } from './ui/BoardCard'
 import { BuddyCard } from './ui/BuddyCard'
 import { ComingSoonCard, type SoonKind } from './ui/ComingSoonCard'
 import { DoorCard } from './ui/DoorCard'
-import { GameMovedCard, type MovedCorner } from './ui/GameMovedCard'
+import type { LobbySpot } from '../../games/allGames/pageMemory'
 import { MISSION_GAMES } from '../../games/mission'
 import { HowToPlayCard } from './ui/HowToPlayCard'
 import { Hud } from './ui/Hud'
@@ -22,22 +24,42 @@ import { useLobbySettings } from './useLobbySettings'
 import styles from './LobbyScreen.module.css'
 
 type Card =
-  | { type: 'howto' | 'settings' | 'door' | 'mission' | 'board' }
+  | { type: 'howto' | 'settings' | 'door' | 'mission' | 'board' | 'wheel' | 'garden' }
   | { type: 'buddy'; id: string }
   | { type: 'soon'; kind: SoonKind }
-  | { type: 'moved'; corner: MovedCorner }
 
 /** The floating labels over the game corners, and their edge arrows. */
 const ZONE_UI: Record<ZoneId, { name: string; sub?: string; icon: LobbyIconName; tint?: string }> = {
   ollie: { name: 'Ollie', icon: 'owl' },
-  nook: { name: 'Word Nook', sub: 'Tap to play', icon: 'book', tint: '--color-tint-pink' },
-  // No "Tap to play": these corners don't start games any more (they point to All games).
-  stage: { name: 'Quiz Stage', icon: 'mic', tint: '--color-tint-lavender' },
-  match: { name: 'Match Corner', icon: 'puzzle', tint: '--color-tint-mint' },
+  // The corners don't start games (every game is in All games): each one does its own small thing.
+  nook: { name: 'Buddy Corner', sub: 'Rest with your buddy', icon: 'paw', tint: '--color-tint-pink' },
+  stage: { name: 'Prize Wheel', icon: 'wheel', tint: '--color-tint-lavender' },
+  match: { name: 'Class Garden', icon: 'sprout', tint: '--color-tint-mint' },
   door: { name: 'Outside', sub: 'To the island', icon: 'palm' },
 }
 
 const HOWTO_KEY = 'kiddex.lobby.howto'
+const SPIN_KEY = 'kiddex.lobby.spin'
+const today = () => new Date().toISOString().slice(0, 10)
+
+// TODO: the backend keeps today's spin (and adds the stars won); this localStorage copy is FAKE.
+/** Today's spin, if the Student already spun (FAKE: localStorage until the backend keeps it). */
+function readSpin(): WheelPrize | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SPIN_KEY) ?? 'null') as { date: string; prize: WheelPrize } | null
+    return saved?.date === today() ? saved.prize : null
+  } catch {
+    return null
+  }
+}
+
+function saveSpin(prize: WheelPrize) {
+  try {
+    localStorage.setItem(SPIN_KEY, JSON.stringify({ date: today(), prize }))
+  } catch {
+    // Ignore: the wheel just offers a spin again next visit.
+  }
+}
 /** How to play opens by itself once per session. */
 function howToSeen() {
   try {
@@ -79,13 +101,13 @@ export function MainLobby({
   /** Opens a mission game (without it, Start says Coming soon). */
   onPlay?: (game: LobbyGameId, from: LobbyGameFrom) => void
   /** Opens All games; `spot`: the game corner the Student is at, for coming back. */
-  onAllGames?: (spot: MovedCorner | null) => void
+  onAllGames?: (spot: LobbySpot | null) => void
   /** Back from a mini game: start at that game's corner. */
   startAt?: 'stage' | 'match'
   /** The classroom is on screen, or couldn't open (called once). */
   onReady?: () => void
 }) {
-  const { mission, classmates, ollieLines } = data
+  const { mission, classmates, ollieLines, garden, wheel } = data
   const [settings, changeSettings] = useLobbySettings()
   const { cast, failed: castFailed } = useLobbyCast(student, classmates)
 
@@ -101,6 +123,17 @@ export function MainLobby({
   const [ollieLine, setOllieLine] = useState(0)
   const [scale, setScale] = useState(hudScale)
   const [playAnyway, setPlayAnyway] = useState(false)
+  const [spun, setSpun] = useState<WheelPrize | null>(readSpin)
+  /** Stars won on the wheel this visit (FAKE: the backend will add them to the Student's count). */
+  const [bonusStars, setBonusStars] = useState(() => readSpin()?.stars ?? 0)
+
+  // Finishing Ollie's mission earns one spin a day, and waters the Class Garden.
+  const missionDone = mission.games > 0 && mission.gamesDone >= mission.games
+  const wheelState: WheelState = !missionDone ? 'locked' : spun ? 'used' : 'ready'
+  const gardenDone = Math.min(garden.goal, garden.done + (missionDone ? 1 : 0))
+  const gardenStage = gardenDone >= garden.goal ? 4 : Math.min(3, Math.floor((gardenDone / garden.goal) * 4))
+  const news: ZoneNews = useMemo(() => ({ ollie: !missionDone, stage: wheelState === 'ready' }), [missionDone, wheelState])
+  const gardenRef = useRef(gardenStage)
 
   useEffect(() => {
     try {
@@ -138,7 +171,7 @@ export function MainLobby({
     const created = new LobbyGame(
       host,
       cast,
-      { angle: saved.angle, zoom: saved.zoom, classmateEmotes: saved.emotes, lessMotion: saved.motion === 'less', startAt: startAtRef.current },
+      { angle: saved.angle, zoom: saved.zoom, classmateEmotes: saved.emotes, lessMotion: saved.motion === 'less', startAt: startAtRef.current, gardenStage: gardenRef.current },
       roomText,
       {
         ready: () => setGame(created),
@@ -149,9 +182,10 @@ export function MainLobby({
           if (id === 'ollie') setCard({ type: 'mission' })
           else if (id === 'board') setCard({ type: 'board' })
           else if (id === 'stars') setCard({ type: 'soon', kind: 'stars' })
-          // The game corners don't start games any more: they point to All games.
-          else if (id === 'stage' || id === 'match') setCard({ type: 'moved', corner: id })
-          else setCard({ type: 'soon', kind: id })
+          else if (id === 'stage') setCard({ type: 'wheel' })
+          else if (id === 'match') setCard({ type: 'garden' })
+          // Buddy Corner with every bean bag taken (walkToZone sits down when one is free).
+          else setToast({ text: 'Every bean bag is taken right now', id: ++toasts })
         },
         atDoor: () => setCard({ type: 'door' }),
         bubble: (who, bubble) =>
@@ -171,6 +205,9 @@ export function MainLobby({
       setGame(null)
     }
   }, [cast, roomText])
+
+  useEffect(() => game?.setNews(news), [game, news])
+  useEffect(() => game?.setGardenStage(gardenStage), [game, gardenStage])
 
   // Settings -> game.
   useEffect(() => {
@@ -216,7 +253,7 @@ export function MainLobby({
   const missionGames = MISSION_GAMES.slice(0, mission.games).filter(isLobbyGame)
   const nextMissionGame = missionGames.find((g) => !mission.done.includes(g)) ?? missionGames[0]
   const startMission = () => (onPlay && nextMissionGame ? onPlay(nextMissionGame, 'mission') : soon('mission'))
-  const allGames = (spot: MovedCorner | null) => (onAllGames ? onAllGames(spot) : soon('allGames'))
+  const allGames = (spot: LobbySpot | null) => (onAllGames ? onAllGames(spot) : soon('allGames'))
   const buddyCardOf = card?.type === 'buddy' ? classmates.find((c) => c.id === card.id) : undefined
   const buddyCardArt = buddyCardOf && cast?.classmates.find((c) => c.id === buddyCardOf.id)
   const failed = castFailed || gameFailed
@@ -247,7 +284,7 @@ export function MainLobby({
                   key={id}
                   ref={game.anchorRef(`zone:${id}`)}
                   type="button"
-                  className={`${styles.anchored} ${styles.zone} ${id === 'door' ? styles.zoneDoor : ''}`}
+                  className={`${styles.anchored} ${styles.zone} ${id === 'door' ? styles.zoneDoor : ''} ${news[id] ? styles.zoneNews : ''}`}
                   style={zone.tint ? ({ '--tint': `var(${zone.tint})` } as CSSProperties) : undefined}
                   onClick={() => game.walkToZone(id)}
                 >
@@ -256,7 +293,7 @@ export function MainLobby({
                   </span>
                   <span>
                     <b>{zone.name}</b>
-                    {zone.sub && <small>{zone.sub}</small>}
+                    {id === 'stage' && wheelState === 'ready' ? <small>Spin ready!</small> : zone.sub && <small>{zone.sub}</small>}
                   </span>
                 </button>
               )
@@ -264,9 +301,11 @@ export function MainLobby({
             <button ref={game.anchorRef('zone:ollie')} type="button" className={`${styles.anchored} ${styles.ollieBubble}`} onClick={() => game.walkToZone('ollie')}>
               {ollieLines[ollieLine % ollieLines.length]}
             </button>
-            <span ref={game.anchorRef('excl')} className={`${styles.anchored} ${styles.excl}`} aria-hidden="true">
-              !
-            </span>
+            {ZONE_IDS.map((id) => (
+              <span key={id} ref={game.anchorRef(`excl:${id}`)} className={`${styles.anchored} ${styles.excl}`} aria-hidden="true">
+                !
+              </span>
+            ))}
 
             {ZONE_IDS.map((id) => (
               <button
@@ -304,7 +343,7 @@ export function MainLobby({
           </div>
 
           <Hud
-            student={{ ...data.student, name: student.name }}
+            student={{ ...data.student, name: student.name, stars: data.student.stars + bonusStars }}
             headUrl={cast.me.kid.url}
             mission={mission}
             classmatesHere={classmates.length}
@@ -329,8 +368,29 @@ export function MainLobby({
           {card?.type === 'door' && <DoorCard onGo={() => soon('island')} onClose={close} />}
           {card?.type === 'mission' && <MissionCard mission={mission} onStart={startMission} onClose={close} />}
           {card?.type === 'board' && <BoardCard mission={mission} onClose={close} />}
+          {card?.type === 'wheel' && (
+            <PrizeWheelCard
+              state={wheelState}
+              prizes={wheel}
+              mission={mission}
+              lastPrize={spun}
+              lessMotion={settings.motion === 'less'}
+              onSpinStart={() => game.spinWheel(3)}
+              onWin={(prize) => {
+                saveSpin(prize)
+                setBonusStars((n) => n + prize.stars)
+                game.cheer()
+              }}
+              onMission={() => setCard({ type: 'mission' })}
+              onClose={() => {
+                // The prize is kept once it's shown: closing after a win moves the wheel to "used".
+                setSpun(readSpin())
+                close()
+              }}
+            />
+          )}
+          {card?.type === 'garden' && <GardenCard garden={{ ...garden, done: gardenDone }} stage={gardenStage} section={SECTION} onClose={close} />}
           {card?.type === 'soon' && <ComingSoonCard kind={card.kind} onClose={close} />}
-          {card?.type === 'moved' && <GameMovedCard corner={card.corner} onOpen={() => allGames(card.corner)} onClose={close} />}
           {buddyCardOf && buddyCardArt && (
             <BuddyCard
               classmate={buddyCardOf}

@@ -30,7 +30,14 @@ const PRESETS: Record<string, LobbyStudent> = {
  */
 export function DevLobbyScreen() {
   const [params] = useSearchParams()
-  const data = useLobbyData()
+  const real = useLobbyData()
+  // &done: the mission is finished (a spin is ready). &garden=N: missions the class has done.
+  const garden = params.get('garden')
+  const data = {
+    ...real,
+    mission: params.has('done') ? { ...real.mission, gamesDone: real.mission.games } : real.mission,
+    garden: garden === null ? real.garden : { ...real.garden, done: Number(garden) },
+  }
   const navigate = useNavigate()
   const student = PRESETS[params.get('p') ?? 'a'] ?? PRESETS.a
   const at = params.get('at')

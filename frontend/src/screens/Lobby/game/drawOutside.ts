@@ -28,8 +28,8 @@ type Pt = readonly [number, number]
 // Sea where x < shoreX(y) (the left side) and where y > SHORE_Y (the front),
 // joined by a round corner. Everywhere else is land, on past the screen.
 
-const SHORE_Y = 17.5
-const CORNER = { x: -0.5, y: 13.5, r: 4 }
+const SHORE_Y = 18.5
+const CORNER = { x: -0.5, y: 14.5, r: 4 }
 /** The left shore bends away behind the room, so there is more land up there. */
 const shoreX = (y: number) => CORNER.x - CORNER.r - 0.35 * Math.max(0, -y - 2)
 
@@ -65,11 +65,11 @@ function shoreLine(d: number, wobble = 0.35): Pt[] {
 
 // ---------- The front yard (tiles) ----------
 
-const DOOR: Pt = [20.25, -0.1]
+const DOOR: Pt = [22.25, -0.1]
 const PLAZA = { x: 14.6, y: -6.4, r: 1.5 }
 /** Door -> plaza, then three ways out. */
 const PATHS: readonly Pt[][] = [
-  [DOOR, [20.1, -2.4], [18.6, -4], [16.2, -5.6]],
+  [DOOR, [21.9, -2.4], [19.8, -4.3], [16.2, -5.6]],
   // To the Campfire (up the screen, to the tent at the top).
   [[13.2, -7.6], [10.4, -9.8], [6.4, -11], [2.4, -10.8], [0, -9.6]],
   // To the beach (along behind the back wall, down to the sand).
@@ -84,46 +84,46 @@ const TREES: readonly [x: number, y: number, size: number][] = [
   [9.5, -13.8, 1],
   [-5, -12.5, 0.95],
   [12.4, -14.8, 1.05],
-  [26.2, -1.8, 1],
-  [26.8, 5.5, 1.05],
-  [25.5, 11.4, 0.95],
-  [29.5, 2, 1.1],
+  [28.2, -1.8, 1],
+  [28.8, 5.5, 1.05],
+  [27.5, 12.4, 0.95],
+  [31.5, 2, 1.1],
   [0.8, -17, 1],
 ]
 const PALMS: readonly [x: number, y: number, size: number][] = [
   [-2.6, 3.5, 1],
   [-3.2, 9.2, 1.1],
-  [3, 16.2, 1],
-  [13.5, 16.6, 1.15],
+  [3, 17.2, 1],
+  [13.5, 17.6, 1.15],
   [-4.6, -2.6, 0.95],
-  [24.5, 16.4, 1],
+  [26.5, 17.4, 1],
 ]
 const BUSHES: readonly Pt[] = [
   [-1.6, 6.5],
   [-1.8, 12.8],
-  [6.5, 15.6],
-  [18.5, 15.8],
-  [23.6, 6.6],
-  [24.2, 2],
+  [6.5, 16.6],
+  [18.5, 16.8],
+  [25.6, 6.6],
+  [26.2, 2],
   [-1.4, 0.4],
   [16, -3.8],
   [-2.6, -6.8],
   [18.6, -9.6],
-  [22.4, -3.4],
+  [24.4, -3.4],
 ]
 const ROCKS: readonly Pt[] = [
-  [1.5, 17.2],
-  [10, 17.4],
-  [21, 17],
+  [1.5, 18.2],
+  [10, 18.4],
+  [21, 18],
   [-4.8, 6.6],
   [-5.8, -1],
 ]
 /** Spiky plants planted at the grass edge (they used to float in front). */
 const PLANTS: readonly [x: number, y: number, size: number][] = [
-  [-1.4, 15.2, 1],
-  [9.2, 15.9, 0.9],
-  [16.4, 16.2, 1.05],
-  [23.4, 13.6, 0.95],
+  [-1.4, 16.2, 1],
+  [9.2, 16.9, 0.9],
+  [16.4, 17.2, 1.05],
+  [25.4, 14.6, 0.95],
   [-3.4, 1.8, 0.85],
 ]
 const LAMPS: readonly Pt[] = [
@@ -137,7 +137,7 @@ const WELL: Pt = [9.4, -7.4]
 const GARDEN = { x: -0.8, y: -9.2, w: 3.8, d: 2.3 }
 const BENCH: Pt = [5.9, -5.4]
 const SIGN: Pt = [13.1, -6.7]
-const NOTICE: Pt = [19.4, -3.9]
+const NOTICE: Pt = [21.4, -4.2]
 const HOUSE = { x: 13.2, y: -14, w: 3.4, d: 2.6 }
 const TENT: Pt = [-1.6, -9.4]
 

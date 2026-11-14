@@ -9,7 +9,7 @@ import { RD, RW } from './room'
 /** How far the camera may look, in world px. drawOutside draws just past it. */
 export function islandBounds(proj: Projection) {
   // The island's corners, plus room above for the trees.
-  const corners = [proj.P(-6, 21), proj.P(28, -7), proj.P(-6, -6), proj.P(28, 21)]
+  const corners = [proj.P(-6, 22), proj.P(30, -7), proj.P(-6, -6), proj.P(30, 22)]
   const xs = corners.map((p) => p[0])
   const ys = corners.map((p) => p[1])
   return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys) - 160, y1: Math.max(...ys) }
@@ -49,7 +49,7 @@ export class Camera {
   private targetScale(): number {
     const { width: W, height: H } = this
     const diag = this.proj.diag
-    if (this.mode === 'far') return diag ? Math.min(W / 2050, H / 1240) : Math.min(W / 1720, H / 1020)
+    if (this.mode === 'far') return diag ? Math.min(W / 2200, H / 1330) : Math.min(W / 1860, H / 1090)
     const z = diag ? Math.min(W / 1280, H / 800) : Math.min(W / 1300, H / 810)
     // Phones in landscape: a little closer, so the kid isn't tiny.
     return H < 520 ? z * 1.2 : z

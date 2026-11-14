@@ -772,3 +772,85 @@
   background: none;
   border: 0;
 }
+
+/* ---------- Prize Wheel ---------- */
+
+.wheelBox {
+  position: relative;
+  width: min(220px, 46vh);
+  aspect-ratio: 1;
+  margin: 6px auto 4px;
+}
+
+.wheelSvg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.15, 0.7, 0.2, 1);
+}
+
+.wheelSvg text {
+  font-family: inherit;
+}
+
+/* The red pointer at the top (it doesn't turn). */
+.wheelPointer {
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  width: 0;
+  height: 0;
+  margin-left: -14px;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 26px solid var(--color-card-border);
+}
+
+.wheelPointer::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: -23px;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 19px solid #ef5a4b;
+}
+
+.prizePop {
+  animation: prizePop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes prizePop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* ---------- Class Garden ---------- */
+
+.growBar {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.growBar i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid var(--color-card-border);
+  background: var(--color-input-bg);
+}
+
+.growBar i.growOn {
+  background: #7dbf7a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prizePop {
+    animation: none;
+  }
+}

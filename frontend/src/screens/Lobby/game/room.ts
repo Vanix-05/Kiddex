@@ -6,8 +6,8 @@
  */
 
 /** Room size in tiles. */
-export const RW = 22
-export const RD = 14
+export const RW = 24
+export const RD = 15
 /** A character's radius in tiles. */
 export const RADIUS = 0.3
 /** How close a character's centre can get to the walls and the railing. */
@@ -26,18 +26,20 @@ const rect = (x0: number, y0: number, x1: number, y1: number): Rect => ({ x0, y0
 export const TEACHER_DESK = rect(1.6, 1.8, 4.0, 2.8)
 /** Ollie stands behind the Teacher's Desk. */
 export const OLLIE_AT = { x: 2.55, y: 1.25 }
-export const BOOKSHELF = rect(0, 8.0, 0.75, 11.0)
+export const BOOKSHELF = rect(0, 8.5, 0.75, 11.5)
 export const CUBBIES = rect(0, 4.0, 0.55, 6.8)
-export const PODIUM = rect(15.2, 0.7, 16.1, 1.3)
-export const MATCH_TABLE = { x: 17.4, y: 10.2, r: 1.0, solid: rect(16.7, 9.5, 18.1, 10.9) }
-export const DOOR_MAT = rect(19.5, 0.2, 21, 1.2)
+/** The Prize Wheel's stand, at the back of the Quiz Stage. */
+export const WHEEL = { x: 17.7, y: 1.15, solid: rect(16.9, 0.85, 18.5, 1.55) }
+/** The Class Garden: a round raised planter (was the Match Corner table). */
+export const GARDEN = { x: 19.6, y: 11.2, r: 1.15, solid: rect(18.6, 10.3, 20.6, 12.1) }
+export const DOOR_MAT = rect(21.5, 0.2, 23, 1.2)
 
 /** The Quiz Stage: raised and walkable. `h` is its height in px. */
-export const STAGE = { x0: 12.8, y0: 0, x1: 18.6, y1: 3.0, h: 14 }
+export const STAGE = { x0: 14.8, y0: 0, x1: 20.6, y1: 3.0, h: 14 }
 
 /** Top-left corner of each group of 4 desks: 3 rows of 2. */
-export const DESK_GROUPS: readonly { x: number; y: number }[] = [3.7, 7.5, 11.1].flatMap((y) =>
-  [5.6, 9.4].map((x) => ({ x, y })),
+export const DESK_GROUPS: readonly { x: number; y: number }[] = [3.9, 7.9, 11.9].flatMap((y) =>
+  [5.8, 10.0].map((x) => ({ x, y })),
 )
 /** A group's 2 chairs sit at these x offsets, behind and in front of the desks. */
 export const CHAIR_DX = [0.3, 1.35] as const
@@ -46,19 +48,19 @@ export const CHAIR_FRONT_DY = 1.52
 export const CHAIR_SIZE = 0.42
 
 export const BEAN_BAGS: readonly { x: number; y: number; color: number }[] = [
-  { x: 2.0, y: 9.3, color: 0xffd36b },
-  { x: 3.6, y: 11.4, color: 0xff9f8f },
-  { x: 1.9, y: 11.7, color: 0x9fd0f0 },
+  { x: 2.0, y: 9.8, color: 0xffd36b },
+  { x: 3.6, y: 11.9, color: 0xff9f8f },
+  { x: 1.9, y: 12.2, color: 0x9fd0f0 },
 ]
 
 export const PLANTS: readonly { x: number; y: number; big: boolean }[] = [
   { x: 0.25, y: 0.3, big: true },
-  { x: 21.3, y: 0.3, big: false },
-  { x: 0.3, y: 13.2, big: true },
-  { x: 21.2, y: 13.2, big: true },
-  { x: 12.0, y: 0.25, big: false },
-  { x: 11.3, y: 13.25, big: false },
-  { x: 21.25, y: 5.5, big: false },
+  { x: 23.3, y: 0.3, big: false },
+  { x: 0.3, y: 14.2, big: true },
+  { x: 23.2, y: 14.2, big: true },
+  { x: 13.6, y: 0.25, big: false },
+  { x: 12.3, y: 14.25, big: false },
+  { x: 23.25, y: 5.5, big: false },
 ]
 export const PLANT_SIZE = 0.5
 
@@ -75,8 +77,8 @@ export const SOLIDS: readonly Rect[] = [
   TEACHER_DESK,
   BOOKSHELF,
   CUBBIES,
-  PODIUM,
-  MATCH_TABLE.solid,
+  WHEEL.solid,
+  GARDEN.solid,
   ...BEAN_BAGS.map((b) => rect(b.x - 0.4, b.y - 0.4, b.x + 0.4, b.y + 0.4)),
   ...DESK_GROUPS.map((g) => rect(g.x - 0.05, g.y - 0.6, g.x + 2.1, g.y + 2.0)),
   ...PLANTS.map((p) => rect(p.x, p.y, p.x + PLANT_SIZE, p.y + PLANT_SIZE)),
@@ -113,7 +115,7 @@ export interface Seat {
   ay: number
 }
 
-/** The chairs behind each desk group, and the Word Nook bean bags. */
+/** The chairs behind each desk group, and the Buddy Corner bean bags. */
 export const SEATS: readonly Seat[] = [
   ...DESK_GROUPS.flatMap((g) =>
     CHAIR_DX.map((dx): Seat => {
@@ -126,6 +128,7 @@ export const SEATS: readonly Seat[] = [
 
 // ---------- Game corners ----------
 
+// Old ids kept on purpose: stage = Prize Wheel, match = Class Garden, nook = Buddy Corner.
 export type ZoneId = 'ollie' | 'nook' | 'stage' | 'match' | 'door'
 export const ZONE_IDS: readonly ZoneId[] = ['ollie', 'nook', 'stage', 'match', 'door']
 
@@ -138,10 +141,10 @@ export interface Zone {
 
 export const ZONES: Record<ZoneId, Zone> = {
   ollie: { spot: { x: 3.3, y: 3.55 }, label: { x: OLLIE_AT.x, y: OLLIE_AT.y, z: 150 } },
-  nook: { spot: { x: 2.9, y: 9.0 }, label: { x: 1.6, y: 9.9, z: 128 } },
-  stage: { spot: { x: 15.6, y: 4.1 }, label: { x: 15.6, y: 1.6, z: 150 } },
-  match: { spot: { x: 17.4, y: 8.4 }, label: { x: 18.4, y: 11.2, z: 80 } },
-  door: { spot: { x: 20.25, y: 0.75 }, label: { x: 20.25, y: 0, z: 175 } },
+  nook: { spot: { x: 2.9, y: 9.5 }, label: { x: 1.6, y: 10.4, z: 128 } },
+  stage: { spot: { x: 17.7, y: 2.6 }, label: { x: 17.7, y: 1.15, z: 150 } },
+  match: { spot: { x: 18.2, y: 12.8 }, label: { x: 19.6, y: 11.2, z: 120 } },
+  door: { spot: { x: 22.25, y: 0.75 }, label: { x: 22.25, y: 0, z: 175 } },
 }
 
 /** Things the Student can do when standing close: within `r` tiles of (x, y). */
@@ -150,22 +153,22 @@ export const ACTION_SPOTS: readonly { id: SpotId; x: number; y: number; r: numbe
   { id: 'ollie', x: 3.3, y: 3.5, r: 1.4 },
   { id: 'board', x: 7.6, y: 1.7, r: 1.6 },
   { id: 'stars', x: STAR_BOARD.spot.x, y: STAR_BOARD.spot.y, r: 1.4 },
-  { id: 'stage', x: 15.6, y: 2.0, r: 2.1 },
-  { id: 'match', x: 17.4, y: 8.4, r: 1.6 },
-  { id: 'door', x: 20.25, y: 0.9, r: 1.3 },
+  { id: 'stage', x: 17.7, y: 2.4, r: 1.6 },
+  { id: 'match', x: 18.4, y: 12.6, r: 1.6 },
+  { id: 'door', x: 22.25, y: 0.9, r: 1.3 },
 ]
 
 /** Where the Student starts. */
-export const START = { x: 12.9, y: 6.3 }
+export const START = { x: 13.6, y: 6.6 }
 
 /** Open spots a classmate wanders between. */
 export const WANDER_SPOTS: readonly { x: number; y: number }[] = [
-  { x: 12.3, y: 5.8 },
-  { x: 8.4, y: 6.6 },
-  { x: 12.6, y: 9.6 },
-  { x: 14.5, y: 12.8 },
-  { x: 19.6, y: 6.5 },
-  { x: 14.0, y: 4.8 },
-  { x: 16.5, y: 2.0 },
-  { x: 4.2, y: 6.2 },
+  { x: 13.4, y: 5.8 },
+  { x: 8.9, y: 6.9 },
+  { x: 13.6, y: 10.4 },
+  { x: 16.0, y: 13.5 },
+  { x: 21.4, y: 6.5 },
+  { x: 15.8, y: 4.8 },
+  { x: 16.0, y: 2.0 },
+  { x: 4.2, y: 6.4 },
 ]

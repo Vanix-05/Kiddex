@@ -27,6 +27,8 @@ const BUDDY_GAP = 0.85
 const TRAIL_STEP = 0.08
 const TRAIL_MAX = 60
 const JUMP_S = 0.5
+/** Curled up on the rug: a little lower and squashed, like sitting. */
+const BUDDY_REST: Seat = { kind: 'bag', x: 0, y: 0, z: 2, ax: 0, ay: 0 }
 
 /** Who sits where. Shared by everyone in the room. */
 export type SeatBook = Map<Seat, Walker>
@@ -130,6 +132,8 @@ export class Walker {
   wait = 2 + Math.random() * 4
   private path: Point[] = []
   private onArrive: (() => void) | null = null
+  /** Buddy Corner: where the buddy curls up while the kid sits on a bean bag. */
+  private restSpot: Point | null = null
   private trail: Point[] = []
   private seats: SeatBook
 
@@ -215,7 +219,17 @@ export class Walker {
     return true
   }
 
+  /** The buddy curls up at a spot (null = back to following). */
+  rest(spot: Point | null) {
+    this.restSpot = spot
+  }
+
+  get resting() {
+    return this.restSpot !== null && this.seat !== null
+  }
+
   stand() {
+    this.restSpot = null
     const seat = this.seat
     if (!seat) return
     this.seats.delete(seat)
@@ -301,7 +315,7 @@ export class Walker {
 
     // The buddy heads for the point a little way back along the kid's trail.
     const buddy = this.buddy
-    const target = trailPoint(this.trail, BUDDY_GAP)
+    const target = this.restSpot ?? trailPoint(this.trail, BUDDY_GAP)
     const dx = target.x - buddy.x
     const dy = target.y - buddy.y
     const d = Math.hypot(dx, dy)
@@ -316,7 +330,7 @@ export class Walker {
       // Standing still: the buddy looks at its kid.
       buddy.face = proj.P(this.x, this.y)[0] - proj.P(buddy.x, buddy.y)[0] > 0 ? 1 : -1
     }
-    drawFigure(buddy, dt, proj, still, null)
+    drawFigure(buddy, dt, proj, still, this.restSpot && !buddy.moving ? BUDDY_REST : null)
   }
 
   /** A classmate with nothing to do: follow their leader, or wander and sometimes sit. */

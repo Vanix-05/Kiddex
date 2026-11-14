@@ -378,3 +378,42 @@
   border-radius: 9px;
   pointer-events: none;
 }
+
+/* A label hanging under its place (the Prize Wheel in the Straight view): tail on top. */
+.zone[data-below='1']::after {
+  top: -9px;
+  bottom: auto;
+  transform: rotate(225deg);
+}
+
+/* Zone labels fade in when the Student comes close (LobbyGame sets data-shown). */
+.zone,
+.ollieBubble {
+  transition: opacity 0.25s ease;
+}
+
+.zone[data-shown='0'],
+.ollieBubble[data-shown='0'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A place with something new: its label gently bounces. */
+.zoneNews {
+  animation: zoneNews 1.6s ease-in-out infinite;
+}
+
+@keyframes zoneNews {
+  50% {
+    filter: brightness(1.08);
+    box-shadow:
+      0 4px 0 var(--color-lobby-shadow),
+      0 0 0 5px rgba(255, 211, 77, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoneNews {
+    animation: none;
+  }
+}

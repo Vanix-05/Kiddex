@@ -15,10 +15,10 @@ import {
   CUBBIES,
   DESK_GROUPS,
   DOOR_MAT,
-  MATCH_TABLE,
+  GARDEN,
   PLANT_SIZE,
   PLANTS,
-  PODIUM,
+  WHEEL,
   RD,
   RW,
   STAGE,
@@ -66,10 +66,10 @@ export function drawFloor({ proj, layers }: Scene): Container {
   const beam = (...corners: [number, number][]) => g.poly(flat(...corners)).fill({ color: 0xfff6d6, alpha: 0.28 })
   if (diag) {
     beam(P(0, 0.9), P(0, 2.5), P(3.4, 4.3), P(3.4, 2.7))
-    beam(P(0, 11.5), P(0, 13.2), P(3.2, 14), P(3.2, 12.9))
+    beam(P(0, 12.6), P(0, 14.2), P(3.2, 15), P(3.2, 13.9))
   }
   beam(P(1.1, 0), P(2.7, 0), P(4.6, 3.3), P(3, 3.3))
-  beam(P(11.2, 0), P(12.3, 0), P(14.1, 3.1), P(13, 3.1))
+  beam(P(12.4, 0), P(13.6, 0), P(15.4, 3.1), P(14.2, 3.1))
 
   // Rugs: Teacher's Desk, Word Nook, Match Corner.
   const rug = (x: number, y: number, r: number, color: number) => {
@@ -77,8 +77,8 @@ export function drawFloor({ proj, layers }: Scene): Container {
     floorCircle(g, proj, x, y, r - 0.5).stroke({ width: 2, color: 0xffffff, alpha: 0.7 })
   }
   rug(2.9, 2.5, 2.6, 0xf7d58a)
-  rug(2.6, 10.4, 2.9, 0xffc9c4)
-  rug(MATCH_TABLE.x, MATCH_TABLE.y, 3.1, 0xa8e2c5)
+  rug(2.6, 10.9, 2.9, 0xffc9c4)
+  rug(GARDEN.x, GARDEN.y, 3.0, 0xa8e2c5)
   const m = DOOR_MAT
   g.poly(flat(P(m.x0, m.y0), P(m.x1, m.y0), P(m.x1, m.y1), P(m.x0, m.y1))).fill(0x7dbf7a).stroke({ width: 2, color: OUTLINE })
 
@@ -86,11 +86,11 @@ export function drawFloor({ proj, layers }: Scene): Container {
   const s = STAGE
   box(g, proj, s.x0, s.y0, 0, s.x1 - s.x0, s.y1 - s.y0, s.h, 0xb9a2e8, { top: 0xcdbaf3 })
   for (let i = 0; i < 6; i++) {
-    const [X, Y] = P(13.3 + i * 0.95, s.y1, s.h / 2)
+    const [X, Y] = P(s.x0 + 0.5 + i * 0.95, s.y1, s.h / 2)
     g.circle(X, Y, 3.2).fill(0xffd34d).stroke({ width: 1.5, color: OUTLINE })
   }
   const zs = s.h + 0.5
-  g.poly(flat(P(13.6, 0.6, zs), P(17.8, 0.6, zs), P(17.8, 2.4, zs), P(13.6, 2.4, zs))).stroke({ width: 2, color: 0xffffff, alpha: 0.6 })
+  g.poly(flat(P(s.x0 + 0.8, 0.6, zs), P(s.x1 - 0.8, 0.6, zs), P(s.x1 - 0.8, 2.4, zs), P(s.x0 + 0.8, 2.4, zs))).stroke({ width: 2, color: 0xffffff, alpha: 0.6 })
 
   view.addChild(g)
   layers.floor.addChild(view)
@@ -174,7 +174,7 @@ function decorateBackWall(wall: Container, U: number, text: RoomText) {
   const g = new Graphics()
   wall.addChild(g)
   drawWindow(g, 1.2 * U, 1.4 * U, 62, 126)
-  drawWindow(g, 11.25 * U, 1.0 * U, 62, 126)
+  drawWindow(g, 12.5 * U, 1.0 * U, 62, 126)
 
   // The green chalkboard.
   const u0 = 4.6 * U
@@ -186,7 +186,7 @@ function decorateBackWall(wall: Container, U: number, text: RoomText) {
   g.rect(u0 + 52, -53, 10, 3).fill(0xffd34d)
   wallText(wall, text.hello, u0 + 16, -101, 21, 0xffffff, '600', 0)
   wallText(wall, text.today, u0 + 16, -81, 14, 0xffe59a, '500', 0)
-  wallText(wall, 'Walk to a game corner to play!', u0 + 16, -65, 12, 0xd9f0e3, '400', 0)
+  wallText(wall, 'Finish your mission, then spin the wheel!', u0 + 16, -65, 12, 0xd9f0e3, '400', 0)
   // A chalk sun.
   const sun = new Graphics()
   const sx = u0 + w - 34
@@ -206,14 +206,16 @@ function decorateBackWall(wall: Container, U: number, text: RoomText) {
       g.moveTo(u + k * 9 * dir, -WALL + 12).lineTo(u + k * 7 * dir + 2 * dir, -14).stroke({ width: 1.5, color: 0xc9483c })
     }
   }
-  curtain(12.85 * U, 1)
-  curtain(18.55 * U, -1)
-  g.roundRect(12.8 * U, -WALL + 2, 5.8 * U, 16, 4).fill(0xc9483c).stroke({ width: 2, color: OUTLINE })
-  g.roundRect(13.9 * U, -112, 3.6 * U, 30, 8).fill(0xfff3d6).stroke({ width: 2.5, color: OUTLINE })
-  wallText(wall, text.banner, 15.7 * U, -97, 16, 0x5b3a22)
+  curtain(STAGE.x0 * U + 0.05 * U, 1)
+  curtain(STAGE.x1 * U - 0.05 * U, -1)
+  g.roundRect(STAGE.x0 * U, -WALL + 2, (STAGE.x1 - STAGE.x0) * U, 16, 4).fill(0xc9483c).stroke({ width: 2, color: OUTLINE })
+  // The banner hangs high, so the Prize Wheel stands under it.
+  const mid = ((STAGE.x0 + STAGE.x1) / 2) * U
+  g.roundRect(mid - 1.8 * U, -130, 3.6 * U, 26, 8).fill(0xfff3d6).stroke({ width: 2.5, color: OUTLINE })
+  wallText(wall, text.banner, mid, -117, 15, 0x5b3a22)
 
   // The green door to Outside.
-  const d0 = 19.5 * U
+  const d0 = DOOR_MAT.x0 * U
   const dw = 1.45 * U
   g.roundRect(d0 - 6, -118, dw + 12, 118, 6).fill(0xffffff).stroke({ width: 2.5, color: OUTLINE })
   g.rect(d0, -112, dw, 112).fill(0x6fbf6c).stroke({ width: 2.2, color: OUTLINE })
@@ -228,7 +230,7 @@ function decorateLeftWall(wall: Container, U: number) {
   // On the left wall, u grows toward the back corner.
   const u = (y: number) => (RD - y) * U
   drawWindow(g, u(2.5), 1.6 * U, 62, 126)
-  drawWindow(g, u(13.2), 1.6 * U, 58, 122)
+  drawWindow(g, u(14.2), 1.6 * U, 58, 122)
 
   // A cork board with pinned notes.
   const b0 = u(STAR_BOARD.y1)
@@ -272,7 +274,7 @@ function drawBunting(wall: Container, len: number) {
 // ---------- Furniture ----------
 
 /** Every piece of furniture, each one depth-sorted on its own footprint. */
-export function drawFurniture(scene: Scene) {
+export function drawFurniture(scene: Scene, gardenStage: number): Furniture {
   const { proj } = scene
   const { P, diag } = proj
   const prop = (x0: number, y0: number, x1: number, y1: number, draw: (g: Graphics) => void) => {
@@ -326,32 +328,12 @@ export function drawFurniture(scene: Scene) {
     })
   }
 
-  // Quiz Stage: a podium with a star and a microphone, standing on the stage.
-  const pd = PODIUM
-  prop(pd.x0, pd.y0, pd.x1, pd.y1, (g) => {
-    box(g, proj, pd.x0, pd.y0, STAGE.h, pd.x1 - pd.x0, pd.y1 - pd.y0, 46, 0x9e85e0, { top: 0xbfaef0 })
-    const [sx, sy] = P(15.65, pd.y1, 36)
-    g.star(sx, sy, 5, 10, 5).fill(0xffd34d).stroke({ width: 1.8, color: OUTLINE })
-    const [mx, my] = P(15.6, 0.95, 66)
-    g.moveTo(mx, my).lineTo(mx, my - 20).stroke({ width: 3, color: OUTLINE })
-    g.circle(mx, my - 24, 6).fill(0x5b3a22)
-  })
+  // Quiz Stage: the Prize Wheel on its stand. The wheel's slices turn (see LobbyGame).
+  const wheel = drawWheel(scene)
 
-  // Match Corner: a round table with blocks.
-  const mt = MATCH_TABLE
-  prop(mt.solid.x0, mt.solid.y0, mt.solid.x1, mt.solid.y1, (g) => {
-    cylinder(g, proj, mt.x, mt.y, 0, mt.r, 22, 0xe7c08c)
-    const [X, Y] = P(mt.x, mt.y)
-    for (const [a, b, color] of [
-      [-18, -30, 0x7fc4ea],
-      [-2, -36, 0xef6f5e],
-      [14, -30, 0xffc94d],
-      [-6, -48, 0x7dbf7a],
-    ]) {
-      g.rect(X + a, Y + b, 14, 12).fill(color).stroke({ width: 1.6, color: OUTLINE })
-      g.rect(X + a, Y + b, 14, 4).fill({ color: 0xffffff, alpha: 0.35 })
-    }
-  })
+  // The Class Garden: a raised planter with the section's sampaguita, as big as the class has grown it.
+  const gd = GARDEN
+  prop(gd.solid.x0, gd.solid.y0, gd.solid.x1, gd.solid.y1, (g) => drawGarden(g, proj, gardenStage))
 
   DESK_GROUPS.forEach((group, k) => drawDeskGroup(scene, group.x, group.y, k))
 
@@ -373,6 +355,140 @@ export function drawFurniture(scene: Scene) {
 
   for (const p of PLANTS) {
     prop(p.x, p.y, p.x + PLANT_SIZE, p.y + PLANT_SIZE, (g) => drawPlant(g, proj, p.x, p.y, p.big))
+  }
+  return { wheel }
+}
+
+/** What the room animates: the Prize Wheel's slices. */
+export interface Furniture {
+  wheel: Container
+}
+
+export const WHEEL_COLORS = [0xef6f5e, 0xffd34d, 0x7fc4ea, 0x7dbf7a, 0xc9b6f0, 0xf0a050, 0xff9fb4, 0x6fcfc0]
+const WHEEL_R = 36
+const WHEEL_Z = STAGE.h + 62
+
+/** The Prize Wheel standing at the back of the Quiz Stage. Returns the part that spins. */
+function drawWheel(scene: Scene): Container {
+  const { proj } = scene
+  const { P } = proj
+  const w = WHEEL
+  const view = new Container()
+  const stand = new Graphics()
+  // A purple base on the stage, and two legs up to the hub.
+  box(stand, proj, w.x - 0.55, w.y - 0.25, STAGE.h, 1.1, 0.5, 12, 0x9e85e0, { top: 0xbfaef0 })
+  const [hx, hy] = P(w.x, w.y, WHEEL_Z)
+  const [bx, by] = P(w.x, w.y, STAGE.h + 12)
+  stand.poly([bx - 22, by - 2, bx - 14, by - 2, hx - 2, hy, hx - 6, hy]).fill(0xb98050).stroke({ width: 2, color: OUTLINE, join: 'round' })
+  stand.poly([bx + 14, by - 2, bx + 22, by - 2, hx + 6, hy, hx + 2, hy]).fill(0xa86c3a).stroke({ width: 2, color: OUTLINE, join: 'round' })
+  // Rim with bulbs.
+  stand.circle(hx, hy, WHEEL_R + 9).fill(0xffc94d).stroke({ width: 2.5, color: OUTLINE })
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2
+    stand.circle(hx + Math.cos(a) * (WHEEL_R + 4.5), hy + Math.sin(a) * (WHEEL_R + 4.5), 2.6).fill(0xfff8e0)
+  }
+  view.addChild(stand)
+
+  const slices = new Graphics()
+  const n = WHEEL_COLORS.length
+  for (let i = 0; i < n; i++) {
+    const a0 = (i / n) * Math.PI * 2
+    const a1 = ((i + 1) / n) * Math.PI * 2
+    slices.moveTo(0, 0).arc(0, 0, WHEEL_R, a0, a1).lineTo(0, 0).fill(WHEEL_COLORS[i]).stroke({ width: 1.6, color: OUTLINE, join: 'round' })
+    // A little star on every slice: every slice is a prize.
+    const am = (a0 + a1) / 2
+    slices.star(Math.cos(am) * WHEEL_R * 0.66, Math.sin(am) * WHEEL_R * 0.66, 5, 5, 2.4).fill(0xffffff)
+  }
+  slices.position.set(hx, hy)
+  view.addChild(slices)
+
+  const top = new Graphics()
+  top.circle(hx, hy, 9).fill(0xfff3d6).stroke({ width: 2.2, color: OUTLINE })
+  top.star(hx, hy, 5, 6, 3).fill(0xffc94d)
+  // The pointer at the top.
+  top.poly([hx - 9, hy - WHEEL_R - 14, hx + 9, hy - WHEEL_R - 14, hx, hy - WHEEL_R + 4]).fill(0xef5a4b).stroke({ width: 2.2, color: OUTLINE, join: 'round' })
+  view.addChild(top)
+
+  scene.add(view, w.solid.x0, w.solid.y0, w.solid.x1, w.solid.y1)
+  return slices
+}
+
+/** How the garden looks at each stage, 0 (just planted) to 4 (in bloom). */
+export const GARDEN_STAGES = 5
+
+/** The Class Garden planter and its sampaguita. `stage`: 0..4. */
+function drawGarden(g: Graphics, proj: Projection, stage: number) {
+  const { P } = proj
+  const gd = GARDEN
+  const H = 26
+  cylinder(g, proj, gd.x, gd.y, 0, gd.r, H, 0xd98a5c)
+  // Soil.
+  const [X, Y] = P(gd.x, gd.y, H)
+  const [rx, ry] = proj.floorEllipse(gd.r - 0.12)
+  g.ellipse(X, Y, rx, ry).fill(0x8a5a3a).stroke({ width: 1.6, color: OUTLINE })
+  for (let i = 0; i < 9; i++) g.circle(X - rx * 0.7 + (i * rx * 1.4) / 8, Y + Math.sin(i * 1.7) * ry * 0.5, 1.6).fill(0x6e4428)
+  // A little bamboo stake once it starts climbing.
+  if (stage >= 2) {
+    g.moveTo(X + 4, Y).lineTo(X + 4, Y - 52 - stage * 8).stroke({ width: 4, color: 0xc9a25a, cap: 'round' })
+    g.moveTo(X + 1, Y - 24).lineTo(X + 7, Y - 24).moveTo(X + 1, Y - 44).lineTo(X + 7, Y - 44).stroke({ width: 1.4, color: OUTLINE })
+  }
+  // The shrub grows with the stage.
+  const size = [0.45, 0.7, 0.95, 1.15, 1.3][Math.max(0, Math.min(4, stage))]
+  const leaf = (lx: number, ly: number, a: number, len: number) => {
+    const dx = Math.sin(a) * len
+    const dy = -Math.cos(a) * len
+    g.moveTo(lx, ly)
+      .quadraticCurveTo(lx + dx * 0.2 - 7, ly + dy * 0.5, lx + dx, ly + dy)
+      .quadraticCurveTo(lx + dx * 0.6 + 7, ly + dy * 0.4, lx, ly)
+      .fill(0x6fbf5c)
+      .stroke({ width: 1.8, color: 0x3f7a35, join: 'round' })
+  }
+  if (stage === 0) {
+    leaf(X, Y - 2, -0.8, 16)
+    leaf(X, Y - 2, 0.8, 16)
+    g.moveTo(X, Y).lineTo(X, Y - 6).stroke({ width: 2, color: 0x3f7a35 })
+    return
+  }
+  // Leafy clumps, more of them as it grows.
+  const clumps: [number, number][] = [
+    [0, -30],
+    [-20, -22],
+    [20, -24],
+    [-10, -48],
+    [12, -50],
+    [0, -66],
+    [-24, -42],
+    [24, -44],
+  ]
+  const count = [0, 3, 5, 7, 8][stage]
+  for (let i = 0; i < count; i++) {
+    const [cx, cy] = clumps[i]
+    const ox = X + cx * size
+    const oy = Y + cy * size
+    g.circle(ox, oy, 15 * size + 4).fill(0x5fae4e).stroke({ width: 1.8, color: 0x3f7a35 })
+    leaf(ox - 4, oy + 2, -0.9, 14 * size + 6)
+    leaf(ox + 4, oy + 2, 0.9, 14 * size + 6)
+  }
+  // Buds (stage 3) and white sampaguita flowers (stage 4).
+  if (stage >= 3) {
+    const spots: [number, number][] = [
+      [-16, -30],
+      [14, -36],
+      [-4, -56],
+      [20, -58],
+      [-22, -52],
+      [4, -72],
+      [-8, -36],
+    ]
+    for (const [fx, fy] of spots) {
+      const px = X + fx * size
+      const py = Y + fy * size
+      if (stage === 3) g.circle(px, py, 3.2).fill(0xfffbef).stroke({ width: 1.2, color: OUTLINE })
+      else {
+        g.star(px, py, 5, 7.5, 3.4).fill(0xffffff).stroke({ width: 1.3, color: OUTLINE, join: 'round' })
+        g.circle(px, py, 2).fill(0xffd34d)
+      }
+    }
   }
 }
 

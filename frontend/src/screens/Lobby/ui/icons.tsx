@@ -17,6 +17,9 @@ export type LobbyIconName =
   | 'diagonal'
   | 'straight'
   | 'medal'
+  | 'wheel'
+  | 'sprout'
+  | 'paw'
 
 const INK = '#5b3a22'
 const line = { fill: 'none', stroke: INK, strokeWidth: 2, strokeLinejoin: 'round', strokeLinecap: 'round' } as const
@@ -74,6 +77,34 @@ const ICONS: Record<LobbyIconName, ReactNode> = {
     <g {...line}>
       <path d="M8 2.5l4 6 4-6" fill="#9fd0f0" />
       <circle cx="12" cy="15" r="6" fill="#ffd34d" />
+    </g>
+  ),
+  wheel: (
+    <g {...line}>
+      <circle cx="12" cy="12" r="9" fill="#ffd34d" />
+      <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" />
+      <path d="M12 12L12 3A9 9 0 0118.4 5.6z" fill="#ef6f5e" />
+      <path d="M12 12L21 12A9 9 0 0118.4 18.4z" fill="#7fc4ea" />
+      <path d="M12 12L12 21A9 9 0 015.6 18.4z" fill="#7dbf7a" />
+      <path d="M12 12L3 12A9 9 0 015.6 5.6z" fill="#c9b6f0" />
+      <circle cx="12" cy="12" r="2.4" fill="#fff3d6" />
+    </g>
+  ),
+  sprout: (
+    <g {...line}>
+      <path d="M6 15h12l-1.6 6H7.6z" fill="#e98a5c" />
+      <path d="M12 15V9" />
+      <path d="M12 10c-1-3.6-4.2-4.6-7-4 .4 3 3 4.8 7 4z" fill="#7dbf7a" />
+      <path d="M12 9c.8-3.6 3.8-5 7-4.6-.2 3.2-3 5-7 4.6z" fill="#9fdcc0" />
+    </g>
+  ),
+  paw: (
+    <g {...line} fill="#ffb3c7">
+      <path d="M12 12.5c3 0 5.5 2.6 5.5 5 0 1.8-1.5 2.7-3 2.4-1-.2-1.6-.6-2.5-.6s-1.5.4-2.5.6c-1.5.3-3-.6-3-2.4 0-2.4 2.5-5 5.5-5z" />
+      <ellipse cx="6" cy="10" rx="1.9" ry="2.4" />
+      <ellipse cx="9.6" cy="6.4" rx="1.9" ry="2.5" />
+      <ellipse cx="14.4" cy="6.4" rx="1.9" ry="2.5" />
+      <ellipse cx="18" cy="10" rx="1.9" ry="2.4" />
     </g>
   ),
   gear: (
