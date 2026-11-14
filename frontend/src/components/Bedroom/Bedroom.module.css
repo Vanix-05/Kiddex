@@ -76,6 +76,11 @@
   will-change: transform, opacity;
 }
 
+/* Not shown until a frame asks for it (the soft desk). */
+.hidden {
+  opacity: 0;
+}
+
 /* ---------- Light ---------- */
 
 /* Over the whole room: a dark blue wash (the room sits a little darker than

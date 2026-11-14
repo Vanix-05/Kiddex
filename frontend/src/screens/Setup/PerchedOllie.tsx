@@ -7,22 +7,27 @@ import styles from './PerchedOllie.module.css'
  * corner, with his speech bubble on his left. He breathes and blinks, and
  * his beak moves each time his line changes; the bubble fades to the new
  * line. Placed in the book's own pixels (see PerchedOllie.module.css).
+ * surprised: he gives a start and stays leaning back, with little surprise
+ * marks over his head, and his bubble goes away.
  */
-export function PerchedOllie({ says }: { says: string }) {
+export function PerchedOllie({ says, surprised = false }: { says: string; surprised?: boolean }) {
   // Each new line: he talks again (OllieLive replays its beak on a new key).
   const [line, setLine] = useState({ text: says, talk: 1 })
   if (line.text !== says) setLine({ text: says, talk: line.talk + 1 })
 
   return (
     <>
-      <p className={styles.bubble} aria-live="polite">
+      <p className={surprised ? `${styles.bubble} ${styles.bubbleGone}` : styles.bubble} aria-live="polite">
         {/* key: the new line fades in. */}
         <span key={line.talk} className={styles.text}>
           {says}
         </span>
       </p>
-      <div className={styles.ollie} aria-hidden="true">
-        <OllieLive talkKey={line.talk} />
+      <div className={surprised ? `${styles.ollie} ${styles.surprised}` : styles.ollie} aria-hidden="true">
+        <div className={styles.start}>
+          <OllieLive talkKey={line.talk} />
+        </div>
+        {surprised && <span className={styles.marks} />}
       </div>
     </>
   )

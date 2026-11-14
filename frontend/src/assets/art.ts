@@ -67,6 +67,9 @@ import roomChairSoft from './bedroom/web/room-chair-soft.webp'
 import roomBed from './bedroom/web/room-bed.webp'
 import roomBedSoft from './bedroom/web/room-bed-soft.webp'
 import bedroomDesk from './bedroom/web/desk.webp'
+import bedroomDeskSoft from './bedroom/web/desk-soft.webp'
+import startFrame from './bedroom/web/start-frame.webp'
+import startFrameOnPage from './bedroom/web/start-frame-on-page.webp'
 import handLeft from './bedroom/web/hand-left.webp'
 import handLeftShadow from './bedroom/web/hand-left-shadow.webp'
 import handRight from './bedroom/web/hand-right-pencil.webp'
@@ -94,6 +97,11 @@ export const bedroomArt = {
   chair: { sharp: roomChair, soft: roomChairSoft },
   bed: { sharp: roomBed, soft: roomBedSoft },
   desk: bedroomDesk,
+  deskSoft: bedroomDeskSoft,
+  /** The glowing page the Student falls into: the pull-in ends on it and the magic video starts from it. */
+  startFrame,
+  /** The start frame with soft clear edges, as it lies on the storybook's page. */
+  startFrameOnPage,
   handLeft: { picture: handLeft, shadow: handLeftShadow },
   handRight: { picture: handRight, shadow: handRightShadow },
 }

@@ -109,6 +109,7 @@ function Picture({
   style,
   part,
   soft,
+  sharp,
 }: {
   src: string
   /** Draw it no wider than this (pixels). Default: the picture's own size. */
@@ -119,6 +120,8 @@ function Picture({
   part?: string
   /** It is an out-of-focus copy (data-soft). */
   soft?: boolean
+  /** It is the sharp copy under a soft one (data-sharp): not drawn while the soft copy covers it completely. */
+  sharp?: boolean
 }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
@@ -148,6 +151,7 @@ function Picture({
       data-picture=""
       data-part={part}
       data-soft={soft ? '' : undefined}
+      data-sharp={sharp ? '' : undefined}
       width={2}
       height={2}
       className={className}
@@ -168,7 +172,7 @@ function RoomPicture({
   const style: CSSProperties = { left: at.x, top: at.y, width: place.width * ROOM_SCALE, height: place.height * ROOM_SCALE }
   return (
     <>
-      <Picture src={art.sharp} className={styles.picture} style={style} />
+      <Picture src={art.sharp} sharp className={styles.picture} style={style} />
       <Picture src={art.soft} soft className={`${styles.picture} ${styles.soft}`} style={style} />
     </>
   )
@@ -191,6 +195,7 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
   // The moving parts, found once by their data-part / data-soft / data-dust attributes.
   const el = useRef<Record<string, HTMLElement | undefined>>({})
   const softs = useRef<HTMLElement[]>([])
+  const sharps = useRef<HTMLElement[]>([])
   const dust = useRef<HTMLElement[]>([])
 
   const apply = (f: BedroomFrame) => {
@@ -213,15 +218,17 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
     const tilt = tiltTransform(f.cam)
     set('tiltBack', tilt)
     set('tiltFront', tilt)
-    const wall = layerTransform(f.cam, PARALLAX.wall)
+    // The rush into the page: the room and the desk grow faster than the book.
+    const far = f.stretch ? { ...f.cam, zoom: f.cam.zoom * (1 + f.stretch) } : f.cam
+    const wall = layerTransform(far, PARALLAX.wall)
     set('wall', wall)
     set('light', wall)
-    set('shelf', layerTransform(f.cam, PARALLAX.shelf))
-    set('chair', layerTransform(f.cam, PARALLAX.chair))
-    set('bed', layerTransform(f.cam, PARALLAX.bed))
-    const desk = layerTransform(f.cam, PARALLAX.desk)
-    set('desk', desk)
-    set('hands', desk)
+    set('shelf', layerTransform(far, PARALLAX.shelf))
+    set('chair', layerTransform(far, PARALLAX.chair))
+    set('bed', layerTransform(far, PARALLAX.bed))
+    set('desk', layerTransform(far, PARALLAX.desk))
+    set('deskSoft', undefined, f.deskSoft ?? 0)
+    set('hands', layerTransform(f.cam, PARALLAX.desk))
     const bookAt = bookTransform(f.cam)
     set('book', bookAt)
     set('above', bookAt)
@@ -229,31 +236,38 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
     // Focus: the soft copies fade over the sharp ones.
     // Warm-up: nothing is fully hidden (or fully covered), so every picture gets drawn once.
     const least = f.warm ? 0.01 : 0
-    for (const soft of softs.current) fade(soft, f.warm ? Math.min(f.soft, 0.99) : f.soft)
+    const softness = f.warm ? Math.min(f.soft, 0.99) : f.soft
+    for (const soft of softs.current) fade(soft, softness)
+    // Fully out of focus: the sharp copies are completely covered, so they are not drawn at all (less for a weak laptop to do).
+    const covered = softness >= 1 ? 'hidden' : 'visible'
+    for (const sharp of sharps.current) if (sharp.style.visibility !== covered) sharp.style.visibility = covered
     set('deskDim', undefined, Math.max(least, f.deskDim))
     set('lampDip', undefined, Math.max(least, f.lampDip))
     set('moonbeam', undefined, 0.35 + 0.65 * f.moon)
     set('star', `scale(${(0.5 + f.star).toFixed(3)}) rotate(${(f.star * 40).toFixed(1)}deg)`, Math.max(least, f.star))
 
-    const hand = (name: string, pose: HandPose | null, height: number) => {
+    const hand = (name: string, pose: HandPose | null | undefined, height: number, mirrored = false) => {
       if (!pose) {
         set(name, undefined, 0)
         set(`${name}Shadow`, undefined, 0)
         return
       }
-      const rot = `rotate(${(pose.rot ?? 0).toFixed(2)}deg)`
+      const size = pose.scale ?? 1
+      const seen = pose.opacity ?? 1
+      const rot = `rotate(${(pose.rot ?? 0).toFixed(2)}deg) scale(${(mirrored ? -size : size).toFixed(4)}, ${size.toFixed(4)})`
       const pivot = handPivot(height)
       const origin = `${pivot.x}px ${pivot.y}px`
       const node = e[name]
       if (node) node.style.transformOrigin = origin
-      set(name, `translate(${pose.x.toFixed(2)}px, ${pose.y.toFixed(2)}px) ${rot}`, f.warm ? 0.01 : 1)
+      set(name, `translate(${pose.x.toFixed(2)}px, ${pose.y.toFixed(2)}px) ${rot}`, f.warm ? 0.01 : seen)
       // The shadow falls down-left, away from the lamp's side of the hand.
       const shadow = e[`${name}Shadow`]
       if (shadow) shadow.style.transformOrigin = origin
-      set(`${name}Shadow`, `translate(${(pose.x - 12).toFixed(2)}px, ${(pose.y + 14).toFixed(2)}px) ${rot}`, f.warm ? 0.01 : 0.55 * (pose.shadow ?? 1))
+      set(`${name}Shadow`, `translate(${(pose.x - 12).toFixed(2)}px, ${(pose.y + 14).toFixed(2)}px) ${rot}`, f.warm ? 0.01 : 0.55 * (pose.shadow ?? 1) * seen)
     }
     hand('handLeft', f.left, HAND_LEFT_H)
     hand('handRight', f.right, HAND_RIGHT_H)
+    hand('handOpen', f.rightOpen, HAND_LEFT_H, true)
 
     // Dust: each speck drifts slowly up and sideways, fading in and out.
     dust.current.forEach((node, i) => {
@@ -294,6 +308,7 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
     const all = (selector: string) => [...root.querySelectorAll<HTMLElement>(selector)]
     el.current = Object.fromEntries(all('[data-part]').map((node) => [node.dataset.part, node]))
     softs.current = all('[data-soft]')
+    sharps.current = all('[data-sharp]')
     dust.current = all('[data-dust]')
     // The two big gradients, painted once from the theme's colors.
     const theme = getComputedStyle(root)
@@ -354,6 +369,12 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
               className={styles.picture}
               style={{ left: DESK.x, top: DESK.y, width: DESK.width, height: DESK.height }}
             />
+            <Picture
+              part="deskSoft"
+              src={bedroomArt.deskSoft}
+              className={`${styles.picture} ${styles.soft} ${styles.hidden}`}
+              style={{ left: DESK.x, top: DESK.y, width: DESK.width, height: DESK.height }}
+            />
             <span data-part="deskDim" className={styles.deskDim} style={{ top: DESK_BACK_Y }} />
             <span data-part="lampDip" className={styles.lampDip} style={{ top: DESK_BACK_Y - 200 }} />
             {DUST.map((d, i) => (
@@ -381,6 +402,9 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
           <div data-part="hands" className={styles.layer} aria-hidden="true">
             <Picture part="handLeftShadow" src={bedroomArt.handLeft.shadow} className={`${styles.hand} ${styles.shadowLeft}`} style={{ height: HAND_LEFT_H }} />
             <Picture part="handRightShadow" src={bedroomArt.handRight.shadow} className={`${styles.hand} ${styles.shadowRight}`} style={{ height: HAND_RIGHT_H }} />
+            {/* The right hand, empty: the left hand's picture, mirrored (Bedroom's apply flips it). */}
+            <Picture part="handOpenShadow" src={bedroomArt.handLeft.shadow} className={`${styles.hand} ${styles.shadowLeft}`} style={{ height: HAND_LEFT_H }} />
+            <Picture part="handOpen" src={bedroomArt.handLeft.picture} maxWidth={HAND_PX} className={styles.hand} style={{ height: HAND_LEFT_H }} />
             <Picture part="handLeft" src={bedroomArt.handLeft.picture} maxWidth={HAND_PX} className={styles.hand} style={{ height: HAND_LEFT_H }} />
             <Picture part="handRight" src={bedroomArt.handRight.picture} maxWidth={HAND_PX} className={styles.hand} style={{ height: HAND_RIGHT_H }} />
           </div>

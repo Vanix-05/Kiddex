@@ -99,6 +99,11 @@ export const router = createBrowserRouter([
           path: '/dev/intro',
           lazy: () => import('../screens/DevIntro/DevIntroScreen').then((m) => ({ Component: m.DevIntroScreen })),
         },
+        // "The buddy pulls you in" and the magic fall, on a loop: ?buddy=fox, ?t=4, ?video=0, ?part=fall.
+        {
+          path: '/dev/pullin',
+          lazy: () => import('../screens/DevPullIn/DevPullInScreen').then((m) => ({ Component: m.DevPullInScreen })),
+        },
         // The Main Lobby with a sample Student, no login needed: ?p=a|b, &fps shows the frame rate.
         { path: '/dev/lobby', element: <LazyDevLobbyScreen /> },
         // Every mini game and state with a sample Student: links at /dev/games.

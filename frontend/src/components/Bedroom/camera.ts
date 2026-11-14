@@ -95,6 +95,10 @@ export interface HandPose {
   rot?: number
   /** 0..1: how dark its shadow is (1 = resting on the desk). */
   shadow?: number
+  /** Its size (1 = as drawn), around the middle of the hand. */
+  scale?: number
+  /** 0..1 (default 1). */
+  opacity?: number
 }
 
 // ---------- One frame ----------
@@ -113,7 +117,14 @@ export interface BedroomFrame {
   /** 0..1: the star by the moon twinkling. */
   star: number
   left: HandPose | null
+  /** The right hand holding the pencil. */
   right: HandPose | null
+  /** The right hand, empty (the left hand's picture, mirrored). */
+  rightOpen?: HandPose | null
+  /** 0..1: the desk out of focus (its soft copy fades in). */
+  deskSoft?: number
+  /** The room and the desk drawn this much bigger than the camera's zoom (0 = as usual): they stretch outward in the rush into the page. */
+  stretch?: number
   /** Seconds, for the dust drifting in the lamp's light. null = no dust. */
   dust: number | null
   /** 0..1: how visible the dust is (it fades in and out with the clip). */

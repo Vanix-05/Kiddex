@@ -106,6 +106,9 @@ export const theme = {
     bedroomDeskDim: 'rgba(10, 12, 36, 0.5)', // the desk while the room is in focus; the lamp's flicker
     bedroomDust: 'rgba(255, 236, 196, 0.9)',
     pencilLead: '#55504E', // the doodles on the page (dark grey pencil)
+    magicGlow: '#FFD76A', // the gold glow of the page the buddy reaches out of
+    magicGlowSoft: 'rgba(255, 215, 106, 0)',
+    speedLine: 'rgba(110, 104, 100, 0.55)', // pencil speed lines in the rush
     letterbox: '#1D1410', // the clip's bars (same as the bridge cutscene)
     letterboxText: '#FDF6EC',
 

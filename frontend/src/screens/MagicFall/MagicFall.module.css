@@ -1,0 +1,98 @@
+/*
+ * The magic fall (MagicFall.tsx): the magic video with the Student's buddy on
+ * top, on the same 1440 x 900 stage and letterbox as the clips before it.
+ * The buddy and the hand are moved by its clock (transforms and opacity only).
+ */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  overflow: hidden;
+  /* Outside the picture, on windows of another shape. */
+  background: var(--color-letterbox);
+}
+
+/* Over: it fades out over the Customize Bridge underneath (LEAVE_MS in MagicFall.tsx). */
+.leaving {
+  opacity: 0;
+  transition: opacity 800ms ease;
+  pointer-events: none;
+}
+
+/* The start frame and the video both cover the stage (16:9 on a 16:10 stage: 80px off each side). */
+.cover {
+  position: absolute;
+  left: -80px;
+  top: 0;
+  width: 1600px;
+  max-width: none;
+  height: 900px;
+  object-fit: cover;
+}
+
+.video {
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* The buddy: placed by its middle. */
+.mover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.buddy {
+  position: absolute;
+  translate: -50% -50%;
+  opacity: 0;
+  will-change: opacity;
+}
+
+.rig {
+  width: 100%;
+  height: 100%;
+}
+
+/* The pencil-sketch copy: the same shapes as grey lines on paper. */
+.sketch {
+  opacity: 1;
+}
+
+.sketch path,
+.sketch ellipse,
+.sketch circle {
+  fill: var(--color-card-bg);
+  stroke: var(--color-pencil-lead);
+  stroke-width: 14px;
+  stroke-linejoin: round;
+}
+
+/* The Student's hand: placed by its fingertips. */
+.hand {
+  position: absolute;
+  max-width: none;
+  /* The picture is tinted for the night bedroom: brighter here, out in the daylight (never animated). */
+  filter: brightness(1.3) saturate(1.12);
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* The letterbox is already in place when the fall starts (the clip before it ends with it). */
+.shown {
+  opacity: 1;
+}
+
+.barIn {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaving {
+    transition-duration: 300ms;
+  }
+}

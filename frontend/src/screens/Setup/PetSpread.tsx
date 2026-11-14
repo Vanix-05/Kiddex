@@ -25,6 +25,13 @@ interface PetSpreadProps {
   chosen: boolean
   /** Something is moving: taps are ignored. */
   busy: boolean
+  /**
+   * The right page is covered (the buddy is pulling the Student in): its
+   * animated buddy is taken away, so nothing redraws under the cover.
+   */
+  covered?: boolean
+  /** The buddy on the page stands still (its plain picture): the camera is moving, and a live buddy would redraw the whole book every frame. */
+  frozen?: boolean
   onChoose?: () => void
   onBack?: () => void
 }
@@ -45,6 +52,8 @@ export function PetSpread({
   onName,
   chosen,
   busy,
+  covered = false,
+  frozen = false,
   onChoose,
   onBack,
 }: PetSpreadProps) {
@@ -83,7 +92,8 @@ export function PetSpread({
               style={{ '--pop-delay': `${WRITE_MS + k * TILE_STAGGER_MS}ms` } as CSSProperties}
             >
               {/* The quiz match glows softly, under its usual look. */}
-              {match && <span className={styles.glow} aria-hidden="true" />}
+              {/* (Not once a buddy is chosen: nothing can be picked any more, and its endless glow would keep redrawing the page.) */}
+              {match && !chosen && <span className={styles.glow} aria-hidden="true" />}
               <button
                 type="button"
                 className={[styles.tile, styles[p.tint], selected && styles.selected, !ok && styles.locked]
@@ -156,7 +166,9 @@ export function PetSpread({
 
       {/* The picked buddy stands top-right on the right page. key: a newly picked one hops in. */}
       <div key={`figure-${pet.id}`} className={styles.figureWrap}>
-        {ready ? (
+        {covered ? null : frozen && buddyPicture(pet.id) ? (
+          <img src={buddyPicture(pet.id)} alt="" className={styles.figure} draggable={false} />
+        ) : ready ? (
           <BuddyFigure id={pet.id} name={displayName} className={styles.figure} />
         ) : (
           <Silhouette className={styles.figure} />

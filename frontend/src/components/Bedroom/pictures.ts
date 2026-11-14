@@ -42,12 +42,13 @@ export function loadPicture(src: string, maxWidth?: number): Promise<ImageBitmap
 
 /** Starts downloading and decoding every bedroom picture. */
 export function preloadBedroom() {
-  const { wall, shelf, chair, bed, desk, handLeft, handRight } = bedroomArt
+  const { wall, shelf, chair, bed, desk, deskSoft, handLeft, handRight } = bedroomArt
   for (const room of [wall, shelf, chair, bed]) {
     void loadPicture(room.sharp).catch(() => {})
     void loadPicture(room.soft).catch(() => {})
   }
   void loadPicture(desk).catch(() => {})
+  void loadPicture(deskSoft).catch(() => {})
   for (const hand of [handLeft, handRight]) {
     void loadPicture(hand.picture, HAND_PX).catch(() => {})
     void loadPicture(hand.shadow).catch(() => {})

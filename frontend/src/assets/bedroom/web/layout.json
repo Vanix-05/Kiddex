@@ -27,6 +27,10 @@
     "width": 2752,
     "height": 1536
   },
+  "startFrame": {
+    "width": 1920,
+    "height": 1080
+  },
   "hands": {
     "left": {
       "width": 1024,

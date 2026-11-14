@@ -20,6 +20,8 @@ export const rigSettings = {
   timeScale: 1,
   /** Play a random move now and then (and soon after appearing). */
   autoMoves: true,
+  /** 0..1: ears, gills and hair blow back as if in wind (the magic fall). */
+  wind: 0,
 }
 const playing = new Set<(move?: Move) => void>()
 /** Plays a move on every rig on the page (for the dev page). */
@@ -342,9 +344,12 @@ export function useSpringRig(
       const vy = root.y.v + air.v + head.y.v
       const lift = clamp(-vy * 0.004, -14, 14) // moving up: they droop; falling: they perk up
       const turn = clamp(-(head.rot.v - root.rot.v) * 0.05, -10, 10)
-      ears.left.target = -(pose.droop.x + lift) + turn
-      ears.right.target = pose.droop.x + lift + turn
-      hair.target = clamp(-vy * 0.006, -18, 18)
+      // Wind: they blow up and flutter.
+      const wind = reduced ? 0 : rigSettings.wind
+      const gust = wind * (9 + 4 * Math.sin(time * 5.3) + 2.5 * Math.sin(time * 8.9 + 1))
+      ears.left.target = -(pose.droop.x + lift - gust) + turn + wind * 2 * Math.sin(time * 6.1)
+      ears.right.target = pose.droop.x + lift - gust + turn + wind * 2 * Math.sin(time * 6.7 + 2)
+      hair.target = clamp(-vy * 0.006 - gust * 0.9, -18, 18)
 
       // ---- Step the springs and the airborne physics ----
       const steps = Math.max(1, Math.ceil(dt / SUBSTEP))

@@ -20,6 +20,10 @@ import { pickBuddy } from '../../setup/scoring'
 import { GenderSpread } from './GenderSpread'
 import { Doodles } from './intro/Doodles'
 import { useIntroClip } from './intro/useIntroClip'
+import { magicFall } from '../MagicFall/magicFallStore'
+import { magicVideo } from '../MagicFall/magicVideo'
+import { pullInGate } from './pullIn/pullInGate'
+import { usePullInClip } from './pullIn/usePullInClip'
 import { PerchedOllie } from './PerchedOllie'
 import { PetSpread } from './PetSpread'
 import { QuizSpread } from './QuizSpread'
@@ -63,29 +67,41 @@ interface Leaving {
  * session): the same book and bedroom, with the camera moving (intro/). The
  * clip ends by turning the blank page to Boy or Girl, so there is no jump.
  *
+ * Choose saves the picks, then "the buddy pulls you in" plays here in the
+ * bedroom (pullIn/): the buddy's arms reach out of the page and pull the
+ * Student into it. The magic fall (screens/MagicFall) and the Customize
+ * Bridge follow.
+ *
  * The book is 1216 x 748 at (96, 130) on a 1440 x 900 stage (Bedroom's book view).
  */
-export function SetupBook({ intro, freezeAt, onIntroEnd }: SetupBookProps = {}) {
+export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProps = {}) {
   const navigate = useNavigate()
-  const { finishSetup, seenIntroClip, markIntroClipSeen } = useSession()
+  const { finishSetup, seenIntroClip, markIntroClipSeen, look } = useSession()
   const bedroomRef = useRef<BedroomHandle>(null)
   const liveRef = useRef<HTMLDivElement>(null)
 
   // The intro clip: playing -> story (the page turns to Boy or Girl) -> over.
-  const [clip, setClip] = useState<'playing' | 'story' | 'over'>(() => ((intro ?? !seenIntroClip) ? 'playing' : 'over'))
+  const [clip, setClip] = useState<'playing' | 'story' | 'over'>(() => (!pullIn && (intro ?? !seenIntroClip) ? 'playing' : 'over'))
   // Once only, even if they skip it or reload.
   useEffect(() => {
-    if (intro === undefined && !seenIntroClip) markIntroClipSeen()
-  }, [intro, seenIntroClip, markIntroClipSeen])
+    if (intro === undefined && !pullIn && !seenIntroClip) markIntroClipSeen()
+  }, [intro, pullIn, seenIntroClip, markIntroClipSeen])
 
-  const [page, setPage] = useState(() => (clip === 'playing' ? INTRO_PAGE : GENDER_PAGE))
-  const [avatar, setAvatar] = useState<Avatar | null>(null)
+  // (Dev: `pullIn` opens the book on Pick your buddy, just after Choose.)
+  const [page, setPage] = useState(() => (pullIn ? PET_PAGE : clip === 'playing' ? INTRO_PAGE : GENDER_PAGE))
+  const [avatar, setAvatar] = useState<Avatar | null>(pullIn ? 'girl' : null)
   const [picks, setPicks] = useState<QuizAnswer[]>([])
-  const [matchedBuddy, setMatchedBuddy] = useState<BuddyId | null>(null)
-  const [selectedId, setSelectedId] = useState<BuddyId>(() => firstPick(null))
+  const [matchedBuddy, setMatchedBuddy] = useState<BuddyId | null>(pullIn?.buddy ?? null)
+  const [selectedId, setSelectedId] = useState<BuddyId>(() => pullIn?.buddy ?? firstPick(null))
   // Nicknames typed so far, per buddy, so switching back keeps them.
   const [names, setNames] = useState<Partial<Record<BuddyId, string>>>({})
-  const [chosen, setChosen] = useState(false)
+  const [chosen, setChosen] = useState(!!pullIn)
+  // After Choose and "A perfect team!": the buddy pulls the Student into the page.
+  const [pulling, setPulling] = useState(!!pullIn)
+  // The glowing page covers the right page: what is under it stops animating.
+  const [covered, setCovered] = useState(false)
+  // The magic fall has taken over the screen: this book has nothing left to draw.
+  const [fallen, setFallen] = useState(false)
 
   const [popped, setPopped] = useState<number | null>(null)
   const [leaving, setLeaving] = useState<Leaving | null>(null)
@@ -213,10 +229,42 @@ export function SetupBook({ intro, freezeAt, onIntroEnd }: SetupBookProps = {}) 
     if (busy || !avatar || !isBuddyReady(selectedId)) return
     setChosen(true)
     later(CHOSEN_MS, () => {
+      // Saved now, so the picks are kept even if the clip is skipped or the tab is closed.
+      // The gate keeps this book on screen meanwhile (SetupFrame would send a Student with a buddy away).
+      pullInGate.start()
       finishSetup({ avatar, buddy: selectedId, nickname })
-      navigate(paths.customize, { replace: true })
+      setPulling(true)
     })
   }
+
+  /** The pull-in clip is over: on to the magic fall, or (skipped, reduce motion) straight to the Customize Bridge. */
+  const endPullIn = useCallback(
+    (next: 'fall' | 'customize') => {
+      if (pullIn) {
+        pullIn.onEnd(next)
+        return
+      }
+      if (next === 'fall') {
+        // Drawn above the routes (MagicFallHost): it opens the Customize Bridge when it ends.
+        magicFall.start({ buddy: selectedId, buddyColor: look.buddyColor })
+        // It covers the whole screen from its first frame (the same start frame): stop drawing the bedroom under it.
+        setFallen(true)
+        return
+      }
+      pullInGate.end()
+      navigate(paths.customize, { replace: true })
+    },
+    [pullIn, selectedId, look.buddyColor, navigate],
+  )
+  const pullParts = usePullInClip({
+    bedroom: bedroomRef,
+    active: pulling,
+    buddy: selectedId,
+    buddyColor: pullIn ? pullIn.buddyColor : look.buddyColor,
+    freezeAt: pullIn?.freezeAt,
+    onEnd: endPullIn,
+    onCovered: useCallback(() => setCovered(true), []),
+  })
 
   // ---------- What Ollie says ----------
 
@@ -248,6 +296,8 @@ export function SetupBook({ intro, freezeAt, onIntroEnd }: SetupBookProps = {}) 
         onName={(id, name) => setNames((n) => ({ ...n, [id]: name }))}
         chosen={chosen}
         busy={busy}
+        covered={covered}
+        frozen={pulling}
         onChoose={choose}
         onBack={petBack}
       />
@@ -288,10 +338,12 @@ export function SetupBook({ intro, freezeAt, onIntroEnd }: SetupBookProps = {}) 
       ) : (
         // The page you're on. Keyed by page, so its entrance plays when it lands.
         <div key={page} ref={liveRef} className={liveClass} inert={fading === 'out'}>
-          {spread(page, 'live', popped)}
+          {/* (Dev pull-in: the page has been open a while, so no arrival animation.) */}
+          {spread(page, pullIn ? 'still' : 'live', popped)}
         </div>
       )}
       {introParts.onPage}
+      {pullParts.onPage}
 
       <span className={book.gutter} />
       <span className={`${book.ribbon} ${styles.ribbon}`} />
@@ -320,9 +372,11 @@ export function SetupBook({ intro, freezeAt, onIntroEnd }: SetupBookProps = {}) 
       )}
 
       {/* Ollie sits on the book once the clip has brought him there. */}
-      {clip !== 'playing' && <PerchedOllie says={ollieSays(leaving ? leaving.page : page)} />}
+      {clip !== 'playing' && <PerchedOllie says={ollieSays(leaving ? leaving.page : page)} surprised={pulling} />}
     </div>
   )
+
+  if (fallen) return null
 
   return (
     <main>
@@ -330,13 +384,16 @@ export function SetupBook({ intro, freezeAt, onIntroEnd }: SetupBookProps = {}) 
       <Bedroom
         ref={bedroomRef}
         book={theBook}
-        aboveHands={introParts.aboveHands}
+        aboveHands={introParts.aboveHands ?? pullParts.aboveHands}
         backdrop={introParts.backdrop}
-        locked={clip !== 'over'}
+        locked={clip !== 'over' || pulling}
       >
         {/* Swallows taps while anything moves (no double taps). */}
         {busy && <div className={styles.blocker} aria-hidden="true" />}
         {introParts.overlay}
+        {pullParts.overlay}
+        {/* The magic video starts downloading as soon as the book opens, so it is ready by Choose. */}
+        {magicVideo && <video className="visually-hidden" src={magicVideo} preload="auto" muted aria-hidden="true" tabIndex={-1} />}
       </Bedroom>
     </main>
   )
@@ -349,4 +406,15 @@ interface SetupBookProps {
   freezeAt?: number
   /** Dev only: the clip has ended (or was skipped). */
   onIntroEnd?: () => void
+  /**
+   * Dev only: open on Pick your buddy just after Choose and play "the buddy
+   * pulls you in" with this buddy. Nothing is saved; onEnd says what would come next.
+   */
+  pullIn?: {
+    buddy: BuddyId
+    buddyColor?: string
+    /** Hold this moment (seconds). */
+    freezeAt?: number
+    onEnd: (next: 'fall' | 'customize') => void
+  }
 }

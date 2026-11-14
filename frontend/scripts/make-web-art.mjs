@@ -21,6 +21,10 @@
 //   <name>-soft.webp        the same pictures blurred by about 6px (at full
 //                           size) and saved at half size: the out-of-focus room.
 //   desk.webp               the desk at its own size
+//   desk-soft.webp          the desk blurred, half size (the rush into the page)
+//   start-frame.webp        the glowing page the Student falls into (1920 wide):
+//                           the last frame of the pull-in, the first of the magic video
+//   start-frame-on-page.webp  the same, half size with soft clear edges: as it lies on the book's page
 //   hand-*.webp             the hands, 1024 wide, tinted cooler and darker to
 //                           match the night
 //   hand-*-shadow.webp      a soft dark shape of each hand, for its shadow
@@ -101,6 +105,37 @@ for (const piece of ['shelf', 'chair', 'bed']) {
 const deskInfo = await sharp(join(bedroom, 'desk.png')).webp({ quality: QUALITY, alphaQuality: 100, effort: 6 }).toFile(join(bedroomWeb, 'desk.webp'))
 report('desk.png', deskInfo, 'desk.webp')
 layout.desk = { width: deskInfo.width, height: deskInfo.height }
+const deskSoft = await sharp(join(bedroom, 'desk.png'))
+  .blur(SOFT_BLUR)
+  .resize({ width: Math.round(deskInfo.width / 2) })
+  .webp({ quality: ROOM_QUALITY, alphaQuality: 100, effort: 6 })
+  .toFile(join(bedroomWeb, 'desk-soft.webp'))
+report('desk.png', deskSoft, 'desk-soft.webp')
+
+const startFrame = await sharp(join(bedroom, 'start-frame.png')).webp({ quality: 88, effort: 6 }).toFile(join(bedroomWeb, 'start-frame.webp'))
+report('start-frame.png', startFrame, 'start-frame.webp')
+layout.startFrame = { width: startFrame.width, height: startFrame.height }
+// The same picture as it lies on the storybook's page: half size, its edges
+// fading to nothing (an ellipse: solid out to 62% of the way, clear at the
+// edge), so it melts into the paper without a mask at run time.
+{
+  const width = 960
+  const height = Math.round((width * startFrame.height) / startFrame.width)
+  const alpha = Buffer.alloc(width * height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const r = Math.hypot((x - width / 2) / (width / 2), (y - height / 2) / (height / 2))
+      alpha[y * width + x] = Math.round(255 * Math.min(1, Math.max(0, (1 - r) / 0.38)))
+    }
+  }
+  const onPage = await sharp(join(bedroom, 'start-frame.png'))
+    .resize({ width, height })
+    .removeAlpha()
+    .joinChannel(alpha, { raw: { width, height, channels: 1 } })
+    .webp({ quality: 88, alphaQuality: 90, effort: 6 })
+    .toFile(join(bedroomWeb, 'start-frame-on-page.webp'))
+  report('start-frame.png', onPage, 'start-frame-on-page.webp')
+}
 
 layout.hands = {}
 for (const [key, hand] of [['left', 'hand-left'], ['right', 'hand-right-pencil']]) {
