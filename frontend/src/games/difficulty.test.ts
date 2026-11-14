@@ -76,3 +76,26 @@ describe('picking cards', () => {
     expect(picked.map((c) => c.level)).toEqual(['easy', 'easy', 'medium'])
   })
 })
+
+describe('Buddy Help: a helped answer counts as not right (rule 6)', () => {
+  const ok = { right: true, helped: false }
+  const helped = { right: true, helped: true }
+
+  it('every 4 answers: a helped right answer is counted as not right', () => {
+    // 4 right with 1 helped = 3 of 4 right. Rule 3 says 3 of 4 goes up, so it still does.
+    expect(decideAfterFour([ok, ok, ok, helped], 'easy')).toMatchObject({ change: 'up', reason: '3 of 4 right' })
+    // 4 right with 2 helped = 2 of 4: no level up (it would go up if helped counted).
+    expect(decideAfterFour([ok, ok, helped, helped], 'easy')).toMatchObject({ level: 'easy', change: 'keep', reason: '2 of 4 right' })
+  })
+
+  it('the end-of-round percent ignores helped answers', () => {
+    // 8 right, 2 of them helped: 6 of 8 = 75%, under 80%, so no level up.
+    const answers = [ok, ok, ok, ok, ok, ok, helped, helped]
+    expect(decideAfterRound(answers, 'easy')).toEqual({ level: 'easy', change: 'keep', reason: '6 of 8 right (75%)' })
+  })
+
+  it('a round of only helped right answers does not go up', () => {
+    expect(decideAfterRound([helped, helped, helped, helped], 'easy').change).not.toBe('up')
+    expect(decideDuringRound([helped, helped, helped, helped], 'medium')?.change).toBe('down')
+  })
+})

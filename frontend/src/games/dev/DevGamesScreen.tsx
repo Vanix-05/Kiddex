@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { GameRoute } from '../GameRoute'
 import { GAMES, isGameId } from '../session'
-import type { DemoState, Player } from '../types'
+import { DEMO_STATES, type DemoState, type Player } from '../types'
 import styles from './DevGamesScreen.module.css'
 
 // Dev only (not in production builds): every mini game screen at a glance,
@@ -26,6 +26,12 @@ const STATES: { game: string; state?: DemoState; label: string }[] = [
   { game: 'match-up', state: 'picked', label: 'Match Up: a card picked (m1)' },
   { game: 'match-up', state: 'miss', label: 'Match Up: a wrong pair (m2)' },
   { game: 'match-up', state: 'results', label: 'Match Up: Results' },
+  { game: 'quiz-show', state: 'help-ready', label: 'Buddy Help: a help ready (Quiz Show, q4)' },
+  { game: 'quiz-show', state: 'help-used', label: 'Buddy Help: help used, one wrong choice knocked away (Quiz Show)' },
+  { game: 'quiz-show', state: 'help-earned', label: 'Buddy Help: 3 right in a row, a new help earned (Quiz Show)' },
+  { game: 'quiz-show', state: 'help-none', label: 'Buddy Help: 0 helps left (Quiz Show)' },
+  { game: 'match-up', state: 'match-help', label: 'Buddy Help: a card picked, its partner glows (Match Up)' },
+  { game: 'quiz-show', state: 'results', label: 'Buddy Help on Results: 7 of 8, 1 with the buddy’s help (Quiz Show)' },
 ]
 
 /** /dev/all-games samples (see DevAllGamesScreen). */
@@ -37,7 +43,7 @@ const ALL_GAMES: { sample?: string; label: string }[] = [
   { label: 'All games: your real progress (play from here to see it update)' },
 ]
 
-const isDemo =(v: string | null): v is DemoState => ['question', 'right', 'wrong', 'results', 'picked', 'miss'].includes(v ?? '')
+const isDemo = (v: string | null): v is DemoState => DEMO_STATES.includes(v as DemoState)
 
 /** /dev/games: a link for each game and each state. */
 export function DevGamesScreen() {

@@ -9,6 +9,7 @@ import styles from './ResultsScreen.module.css'
 export function ResultsBoard({
   game,
   name,
+  buddyName,
   summary,
   lookAgain,
   compact,
@@ -18,6 +19,8 @@ export function ResultsBoard({
 }: {
   game: GameId
   name: string
+  /** The buddy's name, for "1 with Mochi's help". */
+  buddyName: string
   /** With no next game, the button goes back here. */
   leaveTo?: 'lobby' | 'games'
   summary: RoundSummary
@@ -28,7 +31,7 @@ export function ResultsBoard({
   onPlayAgain: () => void
   onNext: () => void
 }) {
-  const { right, total, xpGained, xpBefore, streakDays, nextGame } = summary
+  const { right, total, helped, xpGained, xpBefore, streakDays, nextGame } = summary
   const stars = starsFor(right, total)
   const title = game === 'match-up' ? `All tied up, ${name}!` : `Great show, ${name}!`
   const after = xpBefore.xp + xpGained
@@ -54,7 +57,12 @@ export function ResultsBoard({
       <p className={styles.line}>{nextStarLine(right, total)}</p>
 
       <div className={styles.stats}>
-        <Stat icon={<Target size={24} strokeWidth={2.4} />} big={`${right} of ${total}`} small="correct" />
+        <Stat
+          icon={<Target size={24} strokeWidth={2.4} />}
+          big={`${right} of ${total}`}
+          small="correct"
+          note={helped > 0 ? `${helped} with ${buddyName}’s help` : undefined}
+        />
         <Stat icon={<Zap size={24} strokeWidth={2.4} />} big={`+${xpGained} XP`} small={xpLine} />
         <Stat icon={<Flame size={24} strokeWidth={2.4} />} big={`${streakDays} ${streakDays === 1 ? 'day' : 'days'}`} small="in a row" />
       </div>
@@ -109,7 +117,7 @@ export function ResultsBoard({
   )
 }
 
-function Stat({ icon, big, small }: { icon: ReactNode; big: string; small: string }) {
+function Stat({ icon, big, small, note }: { icon: ReactNode; big: string; small: string; note?: string }) {
   return (
     <div className={styles.stat}>
       <span className={styles.statIcon} aria-hidden="true">
@@ -118,6 +126,7 @@ function Stat({ icon, big, small }: { icon: ReactNode; big: string; small: strin
       <span className={styles.statText}>
         <b>{big}</b>
         <small>{small}</small>
+        {note && <small className={styles.statNote}>{note}</small>}
       </span>
     </div>
   )

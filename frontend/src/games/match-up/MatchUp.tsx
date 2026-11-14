@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { STREAK_FOR_HELP, streakLine } from '../buddyHelp'
 import { FeedbackStrip } from '../FeedbackStrip'
 import { GameFrame, GameIcon, ProgressPill, type DotState } from '../GameFrame'
 import { MissionPill, ResultsBoard } from '../ResultsScreen'
@@ -8,7 +9,21 @@ import { decisionLine, makeResult } from '../session'
 import type { GameProps } from '../types'
 import { useGameProgress } from '../useGameProgress'
 import { SLOTS, useCalmMotion, useStageFit } from '../useStage'
-import { cardOf, clearMiss, demoMatch, done, isTied, records, startMatch, tap, tryPair, type MatchRound, type Side } from './matchRound'
+import {
+  cardOf,
+  clearMiss,
+  demoMatch,
+  done,
+  isTied,
+  matchHelpBlocked,
+  records,
+  startMatch,
+  takeMatchHelp,
+  tap,
+  tryPair,
+  type MatchRound,
+  type Side,
+} from './matchRound'
 import styles from './MatchUp.module.css'
 
 /** Card rows and columns inside the board, in design px (normal and short windows). */
@@ -40,6 +55,7 @@ interface Drag {
  * Match Up: tie each prompt (left) to its partner (right) with yarn. Tap a
  * card, then its partner; or drag from one pin to another. A wrong pair turns
  * coral with a hint until Okay. Right only counts on the first try.
+ * The Student's buddy guides; Buddy Help makes the picked card's partner glow.
  */
 export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, onLeave, onPlayGame }: GameProps) {
   const stage = useStageFit()
@@ -49,7 +65,11 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
   const topic = cards[0]?.topic ?? lesson.name
 
   const [round, setRound] = useState<MatchRound>(() =>
-    demo === 'picked' || demo === 'miss' ? demoMatch(cards, levelFor(topic), demo, Date.now()) : startMatch(cards, levelFor(topic), Date.now()),
+    demo === 'picked' || demo === 'miss'
+      ? demoMatch(cards, levelFor(topic), demo, Date.now())
+      : demo === 'match-help'
+        ? demoMatch(cards, levelFor(topic), 'help', Date.now())
+        : startMatch(cards, levelFor(topic), Date.now()),
   )
   const [summary, setSummary] = useState<RoundSummary | null>(() => {
     if (demo !== 'results') return null
@@ -59,12 +79,16 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
       if (i === 0) r = clearMiss(tryPair(r, id, r.left[1], id, r.startedAt))
       r = tryPair(r, id, id, id, r.startedAt)
     })
-    return endRound(makeResult('match-up', lesson.id, topic, r.startedAt, r.startedAt, records(r)), r.startLevel, false)
+    return endRound(makeResult('match-up', lesson.id, topic, r.startedAt, r.startedAt, records(r), r.help.used), r.startLevel, false)
   })
   const [jump, setJump] = useState(0)
   const [lastTie, setLastTie] = useState(false)
   const [confetti, setConfetti] = useState<number | null>(demo === 'results' ? 1 : null)
   const [drag, setDrag] = useState<Drag | null>(null)
+  // A new number: the Buddy Help button glows (a help was just earned).
+  const [glow, setGlow] = useState(0)
+  // "Pick a card first, then tap me!" after a tap with nothing picked (until the next pick).
+  const [needPick, setNeedPick] = useState(false)
   const boardRef = useRef<HTMLDivElement>(null)
   const ignoreClick = useRef(false)
 
@@ -82,6 +106,8 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
     const tiedNow = next.tied.length > round.tied.length
     setRound(next)
     setLastTie(tiedNow)
+    setNeedPick(false)
+    if (next.helpEvent === 'earned' && next.helpEvent !== round.helpEvent) setGlow((g) => g + 1)
     if (tiedNow) setJump((j) => j + 1)
   }
 
@@ -90,7 +116,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
   useEffect(() => {
     if (!allDone || summary) return
     const t = window.setTimeout(() => {
-      const result = makeResult('match-up', lesson.id, topic, round.startedAt, Date.now(), records(round))
+      const result = makeResult('match-up', lesson.id, topic, round.startedAt, Date.now(), records(round), round.help.used)
       setSummary(endRound(result, round.startLevel, !demo))
       setJump((j) => j + 1)
       setConfetti(1)
@@ -102,7 +128,20 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
     setSummary(null)
     setConfetti(null)
     setLastTie(false)
+    setNeedPick(false)
     setRound(startMatch(cards, levelFor(topic), Date.now()))
+  }
+
+  /** Buddy Help: the picked card's partner glows. With nothing picked, nothing is used. */
+  const giveHelp = () => {
+    const blocked = matchHelpBlocked(round)
+    if (blocked === 'no-pick') {
+      setNeedPick(true)
+      return false
+    }
+    if (blocked) return false
+    setRound(takeMatchHelp(round))
+    return true
   }
 
   // ---------- Drag from a card (or its pin) to its partner ----------
@@ -172,7 +211,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
         progress={<MissionPill games={summary.mission.games} done={summary.mission.done} next={summary.nextGame} />}
         tallBoard
         confetti={confetti}
-        ollieLine={decisionLine(summary.decision, summary.right, summary.total)}
+        buddyLine={decisionLine(summary.decision, summary.right, summary.total)}
         happy
         jump={jump}
         kidLine="We did it!"
@@ -182,6 +221,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
               game="match-up"
               leaveTo={leaveTo}
               name={player.name}
+              buddyName={player.buddyName}
               summary={summary}
               compact={stage.short}
               lookAgain={missed.map((c) => ({ prompt: `${c.prompt} →`, answer: c.answer }))}
@@ -204,22 +244,59 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
   const picked = round.picked
   const otherSide = picked?.side === 'left' ? 'right' : 'left'
 
-  const ollieLine = miss
-    ? 'So close! Look at the hint, then pick again.'
-    : picked
-      ? `Nice pick! Now tap its partner on the ${otherSide}.`
-      : allDone
-        ? 'All tied up! Great work.'
-        : lastTie
-          ? `You tied them! ${n - round.tied.length} to go.`
-          : 'Tie each one to its partner. Tap a card to start.'
+  // Buddy Help: the partner of the picked card glows while it stays picked.
+  const hinted = picked && round.helped.includes(picked.id) && !miss ? picked.id : null
+
+  // The buddy says every line (Ollie isn't in the games).
+  const buddyLine = miss
+    ? `So close, ${player.name}! Look at the hint, then pick again.`
+    : hinted
+      ? 'Look! It’s this one.'
+      : picked
+        ? `Nice pick! Now tap its partner on the ${otherSide}.`
+        : needPick
+          ? 'Pick a card first, then tap me!'
+          : allDone
+            ? 'All tied up! Great work.'
+            : lastTie && round.helpEvent === 'earned'
+              ? '3 in a row! You earned a Buddy Help.'
+              : lastTie && round.helpEvent === 'full'
+                ? '3 in a row! Great job!'
+                : lastTie
+                  ? `You tied them! ${n - round.tied.length} to go.`
+                  : `Tie each one to its partner, ${player.name}. Tap a card to start.`
+
+  const blocked = matchHelpBlocked(round)
+  const help = {
+    count: round.help.helps,
+    // Just finished 3 in a row: the dots show full for that moment.
+    streak: round.helpEvent ? STREAK_FOR_HELP : round.help.streak,
+    line: streakLine(round.help, round.helpEvent),
+    // With nothing picked it can still be pressed: the buddy says to pick a card first.
+    disabled: blocked === 'none-left' || blocked === 'used' || !!miss,
+    glow,
+    onUse: giveHelp,
+  }
 
   const cardButton = (side: Side, id: string, i: number) => {
     const card = cardOf(round, id)!
     const tied = isTied(round, id)
     const isPicked = picked?.side === side && picked.id === id
     const isMiss = !!miss && (side === 'left' ? miss.left === id : miss.right === id)
-    const state = tied ? styles[`pair_${colorOf(id)}`] : isMiss ? (calm ? styles.missCalm : `${styles.miss} ${side === 'left' ? styles.missL : styles.missR}`) : isPicked ? styles.picked : ''
+    const isHint = !!hinted && id === hinted && side !== picked?.side
+    const state = tied
+      ? styles[`pair_${colorOf(id)}`]
+      : isMiss
+        ? calm
+          ? styles.missCalm
+          : `${styles.miss} ${side === 'left' ? styles.missL : styles.missR}`
+        : isPicked
+          ? styles.picked
+          : isHint
+            ? calm
+              ? styles.hint
+              : `${styles.hint} ${styles.hintWiggle}`
+            : ''
     const text = side === 'left' ? card.prompt : card.answer
     return (
       <button
@@ -231,7 +308,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
         style={{ left: side === 'left' ? geo.leftX : geo.rightX, top: rowY(i), width: geo.cardW, height: geo.cardH }}
         aria-pressed={isPicked}
         aria-disabled={tied || !!miss}
-        aria-label={`${text}${tied ? ', tied' : ''}${isMiss ? ', not partners' : ''}`}
+        aria-label={`${text}${tied ? ', tied' : ''}${isMiss ? ', not partners' : ''}${isHint ? `, ${player.buddyName} says this is the partner` : ''}`}
         onPointerDown={(e) => onPointerDown(e, side, id)}
         onClick={() => onTap(side, id)}
       >
@@ -253,10 +330,11 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
       {...common}
       mode="play"
       progress={<ProgressPill label={`${round.tied.length} of ${n} matched`} dots={dots} />}
-      ollieLine={ollieLine}
+      buddyLine={buddyLine}
+      help={help}
       happy={lastTie && !miss}
       jump={jump}
-      kidLine={miss ? 'We can do it!' : lastTie ? 'Yay!' : undefined}
+      kidLine={lastTie && !miss ? 'Yay!' : undefined}
       strip={
         miss ? (
           <FeedbackStrip key={`${miss.left}-${miss.right}`} tone="hint" title="Not partners. Try another one!" action="Okay" onAction={() => setRound(clearMiss(round))}>

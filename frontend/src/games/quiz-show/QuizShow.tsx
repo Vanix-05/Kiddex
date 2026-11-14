@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, PawPrint, X } from 'lucide-react'
+import { STREAK_FOR_HELP, streakLine } from '../buddyHelp'
 import { FeedbackStrip } from '../FeedbackStrip'
 import { GameFrame, ProgressPill, type DotState } from '../GameFrame'
 import { MissionPill, ResultsBoard } from '../ResultsScreen'
@@ -10,7 +11,20 @@ import type { GameProps } from '../types'
 import { useGameProgress } from '../useGameProgress'
 import { SLOTS, useCalmMotion, useStageFit } from '../useStage'
 import { MarqueeBoard } from './MarqueeBoard'
-import { answer, current, demoQuiz, finished, next, records, startQuiz, type QuizQuestion } from './quizRound'
+import {
+  answer,
+  current,
+  demoQuiz,
+  finished,
+  helpBlocked,
+  next,
+  records,
+  startQuiz,
+  takeBuddyHelp,
+  wasHelped,
+  type QuizDemo,
+  type QuizQuestion,
+} from './quizRound'
 import styles from './QuizShow.module.css'
 
 const LETTERS = ['A', 'B', 'C', 'D'] as const
@@ -18,8 +32,10 @@ const LETTERS = ['A', 'B', 'C', 'D'] as const
 /**
  * Quiz Show: up to 8 multiple-choice cards on a theater stage. One pick per
  * question; a wrong pick shows the right answer and why. No timer, no lives.
- * Keys: 1–4 or A–D pick, Enter = Next / Got it.
+ * The Student's buddy guides, and Buddy Help knocks one wrong choice away.
+ * Keys: 1–4 or A–D pick, Enter = Next / Got it, H = Buddy Help (GameFrame).
  */
+const QUIZ_DEMOS: readonly QuizDemo[] = ['question', 'right', 'wrong', 'results', 'help-used', 'help-earned', 'help-none']
 export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, onLeave, onPlayGame }: GameProps) {
   const stage = useStageFit()
   const calm = useCalmMotion()
@@ -30,15 +46,19 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
   const [round, setRound] = useState(() => {
     const now = Date.now()
     if (!demo) return startQuiz(cards, levelFor(topic), now)
-    const at = demo === 'results' || demo === 'right' || demo === 'wrong' ? demo : 'question'
+    const at = QUIZ_DEMOS.find((d) => d === demo) ?? 'question'
     return demoQuiz(cards, levelFor(topic), at, now)
   })
   // Dev Results screen: the played-out demo round, not saved.
   const [summary, setSummary] = useState<RoundSummary | null>(() =>
-    demo === 'results' ? endRound(makeResult('quiz-show', lesson.id, topic, round.startedAt, round.startedAt, records(round)), round.startLevel, false) : null,
+    demo === 'results'
+      ? endRound(makeResult('quiz-show', lesson.id, topic, round.startedAt, round.startedAt, records(round), round.help.used), round.startLevel, false)
+      : null,
   )
   const [jump, setJump] = useState(0)
-  const [confetti, setConfetti] = useState<number | null>(demo === 'right' || demo === 'results' ? 1 : null)
+  const [confetti, setConfetti] = useState<number | null>(demo === 'right' || demo === 'help-earned' || demo === 'results' ? 1 : null)
+  // A new number: the Buddy Help button glows (a help was just earned).
+  const [glow, setGlow] = useState(demo === 'help-earned' ? 1 : 0)
   const tiles = useRef<HTMLDivElement>(null)
 
   const q = current(round)
@@ -49,7 +69,9 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
     (choice: string) => {
       if (!q || q.picked !== null) return
       const nextRound = answer(round, choice, Date.now())
+      if (nextRound === round) return
       setRound(nextRound)
+      if (nextRound.helpEvent === 'earned') setGlow((g) => g + 1)
       if (current(nextRound).right) {
         setJump((j) => j + 1)
         setConfetti((c) => (c ?? 0) + 1)
@@ -64,7 +86,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
     if (!answered) return
     setConfetti(null)
     if (finished(round)) {
-      const result = makeResult('quiz-show', lesson.id, topic, round.startedAt, Date.now(), records(round))
+      const result = makeResult('quiz-show', lesson.id, topic, round.startedAt, Date.now(), records(round), round.help.used)
       setSummary(endRound(result, round.startLevel, !demo))
       setJump((j) => j + 1)
       setConfetti(1)
@@ -77,6 +99,14 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
     setSummary(null)
     setConfetti(null)
     setRound(startQuiz(cards, levelFor(topic), Date.now()))
+  }
+
+  /** Buddy Help: one wrong choice knocked away. False when the buddy can't help now. */
+  const giveHelp = () => {
+    const helped = takeBuddyHelp(round)
+    if (helped === round) return false
+    setRound(helped)
+    return true
   }
 
   // The next question: keyboard focus moves to its first answer (not when the game opens).
@@ -127,7 +157,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
         tallBoard
         spotlight
         confetti={confetti}
-        ollieLine={decisionLine(summary.decision, summary.right, summary.total)}
+        buddyLine={decisionLine(summary.decision, summary.right, summary.total)}
         happy
         jump={jump}
         kidLine="We did it!"
@@ -137,6 +167,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
               game="quiz-show"
               leaveTo={leaveTo}
               name={player.name}
+              buddyName={player.buddyName}
               summary={summary}
               compact={stage.short}
               lookAgain={wrong.map((a) => ({ prompt: a.card.prompt, answer: a.card.answer }))}
@@ -157,6 +188,35 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
   })
   const right = answered && q.right
   const wrong = answered && !q.right
+  const name = player.name
+
+  // The buddy says every line (Ollie isn't in the games).
+  const buddyLine = right
+    ? round.helpEvent === 'earned'
+      ? '3 in a row! You earned a Buddy Help.'
+      : round.helpEvent === 'full'
+        ? '3 in a row! Great job!'
+        : `What a star! That is ${rightSoFar} right so far.`
+    : wrong
+      ? `Good try, ${name}! Now we know this one.`
+      : q.removed
+        ? `Sniff, sniff… it is not ${LETTERS[q.choices.indexOf(q.removed)]}! Now you pick, ${name}.`
+        : round.help.helps > 0
+          ? `Take your time, ${name}. Tap me if you get stuck!`
+          : `Take your time, ${name}. There is no timer.`
+
+  // Buddy Help: once per question, before it's answered; never down to fewer than 2 choices.
+  const blocked = helpBlocked(round)
+  const help = {
+    count: round.help.helps,
+    // Just finished 3 in a row: the dots show full for that moment.
+    streak: round.helpEvent ? STREAK_FOR_HELP : round.help.streak,
+    line: blocked === 'two-choices' && round.help.helps > 0 ? 'Can’t help on this one' : streakLine(round.help, round.helpEvent),
+    // After an answer it stays orange (nothing to help with until the next question).
+    disabled: blocked === 'none-left' || blocked === 'used' || blocked === 'two-choices',
+    glow,
+    onUse: giveHelp,
+  }
 
   return (
     <GameFrame
@@ -165,12 +225,11 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
       progress={<ProgressPill label={`Question ${asked} of ${round.total}`} dots={dots} />}
       spotlight={!!right}
       confetti={right ? confetti : null}
-      ollieLine={
-        right ? `What a star! That is ${rightSoFar} right so far.` : wrong ? 'Good try! Now we know this one.' : `Take your time, ${player.name}. There is no timer.`
-      }
+      buddyLine={buddyLine}
+      help={help}
       happy={!!right}
       jump={jump}
-      kidLine={right ? 'Yay!' : wrong ? `It’s okay, ${player.name}!` : undefined}
+      kidLine={right ? 'Yay!' : undefined}
       strip={
         right ? (
           <FeedbackStrip key={`ok${asked}`} tone="right" title="Correct!" action={finished(round) ? 'See results' : 'Next'} onAction={goOn}>
@@ -188,7 +247,16 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
       }
       board={
         <MarqueeBoard w={slots.board.w} h={slots.board.h} band={stage.short ? 14 : 24}>
-          <Question q={q} number={asked} teacher={lesson.teacher} subject={q.card.subject} tilesRef={tiles} onPick={pick} calm={calm} />
+          <Question
+            q={q}
+            number={asked}
+            teacher={lesson.teacher}
+            subject={q.card.subject}
+            buddyName={player.buddyName}
+            tilesRef={tiles}
+            onPick={pick}
+            calm={calm}
+          />
         </MarqueeBoard>
       }
     />
@@ -200,6 +268,7 @@ function Question({
   number,
   teacher,
   subject,
+  buddyName,
   tilesRef,
   onPick,
   calm,
@@ -208,6 +277,7 @@ function Question({
   number: number
   teacher: string
   subject: string
+  buddyName: string
   tilesRef: RefObject<HTMLDivElement | null>
   onPick: (choice: string) => void
   calm: boolean
@@ -220,6 +290,11 @@ function Question({
           {number}
         </span>
         <span className={styles.ask}>Pick the best answer</span>
+        {wasHelped(q) && (
+          <span className={styles.helpedTag}>
+            <PawPrint size={14} strokeWidth={2.6} fill="currentColor" aria-hidden="true" /> {buddyName} helped
+          </span>
+        )}
         <span className={styles.from}>
           From {teacher} · {subject}
         </span>
@@ -229,14 +304,30 @@ function Question({
         {q.choices.map((choice, i) => {
           const isAnswer = choice.replace(/\s+/g, '').toLowerCase() === q.card.answer.replace(/\s+/g, '').toLowerCase()
           const isPicked = choice === q.picked
-          const state = !answered ? '' : isAnswer ? (isPicked ? styles.right : styles.rightShown) : isPicked ? (calm ? styles.wrongCalm : styles.wrong) : styles.faded
+          // Buddy Help knocked this wrong choice away: it can't be picked.
+          const knocked = choice === q.removed
+          const state = knocked
+            ? calm
+              ? `${styles.knocked} ${styles.knockedCalm}`
+              : styles.knocked
+            : !answered
+              ? ''
+              : isAnswer
+                ? isPicked
+                  ? styles.right
+                  : styles.rightShown
+                : isPicked
+                  ? calm
+                    ? styles.wrongCalm
+                    : styles.wrong
+                  : styles.faded
           return (
             <button
               key={choice}
               type="button"
               className={`${styles.tile} ${state}`}
-              disabled={answered}
-              aria-label={`${LETTERS[i]}: ${choice}${answered && isAnswer ? ', right answer' : ''}${answered && isPicked && !isAnswer ? ', your pick, not right' : ''}`}
+              disabled={answered || knocked}
+              aria-label={`${LETTERS[i]}: ${choice}${knocked ? `, not this one (${buddyName} helped)` : ''}${answered && isAnswer ? ', right answer' : ''}${answered && isPicked && !isAnswer ? ', your pick, not right' : ''}`}
               onClick={() => onPick(choice)}
             >
               <span className={`${styles.letter} ${styles[`letter${LETTERS[i]}`]}`} aria-hidden="true">
@@ -249,6 +340,11 @@ function Question({
                 </span>
               )}
               {answered && isAnswer && !isPicked && <span className={styles.rightTag}>Right answer</span>}
+              {knocked && (
+                <span className={styles.notThis} aria-hidden="true">
+                  <PawPrint size={14} strokeWidth={2.6} fill="currentColor" /> Not this one
+                </span>
+              )}
               {answered && isPicked && !isAnswer && (
                 <span className={styles.cross} aria-hidden="true">
                   <X size={24} strokeWidth={3.4} />

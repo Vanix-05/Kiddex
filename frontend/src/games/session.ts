@@ -32,8 +32,16 @@ export function shuffle<T>(items: readonly T[], random = Math.random): T[] {
 }
 
 /** The finished round's record. */
-export function makeResult(gameId: GameId, lessonId: string, topic: string, startedAt: number, endedAt: number, answers: AnswerRecord[]): GameResult {
-  return { gameId, lessonId, topic, startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(), answers }
+export function makeResult(
+  gameId: GameId,
+  lessonId: string,
+  topic: string,
+  startedAt: number,
+  endedAt: number,
+  answers: AnswerRecord[],
+  helpsUsed: number,
+): GameResult {
+  return { gameId, lessonId, topic, startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(), answers, helpsUsed }
 }
 
 // ---------- Scoring ----------
@@ -49,10 +57,10 @@ export function nextStarLine(right: number, total: number): string {
   return `Get ${need} of ${total} right for the next star.`
 }
 
-/** FAKE XP rule for now: 5 per right answer + 10 for finishing. */
-export const xpFor = (right: number) => right * 5 + 10
+/** FAKE XP rule for now: 5 per right answer (2 if the buddy helped) + 10 for finishing. */
+export const xpFor = (right: number, helpedRight = 0) => (right - helpedRight) * 5 + helpedRight * 2 + 10
 
-/** Ollie says the difficulty decision in plain words. */
+/** The buddy says the difficulty decision in plain words (on Results). */
 export function decisionLine(decision: Decision, right: number, total: number): string {
   if (decision.change === 'up') return `You got ${right} of ${total}, so your next round will be a little harder.`
   if (decision.change === 'down') return 'Let’s practice with easier ones next time.'

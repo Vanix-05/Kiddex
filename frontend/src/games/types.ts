@@ -20,6 +20,11 @@ export interface AnswerRecord {
   tries: number
   /** From when the card could be answered to the (first) answer. */
   ms: number
+  /**
+   * The buddy helped (Buddy Help). The difficulty engine counts it as not
+   * right, and it gives less XP; stars still count it as right.
+   */
+  helped: boolean
 }
 
 /** One finished round: saved by useGameProgress, later sent to the backend. */
@@ -32,6 +37,8 @@ export interface GameResult {
   startedAt: string
   endedAt: string
   answers: AnswerRecord[]
+  /** Buddy Helps used this round (saved for the Teacher dashboard later). */
+  helpsUsed: number
 }
 
 /** The Student playing: their name, rig and buddy in their Customize look. */
@@ -59,7 +66,33 @@ export interface GameLesson {
 export type GameFrom = 'games' | 'stage' | 'match' | 'mission' | 'dev'
 
 /** Dev screens (/dev/games): open a game at one moment. */
-export type DemoState = 'question' | 'right' | 'wrong' | 'results' | 'picked' | 'miss'
+export type DemoState =
+  | 'question'
+  | 'right'
+  | 'wrong'
+  | 'results'
+  | 'picked'
+  | 'miss'
+  // Buddy Help: Quiz Show with a help ready, just used, just earned, or none left; Match Up with a help used.
+  | 'help-ready'
+  | 'help-used'
+  | 'help-earned'
+  | 'help-none'
+  | 'match-help'
+
+export const DEMO_STATES: readonly DemoState[] = [
+  'question',
+  'right',
+  'wrong',
+  'results',
+  'picked',
+  'miss',
+  'help-ready',
+  'help-used',
+  'help-earned',
+  'help-none',
+  'match-help',
+]
 
 /** What every game screen gets from the play route. */
 export interface GameProps {

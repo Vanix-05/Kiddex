@@ -302,3 +302,76 @@
     transition: none;
   }
 }
+
+/* ---------- Buddy Help ---------- */
+
+/* "Mochi helped" in the board header. */
+.helpedTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 3px 11px 3px 9px;
+  border: 2px solid var(--color-button-border);
+  border-radius: 10px;
+  background: var(--color-warn-bg);
+  font: 600 max(15px, calc(14px / var(--s))) / 1.2 var(--font-display);
+  color: var(--color-link);
+  white-space: nowrap;
+}
+
+/* The wrong choice the buddy knocked away: tilted, dropped a little, dashed, crossed out, faded. */
+.knocked {
+  border-style: dashed;
+  background: var(--color-neutral-bg);
+  box-shadow: none;
+  opacity: 0.78;
+  transform: translateY(8px) rotate(-2.5deg);
+  animation: knockAway 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.knocked .choice {
+  text-decoration: line-through;
+  text-decoration-thickness: 3px;
+  color: var(--color-text-subtle);
+}
+
+.knocked .letter {
+  opacity: 0.7;
+}
+
+/* Reduced motion: no tilt or drop, the rest stays. */
+.knockedCalm {
+  transform: none;
+  animation: none;
+}
+
+@keyframes knockAway {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  40% {
+    transform: translate(-6px, -4px) rotate(-6deg);
+  }
+}
+
+/* "Not this one", with a paw, on the knocked-away choice. */
+.notThis {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 5px 11px;
+  border-radius: 10px;
+  background: var(--color-sticky-yellow);
+  font: 600 max(15px, calc(14px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .knocked {
+    transform: none;
+    animation: none;
+  }
+}

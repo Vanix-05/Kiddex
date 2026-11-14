@@ -17,6 +17,8 @@
  *      under 50% right   -> one level down
  *      otherwise         -> keep
  * 5. Easy never goes lower and hard never goes higher: the change is then "keep".
+ * 6. An answer the buddy helped with (Buddy Help) counts as NOT right, in
+ *    rule 3 and rule 4: the Student didn't show they know it yet.
  *
  * Every decision says why, e.g. { level: 'medium', change: 'up', reason: '7 of 8 right (88%)' }.
  */
@@ -57,12 +59,18 @@ function decide(level: Level, wanted: Change, reason: string): Decision {
   return { level: next, change: wanted, reason }
 }
 
+/** One answer: right or not, or the record of it (a helped answer counts as not right, rule 6). */
+export type Answer = boolean | { right: boolean; helped?: boolean }
+
+/** Rule 6: does this answer count as right for the level? */
+export const countsAsRight = (a: Answer) => (typeof a === 'boolean' ? a : a.right && !a.helped)
+
 /** "3 of 4 right" */
-const rightOf = (answers: readonly boolean[]) => `${answers.filter(Boolean).length} of ${answers.length} right`
+const rightOf = (answers: readonly Answer[]) => `${answers.filter(countsAsRight).length} of ${answers.length} right`
 
 /** Rule 3: a decision on 4 answers. */
-export function decideAfterFour(lastFour: readonly boolean[], level: Level): Decision {
-  const right = lastFour.filter(Boolean).length
+export function decideAfterFour(lastFour: readonly Answer[], level: Level): Decision {
+  const right = lastFour.filter(countsAsRight).length
   const wanted: Change = right >= 3 ? 'up' : right <= 1 ? 'down' : 'keep'
   return decide(level, wanted, rightOf(lastFour))
 }
@@ -71,15 +79,15 @@ export function decideAfterFour(lastFour: readonly boolean[], level: Level): Dec
  * Rule 3 during a round: after each answer. Returns a decision when the
  * answers count reaches 4, 8, 12, …, else null (no change yet).
  */
-export function decideDuringRound(answers: readonly boolean[], level: Level): Decision | null {
+export function decideDuringRound(answers: readonly Answer[], level: Level): Decision | null {
   if (answers.length === 0 || answers.length % 4 !== 0) return null
   return decideAfterFour(answers.slice(-4), level)
 }
 
 /** Rule 4: the next round's level, from the level this round started at. */
-export function decideAfterRound(answers: readonly boolean[], startLevel: Level): Decision {
+export function decideAfterRound(answers: readonly Answer[], startLevel: Level): Decision {
   if (answers.length === 0) return { level: startLevel, change: 'keep', reason: 'no answers' }
-  const share = answers.filter(Boolean).length / answers.length
+  const share = answers.filter(countsAsRight).length / answers.length
   const reason = `${rightOf(answers)} (${Math.round(share * 100)}%)`
   const wanted: Change = share >= 0.8 ? 'up' : share < 0.5 ? 'down' : 'keep'
   return decide(startLevel, wanted, reason)

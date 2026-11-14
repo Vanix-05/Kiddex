@@ -311,3 +311,43 @@
     animation: none;
   }
 }
+
+/* ---------- Buddy Help ---------- */
+
+/* The picked card's partner, shown by the buddy: a soft orange glow (and a small wiggle). */
+.hint {
+  border-color: var(--color-button-border);
+  box-shadow:
+    0 4px 0 var(--color-game-shadow),
+    0 0 0 5px rgba(240, 160, 80, 0.55),
+    0 0 22px 6px rgba(240, 160, 80, 0.45);
+}
+
+.hintWiggle {
+  animation: hintWiggle 0.9s ease-in-out 2;
+}
+
+@keyframes hintWiggle {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: -2.5deg;
+  }
+  40% {
+    rotate: 2.5deg;
+  }
+  60% {
+    rotate: -1.5deg;
+  }
+  80% {
+    rotate: 1deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hintWiggle {
+    animation: none;
+  }
+}

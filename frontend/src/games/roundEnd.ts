@@ -9,6 +9,8 @@ import { useGameProgress } from './useGameProgress'
 export interface RoundSummary {
   right: number
   total: number
+  /** Right answers the buddy helped with ("1 with Mochi's help"). */
+  helped: number
   decision: Decision
   xpGained: number
   /** The XP bar before this round: level, XP into it, XP the level needs. */
@@ -33,10 +35,12 @@ export function useRoundEnd(game: GameId, lessonCanPlay: (g: GameId) => boolean)
   return useCallback(
     (result: GameResult, startLevel: Level, save: boolean): RoundSummary => {
       const answers = result.answers.map((a) => a.right)
+      // Stars and "7 of 8 correct" count a helped right answer as right; the level and XP don't.
       const right = answers.filter(Boolean).length
-      const decision = decideAfterRound(answers, startLevel)
+      const helped = result.answers.filter((a) => a.right && a.helped).length
+      const decision = decideAfterRound(result.answers, startLevel)
       logLevel(`round over: next round ${decision.change} -> ${decision.level}`, decision.reason)
-      const xpGained = xpFor(right)
+      const xpGained = xpFor(right, helped)
 
       // The bar before this round: the Lobby's numbers (they already include earlier games).
       const { level, xp } = student
@@ -52,6 +56,7 @@ export function useRoundEnd(game: GameId, lessonCanPlay: (g: GameId) => boolean)
       return {
         right,
         total: answers.length,
+        helped,
         decision,
         xpGained,
         xpBefore: { level, xp, goal: student.xpGoal },

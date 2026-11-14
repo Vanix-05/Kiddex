@@ -1,8 +1,8 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { Mic, Pause } from 'lucide-react'
-import { characterArt } from '../assets/art'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Mic, Pause, PawPrint } from 'lucide-react'
 import { Companion } from '../companions/Companion'
 import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras } from '../setup/customizeData'
+import { STREAK_FOR_HELP } from './buddyHelp'
 import { Confetti } from './Confetti'
 import { PauseCard } from './PauseCard'
 import { GAMES } from './session'
@@ -14,11 +14,28 @@ import styles from './GameFrame.module.css'
  * The frame every mini game shares:
  * - top: Pause (or Back to games), the game chip, the game's progress
  * - middle: the board, and under it the feedback strip after an answer
- * - left: Ollie behind a podium in the game's color, with a speech bubble
- * - right: the Student and their buddy (real rigs, Customize look), happy and
- *   jumping on a right answer
- * Short windows hide Ollie and the bubbles and put the kid in the corner.
+ * - left: the Student's own buddy (real rig, Customize look), the guide, with
+ *   a speech bubble under its name; the Buddy Help button under it
+ * - right: the Student, with a small bubble on a right answer and on Results
+ * Short windows hide the bubbles and put the buddy and the kid small in the
+ * corner; the Buddy Help button stays. Ollie is not in the games.
  */
+
+/** The Buddy Help button (play only). */
+export interface BuddyHelpProps {
+  /** Helps held now. */
+  count: number
+  /** Right answers in a row toward the next help. */
+  streak: number
+  /** The short line under the label: "1 more right", "New help earned!"… */
+  line: string
+  /** Can't be pressed (0 helps, or not on this question). */
+  disabled: boolean
+  /** A new number: the button glows for a moment (a help was just earned). */
+  glow?: number
+  /** Uses a help. Returns true when the buddy really helped (then it looks surprised and leans in). */
+  onUse: () => boolean
+}
 export interface GameFrameProps {
   game: GameId
   lessonName: string
@@ -40,12 +57,16 @@ export interface GameFrameProps {
   spotlight?: boolean
   /** Confetti falls while set; a new number starts a new shower. */
   confetti?: number | null
-  ollieLine: string
+  /** What the buddy says (every line Ollie used to say). */
+  buddyLine: string
   player: Player
   happy: boolean
   /** A new number makes the kid and buddy jump. */
   jump?: number
+  /** The kid's own small bubble: only on a right answer and on Results. */
   kidLine?: string
+  /** Buddy Help (play only). Tapping the buddy does the same as the button; so does H. */
+  help?: BuddyHelpProps
   onRestart: () => void
   onLeave: () => void
 }
@@ -86,21 +107,52 @@ export function ProgressPill({ label, dots }: { label: string; dots: DotState[] 
 }
 
 export function GameFrame(props: GameFrameProps) {
-  const { game, lessonName, stage, calm, scene, mode, progress, board, tallBoard, strip, spotlight, confetti, ollieLine, player, happy, jump, kidLine } = props
+  const { game, lessonName, stage, calm, scene, mode, progress, board, tallBoard, strip, spotlight, confetti, buddyLine, player, happy, jump, kidLine } = props
+  const help = mode === 'play' ? props.help : undefined
   const [paused, setPaused] = useState(false)
   const [playAnyway, setPlayAnyway] = useState(false)
+  // Buddy Help used: the buddy leans toward the board (a new number restarts it) and looks surprised for a moment.
+  const [lean, setLean] = useState(0)
+  const [surprised, setSurprised] = useState(false)
+  const surpriseTimer = useRef(0)
+  useEffect(() => () => window.clearTimeout(surpriseTimer.current), [])
   const slots = stage.short ? SLOTS.short : SLOTS.normal
   const boardSlot = tallBoard ? slots.tall : slots.board
 
-  // Escape opens Pause (and closes it again: PauseCard handles that).
+  // The button, a tap on the buddy and H all do this.
+  const helpRef = useRef(help)
+  useEffect(() => {
+    helpRef.current = help
+  })
+  const triggerHelp = () => {
+    const h = helpRef.current
+    if (!h || h.disabled || !h.onUse()) return
+    setLean((n) => n + 1)
+    setSurprised(true)
+    window.clearTimeout(surpriseTimer.current)
+    surpriseTimer.current = window.setTimeout(() => setSurprised(false), 1100)
+  }
+  const triggerRef = useRef(triggerHelp)
+  useEffect(() => {
+    triggerRef.current = triggerHelp
+  })
+
+  // Escape opens Pause (and closes it again: PauseCard handles that). H uses Buddy Help.
   useEffect(() => {
     if (mode !== 'play' || paused) return
     const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
       if (e.key === 'Escape') setPaused(true)
+      else if (e.key.toLowerCase() === 'h' && !e.repeat) {
+        e.preventDefault()
+        triggerRef.current()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [mode, paused])
+
+  const buddyFace = surprised ? 'surprised' : happy ? 'happy' : 'calm'
 
   const stageStyle = {
     width: stage.w,
@@ -155,28 +207,27 @@ export function GameFrame(props: GameFrameProps) {
         </div>
 
         {!stage.short && (
-          <div className={styles.ollie} aria-hidden="true">
-            <SpeechBubble className={styles.ollieBubble} text={ollieLine} />
-            <img src={characterArt.ollie} alt="" className={styles.ollieArt} draggable={false} />
-            <span className={`${styles.podium} ${game === 'match-up' ? styles.podiumMatch : styles.podiumQuiz}`}>
-              <svg viewBox="0 0 24 24" width="44" height="44">
-                <path
-                  d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"
-                  fill="var(--color-game-star)"
-                  stroke="var(--color-card-border)"
-                  strokeWidth="1.4"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </div>
+          <p className={`${styles.bubble} ${styles.buddyBubble}`} aria-hidden="true">
+            <span className={styles.buddyName}>{player.buddyName}</span>
+            {buddyLine}
+          </p>
         )}
-        {/* Ollie's words for screen readers too (the bubble is decorative). */}
+        {/* The buddy's words for screen readers too (the bubble is decorative). */}
         <p className="visually-hidden" aria-live="polite">
-          Ollie: {ollieLine}
+          {player.buddyName}: {buddyLine}
         </p>
 
-        <Kids player={player} happy={happy} jump={calm ? undefined : jump} line={stage.short ? undefined : kidLine} />
+        <Characters
+          player={player}
+          buddyFace={buddyFace}
+          kidFace={happy ? 'happy' : 'calm'}
+          jump={calm ? undefined : jump}
+          lean={calm ? 0 : lean}
+          kidLine={stage.short ? undefined : kidLine}
+          onBuddy={help && !help.disabled ? triggerHelp : undefined}
+        />
+
+        {help && <BuddyHelpButton help={help} buddyName={player.buddyName} calm={calm} onUse={triggerHelp} />}
       </div>
 
       {paused && (
@@ -214,26 +265,89 @@ export function SpeechBubble({ text, className }: { text: string; className?: st
   return <p className={[styles.bubble, className].filter(Boolean).join(' ')}>{text}</p>
 }
 
-/** The Student and their buddy side by side, on the floor, in their Customize look. */
-function Kids({ player, happy, jump, line }: { player: Player; happy: boolean; jump?: number; line?: string }) {
-  const emotion = happy ? 'happy' : 'calm'
-  // Two identical jump animations, swapped on every new jump, restart it
+/**
+ * The buddy on the left (tap it for Buddy Help) and the Student on the right,
+ * standing on the floor in their Customize look.
+ */
+function Characters({
+  player,
+  buddyFace,
+  kidFace,
+  jump,
+  lean,
+  kidLine,
+  onBuddy,
+}: {
+  player: Player
+  buddyFace: 'calm' | 'happy' | 'surprised'
+  kidFace: 'calm' | 'happy'
+  jump?: number
+  lean: number
+  kidLine?: string
+  /** Set while Buddy Help can be used: a tap on the buddy uses it. */
+  onBuddy?: () => void
+}) {
+  // Two identical animations, swapped on every new jump (or lean), restart it
   // without rebuilding the rigs.
   const jumpClass = jump ? (jump % 2 ? styles.jumpA : styles.jumpB) : ''
+  const leanClass = lean ? (lean % 2 ? styles.leanA : styles.leanB) : ''
   return (
     <div className={styles.kids}>
-      {line && <SpeechBubble className={styles.kidBubble} text={line} />}
-      {/* Decorative here: the rigs are buttons elsewhere, so keep them out of Tab. */}
-      <div className={styles.kidPair} inert aria-hidden="true">
-        <span className={`${styles.figure} ${jumpClass}`}>
-          <span className={styles.floorShadow} />
-          <Companion id={player.avatar} className={styles.rig} emotion={emotion} colors={lookColors(player.look)} extras={lookYouExtras(player.look)} />
+      {kidLine && <SpeechBubble className={styles.kidBubble} text={kidLine} />}
+      {/* Mouse and touch only: keyboard users have the Buddy Help button and H. */}
+      <div className={`${styles.buddySpot} ${onBuddy ? styles.buddyTap : ''}`} aria-hidden="true" onClick={onBuddy}>
+        <span className={leanClass}>
+          <span className={`${styles.figure} ${styles.buddyFigure} ${jumpClass}`}>
+            <span className={styles.floorShadow} />
+            <Companion
+              id={player.buddy}
+              className={styles.rig}
+              emotion={buddyFace}
+              buddyColor={lookBuddyColor(player.look)}
+              extras={lookBuddyExtras(player.look)}
+            />
+          </span>
         </span>
-        <span className={`${styles.figure} ${styles.buddy} ${jumpClass}`}>
+      </div>
+      {/* Decorative: keep the rig out of Tab. */}
+      <div className={styles.kidSpot} inert aria-hidden="true">
+        <span className={`${styles.figure} ${styles.kidFigure} ${jumpClass}`}>
           <span className={styles.floorShadow} />
-          <Companion id={player.buddy} className={styles.rig} emotion={emotion} buddyColor={lookBuddyColor(player.look)} extras={lookBuddyExtras(player.look)} />
+          <Companion id={player.avatar} className={styles.rig} emotion={kidFace} colors={lookColors(player.look)} extras={lookYouExtras(player.look)} />
         </span>
       </div>
     </div>
+  )
+}
+
+/** Bottom left: Buddy Help, with the helps held and the streak toward the next one. */
+function BuddyHelpButton({ help, buddyName, calm, onUse }: { help: BuddyHelpProps; buddyName: string; calm: boolean; onUse: () => void }) {
+  const glowClass = help.glow && !calm ? (help.glow % 2 ? styles.helpGlowA : styles.helpGlowB) : ''
+  return (
+    <button
+      type="button"
+      className={`${styles.help} ${help.disabled ? styles.helpOff : ''} ${glowClass}`}
+      disabled={help.disabled}
+      onClick={onUse}
+      aria-label={`Buddy Help: ${buddyName} gives a hint. ${help.count} ${help.count === 1 ? 'help' : 'helps'} left. ${help.line.replace(/[.!]$/, '')}. Key H.`}
+    >
+      <span className={styles.helpPaw} aria-hidden="true">
+        <PawPrint size={22} strokeWidth={2.4} fill="currentColor" />
+      </span>
+      <span className={styles.helpText} aria-hidden="true">
+        <b>Buddy Help</b>
+        <small>
+          <span className={styles.helpDots}>
+            {Array.from({ length: STREAK_FOR_HELP }, (_, i) => (
+              <i key={i} className={i < help.streak ? styles.helpDotOn : undefined} />
+            ))}
+          </span>
+          {help.line}
+        </small>
+      </span>
+      <span className={styles.helpCount} aria-hidden="true">
+        {help.count}
+      </span>
+    </button>
   )
 }

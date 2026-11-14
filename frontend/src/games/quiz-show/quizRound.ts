@@ -1,5 +1,6 @@
 // A Quiz Show round as plain data, changed only by these pure functions.
 import type { QuestionCard } from '../../content/questionCard'
+import { afterAnswer, canSpend, spendHelp, startHelp, type HelpEvent, type HelpState } from '../buddyHelp'
 import { decideDuringRound, nextCard } from '../difficulty'
 import { GAMES, logLevel, shuffle } from '../session'
 import type { AnswerRecord, Level } from '../types'
@@ -12,6 +13,8 @@ export interface QuizQuestion {
   level: Level
   picked: string | null
   right: boolean | null
+  /** Buddy Help: the wrong choice the buddy knocked away (it can't be picked). */
+  removed: string | null
   /** When it appeared, and how long the answer took. */
   shownAt: number
   ms: number
@@ -26,6 +29,10 @@ export interface QuizRound {
   level: Level
   asked: QuizQuestion[]
   startedAt: number
+  /** Buddy Help: helps held, the streak, helps used (see buddyHelp.ts). */
+  help: HelpState
+  /** What the last answer did to the helps (a new help earned…), until the next question. */
+  helpEvent: HelpEvent
 }
 
 const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase()
@@ -35,30 +42,58 @@ function ask(round: QuizRound, now: number, random: () => number): QuizRound {
   const card = nextCard(round.pool, round.level, random)
   if (!card) return round
   logLevel(`question ${round.asked.length + 1}: a ${card.level} card (level ${round.level})`, card.prompt)
-  const question: QuizQuestion = { card, choices: shuffle(card.choices, random), level: card.level, picked: null, right: null, shownAt: now, ms: 0 }
-  return { ...round, pool: round.pool.filter((c) => c !== card), asked: [...round.asked, question] }
+  const question: QuizQuestion = { card, choices: shuffle(card.choices, random), level: card.level, picked: null, right: null, removed: null, shownAt: now, ms: 0 }
+  return { ...round, pool: round.pool.filter((c) => c !== card), asked: [...round.asked, question], helpEvent: null }
 }
 
 /** A new round: up to 8 cards (fewer if the lesson has fewer), the first one asked. */
 export function startQuiz(cards: readonly QuestionCard[], level: Level, now: number, random = Math.random): QuizRound {
   const total = Math.min(GAMES['quiz-show'].roundSize, cards.length)
-  return ask({ pool: [...cards], total, startLevel: level, level, asked: [], startedAt: now }, now, random)
+  return ask({ pool: [...cards], total, startLevel: level, level, asked: [], startedAt: now, help: startHelp(), helpEvent: null }, now, random)
 }
 
 export const current = (round: QuizRound) => round.asked[round.asked.length - 1]
 
+/** Was this question answered with the buddy's help? */
+export const wasHelped = (q: QuizQuestion) => q.removed !== null
+
+/**
+ * Can the buddy help on the current question? Once per question, only before
+ * it's answered, and only while it leaves at least 2 choices to pick from.
+ */
+export function helpBlocked(round: QuizRound): 'none-left' | 'used' | 'two-choices' | 'answered' | null {
+  const q = current(round)
+  if (!q || q.picked !== null) return 'answered'
+  if (wasHelped(q)) return 'used'
+  if (q.choices.length <= 2) return 'two-choices'
+  if (!canSpend(round.help)) return 'none-left'
+  return null
+}
+
+/** Buddy Help: one random wrong choice is knocked away, and the help is spent. */
+export function takeBuddyHelp(round: QuizRound, random = Math.random): QuizRound {
+  if (helpBlocked(round)) return round
+  const q = current(round)
+  const wrong = q.choices.filter((c) => !isRight(q.card, c))
+  if (!wrong.length) return round
+  const removed = wrong[Math.floor(random() * wrong.length)]
+  return { ...round, help: spendHelp(round.help), asked: [...round.asked.slice(0, -1), { ...q, removed }] }
+}
+
 /** The Student picks a choice: right or wrong, and every 4 answers the level may change. */
 export function answer(round: QuizRound, choice: string, now: number): QuizRound {
   const q = current(round)
-  if (!q || q.picked !== null) return round
+  if (!q || q.picked !== null || choice === q.removed) return round
   const right = isRight(q.card, choice)
   const asked = [...round.asked.slice(0, -1), { ...q, picked: choice, right, ms: Math.max(0, now - q.shownAt) }]
+  // A helped answer counts as not right for the level (difficulty.ts rule 6).
   const decision = decideDuringRound(
-    asked.map((a) => !!a.right),
+    asked.map((a) => ({ right: !!a.right, helped: wasHelped(a) })),
     round.level,
   )
   if (decision) logLevel(`after ${asked.length} answers: ${decision.change} -> ${decision.level}`, decision.reason)
-  return { ...round, asked, level: decision?.level ?? round.level }
+  const { state: help, event: helpEvent } = afterAnswer(round.help, right, wasHelped(q))
+  return { ...round, asked, level: decision?.level ?? round.level, help, helpEvent }
 }
 
 /** True when every question of the round has been answered. */
@@ -71,29 +106,48 @@ export function next(round: QuizRound, now: number, random = Math.random): QuizR
 }
 
 export const records = (round: QuizRound): AnswerRecord[] =>
-  round.asked.map((q) => ({ cardId: q.card.id, level: q.level, right: !!q.right, tries: 1, ms: q.ms }))
+  round.asked.map((q) => ({ cardId: q.card.id, level: q.level, right: !!q.right, tries: 1, ms: q.ms, helped: wasHelped(q) }))
 
-/** Dev screens: a round played up to question 4 with answers right, right, wrong (then `last`). */
-export function demoQuiz(cards: readonly QuestionCard[], level: Level, last: 'question' | 'right' | 'wrong' | 'results', now: number) {
+export type QuizDemo = 'question' | 'right' | 'wrong' | 'results' | 'help-ready' | 'help-used' | 'help-earned' | 'help-none'
+
+/**
+ * Dev screens. Most are question 4 after right, right, wrong (then `last`).
+ * help-used: Buddy Help used on question 4. help-earned: 3 right in a row,
+ * a new help just earned. help-none: help used on question 1, so 0 left.
+ * results: 7 of 8 right, one of them with help.
+ */
+export function demoQuiz(cards: readonly QuestionCard[], level: Level, last: QuizDemo, now: number) {
   let r = startQuiz(cards, level, now)
   const play = (rightAnswer: boolean) => {
     const q = current(r)
-    const wrong = q.choices.find((c) => !isRight(q.card, c)) ?? q.choices[0]
+    const wrong = q.choices.find((c) => !isRight(q.card, c) && c !== q.removed) ?? q.choices[0]
     r = answer(r, rightAnswer ? q.card.answer : wrong, now + 4000)
   }
+  // Always the first wrong choice, so the dev screen looks the same each time.
+  const help = () => (r = takeBuddyHelp(r, () => 0))
   if (last === 'results') {
-    // 7 of 8 right: only the first one wrong.
+    // 7 of 8 right: only the first one wrong, the second one helped.
     for (let i = 0; i < r.total; i++) {
+      if (i === 1) help()
       play(i !== 0)
       if (i < r.total - 1) r = next(r, now)
     }
     return r
   }
+  if (last === 'help-earned') {
+    for (let i = 0; i < 3; i++) {
+      play(true)
+      if (i < 2) r = next(r, now)
+    }
+    return r
+  }
+  if (last === 'help-none') help()
   for (const ok of [true, true, false]) {
     play(ok)
     r = next(r, now)
   }
   if (last === 'right') play(true)
   if (last === 'wrong') play(false)
+  if (last === 'help-used') help()
   return r
 }

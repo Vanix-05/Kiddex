@@ -287,66 +287,22 @@
   border-color: var(--color-lobby-chip) transparent transparent;
 }
 
-/* ---------- Ollie (left) ---------- */
+/* ---------- The buddy (left): the guide ---------- */
 
-.ollie {
-  position: absolute;
-  left: 40px;
-  top: 393px;
-  width: 260px;
-  height: 430px;
-  pointer-events: none;
-}
-
-.ollieBubble {
-  left: 0;
-  top: 0;
-  width: 245px;
+.buddyBubble {
+  left: 32px;
+  top: 286px;
+  width: 268px;
   --tail: 47%;
 }
 
-.ollieArt {
-  position: absolute;
-  left: 22px;
-  top: 118px;
-  width: 210px;
+/* The buddy's name, small and orange, on the bubble's first line. */
+.buddyName {
+  display: block;
+  margin-bottom: 2px;
+  font: 700 max(14px, calc(13px / var(--s))) / 1.2 var(--font-display);
+  color: var(--color-selected);
 }
-
-.podium {
-  position: absolute;
-  left: 30px;
-  top: 323px;
-  display: grid;
-  place-items: center;
-  width: 184px;
-  height: 100px;
-  border: 3px solid var(--color-card-border);
-  border-radius: 12px;
-  box-shadow:
-    inset 0 -12px 0 rgba(0, 0, 0, 0.12),
-    0 6px 0 var(--color-game-shadow);
-}
-
-.podium::before {
-  content: '';
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  top: 5px;
-  height: 10px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.35);
-}
-
-.podiumQuiz {
-  background: var(--color-game-quiz);
-}
-
-.podiumMatch {
-  background: var(--color-game-match);
-}
-
-/* ---------- The Student and their buddy (right) ---------- */
 
 .kids {
   position: absolute;
@@ -354,35 +310,39 @@
   pointer-events: none;
 }
 
+.buddySpot {
+  position: absolute;
+  left: -40px;
+  top: 412px;
+  width: 400px;
+  height: 400px;
+}
+
+/* While Buddy Help can be used, a tap on the buddy uses it. */
+.buddyTap {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.kidSpot {
+  position: absolute;
+  left: 1072px;
+  top: 448px;
+  width: 400px;
+  height: 400px;
+}
+
 .kidBubble {
-  left: 1215px;
-  top: 405px;
+  left: 1272px;
+  top: 390px;
   transform: translateX(-50%);
   white-space: nowrap;
   --tail: 50%;
 }
 
-.kidPair {
-  position: absolute;
-  left: 1040px;
-  top: 470px;
-  width: 400px;
-  height: 360px;
-}
-
 .figure {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 340px;
-  height: 340px;
-}
-
-.buddy {
-  left: 170px;
-  width: 300px;
-  height: 300px;
-  bottom: -6px;
+  inset: 0;
 }
 
 .rig {
@@ -394,37 +354,229 @@
 .floorShadow {
   position: absolute;
   left: 50%;
-  bottom: 1%;
-  width: 46%;
-  height: 26px;
+  bottom: 2%;
+  width: 44%;
+  height: 28px;
   border-radius: 50%;
   background: var(--color-game-shadow);
   transform: translateX(-50%);
 }
 
-/* Short windows: small, in the corner under the strip. */
-.root[data-short] .kidPair {
-  left: 636px;
+/* Short windows: no bubbles; the buddy and the kid small in the corner, under the Buddy Help button. */
+.root[data-short] .buddySpot {
+  left: 628px;
   top: 296px;
-  width: 260px;
-  height: 120px;
-}
-
-.root[data-short] .figure {
-  left: 20px;
   width: 124px;
   height: 124px;
 }
 
-.root[data-short] .buddy {
-  left: 124px;
-  width: 110px;
-  height: 110px;
-  bottom: -2px;
+.root[data-short] .kidSpot {
+  left: 762px;
+  top: 292px;
+  width: 128px;
+  height: 128px;
 }
 
 .root[data-short] .floorShadow {
   height: 12px;
+}
+
+/* ---------- Buddy Help (bottom left) ---------- */
+
+.help {
+  position: absolute;
+  left: 18px;
+  top: 786px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 290px;
+  min-height: max(72px, calc(44px / var(--s)));
+  padding: 8px 12px 8px 10px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-button-bg);
+  box-shadow: 0 5px 0 var(--color-button-border);
+  color: var(--color-button-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.help:hover:not(:disabled) {
+  background: var(--color-button-bg-hover);
+}
+
+.help:active:not(:disabled) {
+  translate: 0 3px;
+  box-shadow: 0 2px 0 var(--color-button-border);
+}
+
+.helpPaw {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-card-border);
+  color: var(--color-input-bg);
+}
+
+.helpText {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.helpText b {
+  font: 700 max(20px, calc(15px / var(--s))) / 1.1 var(--font-display);
+}
+
+.helpText small {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 max(14px, calc(13px / var(--s))) / 1.2 var(--font-body);
+  white-space: nowrap;
+}
+
+.helpDots {
+  display: flex;
+  gap: 3px;
+}
+
+.helpDots i {
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+}
+
+.helpDots i.helpDotOn {
+  border-color: var(--color-ok-text);
+  background: var(--color-game-right);
+}
+
+.helpCount {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+  font: 700 20px / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+/* No help to give: beige and grey, can't be pressed. */
+.helpOff {
+  background: var(--color-neutral-bg);
+  box-shadow: 0 5px 0 var(--color-neutral-line);
+  color: var(--color-text-subtle);
+  cursor: default;
+}
+
+.helpOff .helpPaw {
+  background: var(--color-text-subtle);
+}
+
+/* A help just earned: a yellow glow for about 2 seconds (two copies so a new one restarts it). */
+.helpGlowA {
+  animation: helpGlowA 2s ease-out;
+}
+
+.helpGlowB {
+  animation: helpGlowB 2s ease-out;
+}
+
+@keyframes helpGlowA {
+  0%,
+  70% {
+    box-shadow:
+      0 5px 0 var(--color-button-border),
+      0 0 0 8px rgba(255, 211, 77, 0.75),
+      0 0 26px 10px rgba(255, 211, 77, 0.55);
+  }
+}
+
+@keyframes helpGlowB {
+  0%,
+  70% {
+    box-shadow:
+      0 5px 0 var(--color-button-border),
+      0 0 0 8px rgba(255, 211, 77, 0.75),
+      0 0 26px 10px rgba(255, 211, 77, 0.55);
+  }
+}
+
+/* Short windows: the button sits between the strip and the buddy. */
+.root[data-short] .help {
+  left: 628px;
+  top: 246px;
+  width: 260px;
+  min-height: max(48px, calc(44px / var(--s)));
+  padding: 4px 8px 4px 6px;
+  gap: 8px;
+  border-radius: 15px;
+}
+
+.root[data-short] .helpPaw {
+  width: 36px;
+  height: 36px;
+}
+
+.root[data-short] .helpPaw svg {
+  width: 18px;
+  height: 18px;
+}
+
+.root[data-short] .helpText b {
+  font-size: max(16px, calc(15px / var(--s)));
+}
+
+.root[data-short] .helpCount {
+  width: 30px;
+  height: 30px;
+  font-size: 17px;
+}
+
+/* The buddy leans toward the board when it helps (two copies so a new lean restarts it). */
+.leanA,
+.leanB {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 95%;
+}
+
+.leanA {
+  animation: leanA 900ms ease-in-out;
+}
+
+.leanB {
+  animation: leanB 900ms ease-in-out;
+}
+
+@keyframes leanA {
+  40%,
+  60% {
+    transform: translateX(26px) rotate(7deg);
+  }
+}
+
+@keyframes leanB {
+  40%,
+  60% {
+    transform: translateX(26px) rotate(7deg);
+  }
+}
+
+.buddySpot > span {
+  position: absolute;
+  inset: 0;
 }
 
 /* A happy jump (both, the buddy a moment later). Two copies so a new jump restarts it. */
@@ -436,8 +588,8 @@
   animation: jumpB 700ms cubic-bezier(0.3, 0.7, 0.4, 1);
 }
 
-.buddy.jumpA,
-.buddy.jumpB {
+.kidFigure.jumpA,
+.kidFigure.jumpB {
   animation-delay: 110ms;
 }
 
@@ -527,7 +679,11 @@
 @media (prefers-reduced-motion: reduce) {
   .spotlight,
   .jumpA,
-  .jumpB {
+  .jumpB,
+  .leanA,
+  .leanB,
+  .helpGlowA,
+  .helpGlowB {
     animation: none;
   }
 }

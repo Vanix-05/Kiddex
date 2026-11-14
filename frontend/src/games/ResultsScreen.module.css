@@ -112,6 +112,13 @@
   text-overflow: ellipsis;
 }
 
+/* "1 with Mochi's help", under "correct". */
+.statText small.statNote {
+  margin-top: 0;
+  font-weight: 600;
+  color: var(--color-link);
+}
+
 /* ---------- XP bar ---------- */
 
 .xpRow {

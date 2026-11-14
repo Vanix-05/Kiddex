@@ -2,10 +2,11 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useLobbySettings } from '../screens/Lobby/useLobbySettings'
 
 /**
- * The stage (top bar, board, strip, Ollie and the kid) is drawn at a fixed
+ * The stage (top bar, board, strip, the buddy and the kid) is drawn at a fixed
  * design size and scaled as one group to fit the window, like the Teacher
  * planner. Short windows (under 600px tall, e.g. phones in landscape) use a
- * smaller design without Ollie, so the board can be bigger.
+ * smaller design: no speech bubbles, the buddy and the kid small in the
+ * corner, so the board can be bigger. The Buddy Help button stays.
  * Tap targets use max(N, 44px / --s) so they stay 44px or more on screen.
  */
 export const DESIGN = {
@@ -17,7 +18,8 @@ export const DESIGN = {
 
 /**
  * Where the board and the strip sit, in design px. On short windows the board
- * takes most of the width; the strip is a card on its right, above the kid.
+ * takes most of the width; the strip is a card on its right, above the Buddy
+ * Help button and the buddy and kid.
  */
 export const SLOTS = {
   normal: {
@@ -28,7 +30,7 @@ export const SLOTS = {
   short: {
     board: { x: 12, y: 62, w: 604, h: 350 },
     tall: { x: 12, y: 62, w: 604, h: 350 },
-    strip: { x: 628, y: 62, w: 260, h: 230 },
+    strip: { x: 628, y: 62, w: 260, h: 178 },
   },
 } as const
 
