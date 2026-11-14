@@ -353,9 +353,34 @@
   border: 2.5px solid var(--line);
   border-radius: 999px;
   background: var(--color-card-bg);
+  font: inherit;
   font-size: 18px;
   font-weight: 600;
+  color: inherit;
   white-space: nowrap;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.chip:hover {
+  background: var(--color-tint-peach);
+}
+
+.chip:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The pencil: tap the chip to rename the buddy. */
+.chipPen {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: -8px;
+  border-radius: 50%;
+  background: var(--color-tint-peach);
+  font-size: 15px;
 }
 
 /* The buddy's head in the chip (same as the toggle's, smaller). */

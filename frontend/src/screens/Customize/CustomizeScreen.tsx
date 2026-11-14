@@ -39,8 +39,12 @@ const STAGE_W = 1440
 const STAGE_H = 900
 /** The pier's top, where the characters stand. */
 const FEET_Y = 638
-const AVATAR = { x: 365, size: 430 }
-const BUDDY = { x: 600, size: 470 }
+/**
+ * Where each character stands, and its head-to-feet height in stage px. The
+ * buddy is 56/86 of the kid, the same as in the Lobby, so they match everywhere.
+ */
+const AVATAR = { x: 365, body: 370 }
+const BUDDY = { x: 585, body: (370 * 56) / 86 }
 
 // ---------- Timings (ms) ----------
 
@@ -81,6 +85,9 @@ const layoutFor = () => {
 
 /** How far a companion's feet are from the top of its square image (0..1). */
 const feetAt = (id: string) => (isCompanionId(id) ? companionRegistry[id].anchors.feet.y / 100 : 0.95)
+/** Top of the head to the feet, as a part of its square image (0..1). Ears and hats reach above it. */
+const bodyAt = (id: string) =>
+  isCompanionId(id) ? (companionRegistry[id].anchors.feet.y - companionRegistry[id].anchors.headTop.y) / 100 : 0.85
 
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
 const colorDistance = (a: string, b: string) => {
@@ -259,6 +266,12 @@ function Bridge({
     setEditing(true)
   }
 
+  /** The name chip: open the buddy's side with the name ready to type. */
+  const renameFromChip = () => {
+    if (side !== 'buddy') switchSide('buddy')
+    startRename()
+  }
+
   const finishRename = () => {
     const input = nameInput.current
     setEditing(false)
@@ -292,14 +305,12 @@ function Bridge({
   const current = pickedId(tab)
 
   /** Where a character's square image goes so its feet stand on the pier. */
-  const place = (id: string, { x, size }: { x: number; size: number }): CSSProperties => ({
-    left: x - size / 2,
-    top: FEET_Y - size * feetAt(id),
-    width: size,
-    height: size,
-  })
+  const place = (id: string, { x, body }: { x: number; body: number }): CSSProperties => {
+    const size = body / bodyAt(id)
+    return { left: x - size / 2, top: FEET_Y - size * feetAt(id), width: size, height: size }
+  }
 
-  const sparkleAt = (who: Side) => (who === 'you' ? { x: AVATAR.x, y: FEET_Y - 250 } : { x: BUDDY.x, y: FEET_Y - 230 })
+  const sparkleAt = (who: Side) => (who === 'you' ? { x: AVATAR.x, y: FEET_Y - 250 } : { x: BUDDY.x, y: FEET_Y - 160 })
 
   return (
     <main className={styles.screen}>
@@ -403,12 +414,15 @@ function Bridge({
             </button>
           )}
         </div>
-        <p className={styles.chip}>
+        <button type="button" className={styles.chip} onClick={renameFromChip} aria-label={`Rename your buddy, ${name}`}>
           <span className={`${styles.head} ${styles.chipHead}`} aria-hidden="true">
             <Companion id={buddy} still buddyColor={buddyColor} className={styles.headFigure} />
           </span>
-          {pet?.name ?? 'Buddy'} · Lv {level}
-        </p>
+          {name} · Lv {level}
+          <span className={styles.chipPen} aria-hidden="true">
+            ✏️
+          </span>
+        </button>
 
       </div>
 
