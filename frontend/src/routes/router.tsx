@@ -94,6 +94,11 @@ export const router = createBrowserRouter([
           path: '/dev/cutscene',
           lazy: () => import('../screens/DevCutscene/DevCutsceneScreen').then((m) => ({ Component: m.DevCutsceneScreen })),
         },
+        // The bedroom intro clip into the setup storybook, on a loop: ?t=8 holds one moment.
+        {
+          path: '/dev/intro',
+          lazy: () => import('../screens/DevIntro/DevIntroScreen').then((m) => ({ Component: m.DevIntroScreen })),
+        },
         // The Main Lobby with a sample Student, no login needed: ?p=a|b, &fps shows the frame rate.
         { path: '/dev/lobby', element: <LazyDevLobbyScreen /> },
         // Every mini game and state with a sample Student: links at /dev/games.

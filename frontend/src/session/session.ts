@@ -24,6 +24,10 @@ export interface SessionState {
   look: Look
   /** The Customize Bridge -> Rene Island cutscene has played (it plays once). */
   seenBridgeCutscene: boolean
+  /** The bedroom intro clip before the setup storybook has played (it plays once). */
+  seenIntroClip: boolean
+  /** The loading video has played while the Lobby loaded (the first time the Lobby opens in a session). */
+  seenLoadingVideo: boolean
 }
 
 /** What the student picked during first-time setup. */
@@ -47,6 +51,10 @@ export interface SessionContextValue extends SessionState {
   renameBuddy: (name: string) => void
   /** Go to Lobby: the cutscene played (or was skipped), so next time it opens /lobby straight away. */
   markBridgeCutsceneSeen: () => void
+  /** The bedroom intro clip started (or was skipped): a reload of /setup won't play it again. */
+  markIntroClipSeen: () => void
+  /** The Lobby's loading video started: later Lobby entries show "Opening your classroom…" instead. */
+  markLoadingVideoSeen: () => void
   logOut: () => void
 }
 

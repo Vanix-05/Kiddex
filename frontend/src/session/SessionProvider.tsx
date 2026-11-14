@@ -13,6 +13,8 @@ const EMPTY: SessionState = {
   buddyName: null,
   look: {},
   seenBridgeCutscene: false,
+  seenIntroClip: false,
+  seenLoadingVideo: false,
 }
 
 /** A saved user we still understand (roles from older versions are not). */
@@ -35,6 +37,8 @@ function loadSession(): SessionState {
         buddyName: saved.buddyName ?? null,
         look: cleanLook(saved.look),
         seenBridgeCutscene: saved.seenBridgeCutscene === true,
+        seenIntroClip: saved.seenIntroClip === true,
+        seenLoadingVideo: saved.seenLoadingVideo === true,
       }
     }
   } catch {
@@ -107,12 +111,36 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // TODO: save to the backend once the API exists.
   const markBridgeCutsceneSeen = useCallback(() => update({ seenBridgeCutscene: true }), [update])
+  const markIntroClipSeen = useCallback(() => update({ seenIntroClip: true }), [update])
+  const markLoadingVideoSeen = useCallback(() => update({ seenLoadingVideo: true }), [update])
 
   const logOut = useCallback(() => update(EMPTY), [update])
 
   const value = useMemo(
-    () => ({ ...state, logInTeacher, logInNewStudent, finishSetup, saveLook, renameBuddy, markBridgeCutsceneSeen, logOut }),
-    [state, logInTeacher, logInNewStudent, finishSetup, saveLook, renameBuddy, markBridgeCutsceneSeen, logOut],
+    () => ({
+      ...state,
+      logInTeacher,
+      logInNewStudent,
+      finishSetup,
+      saveLook,
+      renameBuddy,
+      markBridgeCutsceneSeen,
+      markIntroClipSeen,
+      markLoadingVideoSeen,
+      logOut,
+    }),
+    [
+      state,
+      logInTeacher,
+      logInNewStudent,
+      finishSetup,
+      saveLook,
+      renameBuddy,
+      markBridgeCutsceneSeen,
+      markIntroClipSeen,
+      markLoadingVideoSeen,
+      logOut,
+    ],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

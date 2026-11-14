@@ -21,6 +21,8 @@ interface OllieLiveProps {
   talkKey?: number
   /** His picture. Default: ollieLarge. Any layers with the same 428:600 framing work. */
   art?: ReactNode
+  /** He winks: one eye closes and stays closed. */
+  wink?: boolean
 }
 
 /**
@@ -29,7 +31,7 @@ interface OllieLiveProps {
  * of the picture, so they stay lined up at any size. The parent sets the width.
  * With reduce motion on he only blinks.
  */
-export function OllieLive({ talkKey = 0, art }: OllieLiveProps) {
+export function OllieLive({ talkKey = 0, art, wink = false }: OllieLiveProps) {
   const rootRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export function OllieLive({ talkKey = 0, art }: OllieLiveProps) {
         <span className={`${styles.lid} ${styles.lidLeft}`}>
           <i data-lid="" />
         </span>
-        <span className={`${styles.lid} ${styles.lidRight}`}>
+        <span className={wink ? `${styles.lid} ${styles.lidRight} ${styles.wink}` : `${styles.lid} ${styles.lidRight}`}>
           <i data-lid="" />
         </span>
         {/* Remounted for each line, so the talking plays again from the start. */}

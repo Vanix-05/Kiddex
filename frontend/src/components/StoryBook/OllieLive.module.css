@@ -52,6 +52,15 @@
   transform: translateY(-102%);
 }
 
+/* A wink: this eye's lid comes down and stays. */
+.lid i {
+  transition: transform 160ms ease-in-out;
+}
+
+.wink i {
+  transform: translateY(0);
+}
+
 /* The inside of his beak, right under it. It opens and closes 8 times
    (0.2s each way, ~1.7s) and then stays shut. */
 .mouth {

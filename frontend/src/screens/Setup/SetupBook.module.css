@@ -1,35 +1,14 @@
 /*
- * The setup storybook screen (SetupBook.tsx). One 1440 x 900 stage, scaled
- * as one piece to fit the window (--stage, set by SetupBook.tsx), so every
- * size here and in the spreads is in stage / book pixels.
- * The open book is 1216 x 748 at (96, 130); the look of its parts is shared
- * with the Student login (components/StoryBook/bookParts.module.css).
+ * The setup storybook (SetupBook.tsx). The book lies in the bedroom
+ * (components/Bedroom), which draws it in its own 1216 x 748 pixels at
+ * (96, 130) on a 1440 x 900 stage, scaled to fit the window. So every size
+ * here and in the spreads is in book pixels. The look of the book's parts is
+ * shared with the Student login (components/StoryBook/bookParts.module.css).
  */
-
-.screen {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-}
-
-.stage {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1440px;
-  height: 900px;
-  color: var(--color-text);
-  transform: var(--stage);
-  transform-origin: 0 0;
-}
 
 .book {
   position: absolute;
-  left: 96px;
-  top: 130px;
-  width: 1216px;
-  height: 748px;
-  animation: fade-in 300ms ease-out both;
+  inset: 0;
 }
 
 /* Step tabs, sticking out from behind the pages at the right edge. */
@@ -37,6 +16,12 @@
   position: absolute;
   left: 1196px;
   top: 86px;
+  transition: transform 500ms ease;
+}
+
+/* During the intro clip they wait behind the book. */
+.tabsAway {
+  transform: translateX(-160px);
 }
 
 /* The two blank pages, under whatever is written on them. */
@@ -57,7 +42,8 @@
 /* The ribbon's top end over the boards at the bottom of the spine. */
 .ribbon {
   top: 722px;
-  height: 84px;
+  /* The same length as the login book's ribbon: the intro clip starts on that book. */
+  height: 64px;
 }
 
 /* What's written on the open book: one layer over both pages, in book pixels. */
@@ -101,9 +87,15 @@
 }
 
 .blocker {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 30;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs {
+    transition: none;
+  }
 }
 
 @keyframes fade-in {

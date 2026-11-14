@@ -1,14 +1,14 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { preloadBedroom } from '../../../components/Bedroom/pictures'
 import { paths } from '../../../routes/paths'
 import { useSession } from '../../../session/session'
 import { BookLeftPage } from '../StoryBook/BookLeftPage'
 import { BookRightPage } from '../StoryBook/BookRightPage'
 import { StoryBook } from '../StoryBook/StoryBook'
-import { ENTER_MS, LAND_MS, LEAVE_MS, TURN_MS, type BookPhase, type Step } from '../StoryBook/timing'
+import { ENTER_MS, FINISH_MS, LAND_MS, LEAVE_MS, TURN_MS, type BookPhase, type Step } from '../StoryBook/timing'
 import { CoverOllie, WelcomeCover, type StudentKind } from '../WelcomeStudentPopup/WelcomeStudentPopup'
 import { CodeStep } from './CodeStep'
-import { LoadingVideo } from './LoadingVideo'
 import { Padlock } from './Padlock'
 
 /** The step tabs on the right edge of the book, for each kind of student. */
@@ -63,8 +63,8 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
   // Returning Student: the PIN code they made before, and Log in tapped.
   const [loginPin, setLoginPin] = useState('')
   const [loggingIn, setLoggingIn] = useState(false)
-  // Done! plays the loading video, then the first-time setup (quiz) starts.
-  const [loading, setLoading] = useState(false)
+  // Done!: the book goes blank, then the first-time setup starts (with its bedroom intro clip).
+  const [finishing, setFinishing] = useState(false)
   const navigate = useNavigate()
   const { logInNewStudent } = useSession()
 
@@ -91,6 +91,9 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
       setStep(1)
     }
     setFadedIn(false)
+    // A new Student sees the bedroom intro clip after Done!: get its pictures ready
+    // now, while they type their numbers (decoding takes a few seconds on a weak laptop).
+    if (next === 'new') preloadBedroom()
     if (reducedMotion()) {
       setPhase('steps')
       ollieArrives()
@@ -118,7 +121,7 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
 
   // ---------- Step to step ----------
 
-  const still = phase === 'steps' && turningFrom === null && !settling
+  const still = phase === 'steps' && turningFrom === null && !settling && !finishing
 
   /** Next: the right page turns over the spine, the next step is underneath. */
   const turnTo = (next: Step) => {
@@ -149,8 +152,11 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
     setStep((s) => (s - 1) as Step)
   }
 
+  /** Done!: Ollie and the writing fade into the paper, then on to the setup storybook. */
   const finish = () => {
-    if (still) setLoading(true)
+    if (!still) return
+    setFinishing(true)
+    after(FINISH_MS, startSetup)
   }
 
   /** Returning Student "Log in": any School ID and PIN code work (fake login). */
@@ -160,8 +166,8 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
     // TODO: real login + go to the Main Profile
   }
 
-  /** After the loading video: log in (fake, no backend yet) and start the quiz. */
-  const startQuiz = () => {
+  /** Log in (fake, no backend yet) and open the setup storybook. */
+  const startSetup = () => {
     // TODO: send the School ID, one-time code and new PIN code (oneTimeCode,
     // pin) to the backend once it exists.
     logInNewStudent(`${schoolId.slice(0, 4)}-${schoolId.slice(4)}`)
@@ -291,7 +297,7 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
           large
           submitLabel="Done!"
           onSubmit={finish}
-          active={live && !loading}
+          active={live}
         />
       </BookRightPage>
     )
@@ -318,13 +324,13 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
         turningFrom={turningFrom}
         settling={settling}
         fadedIn={fadedIn}
+        finishing={finishing}
         bounceKey={bounceKey}
         talkKey={talkKey}
         renderLeft={renderLeft}
         renderRight={renderRight}
         onClose={onClose}
       />
-      {loading && <LoadingVideo onDone={startQuiz} />}
     </>
   )
 }

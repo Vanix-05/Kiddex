@@ -1,4 +1,4 @@
-/* Full screen, above everything (the New Student pages are z-index 100-103). */
+/* Full screen, above everything (the Lobby and its "Opening your classroom…" screen are underneath). */
 .screen {
   position: fixed;
   inset: 0;

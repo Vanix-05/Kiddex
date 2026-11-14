@@ -52,6 +52,26 @@ import otter from './companions/web/pet_otter.webp'
 import raccoon from './companions/web/pet_raccoon.webp'
 import ram from './companions/web/pet_ram.webp'
 
+// The kid's bedroom at night (the intro clip and the setup book's background).
+// WebP copies made by `npm run web-art` from assets/bedroom/*.png: each room
+// picture has a sharp copy and a pre-blurred "soft" one (half size) for the
+// focus change. layout.json says how big each one is and where the shelf, bed
+// and chair go on the back wall.
+import bedroomLayoutJson from './bedroom/web/layout.json'
+import backWall from './bedroom/web/back-wall.webp'
+import backWallSoft from './bedroom/web/back-wall-soft.webp'
+import roomShelf from './bedroom/web/room-shelf.webp'
+import roomShelfSoft from './bedroom/web/room-shelf-soft.webp'
+import roomChair from './bedroom/web/room-chair.webp'
+import roomChairSoft from './bedroom/web/room-chair-soft.webp'
+import roomBed from './bedroom/web/room-bed.webp'
+import roomBedSoft from './bedroom/web/room-bed-soft.webp'
+import bedroomDesk from './bedroom/web/desk.webp'
+import handLeft from './bedroom/web/hand-left.webp'
+import handLeftShadow from './bedroom/web/hand-left-shadow.webp'
+import handRight from './bedroom/web/hand-right-pencil.webp'
+import handRightShadow from './bedroom/web/hand-right-pencil-shadow.webp'
+
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }
 export const characterArt = { girlFoxLogin, ollie }
 export const ollieLayers = { body: ollieBody, wing: ollieWing }
@@ -67,3 +87,15 @@ export const girlFoxLayers = {
   foxEyeArea: gfFoxEyeArea,
 }
 export const companionArt = { boy, girl, axolotl, dog, fox, kitty, monkey, otter, raccoon, ram }
+
+export const bedroomArt = {
+  wall: { sharp: backWall, soft: backWallSoft },
+  shelf: { sharp: roomShelf, soft: roomShelfSoft },
+  chair: { sharp: roomChair, soft: roomChairSoft },
+  bed: { sharp: roomBed, soft: roomBedSoft },
+  desk: bedroomDesk,
+  handLeft: { picture: handLeft, shadow: handLeftShadow },
+  handRight: { picture: handRight, shadow: handRightShadow },
+}
+/** Sizes and places of the bedroom pictures, in their own pixels (see make-web-art.mjs). */
+export const bedroomLayout = bedroomLayoutJson

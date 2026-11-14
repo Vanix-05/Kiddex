@@ -1,0 +1,188 @@
+/*
+ * The bedroom intro clip's own pieces (useIntroClip.tsx). Everything that
+ * moves is moved by the clip's clock: transforms and opacity only.
+ */
+
+/* ---------- The first second: the login scene, as the Student login leaves it ---------- */
+
+.login {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+/* Same dim and blur as the login's overlay (LoginScreen/StoryBook), so the first frame matches. */
+.loginDim {
+  position: absolute;
+  inset: 0;
+  /* Above everything in the scene (its logo and card have their own z-index). */
+  z-index: 100;
+  background: color-mix(in srgb, var(--color-text) 40%, transparent);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* ---------- On the page: the doodles ---------- */
+
+/* Over the right page (572 x 698 at 608, 20 in the book). */
+.doodles {
+  position: absolute;
+  left: 608px;
+  top: 20px;
+  width: 572px;
+  height: 698px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-pencil-lead);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.owlEyes {
+  fill: var(--color-pencil-lead);
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.sparkle {
+  fill: var(--color-story-gold);
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+/* ---------- The owl turning into Ollie ---------- */
+
+/* In the book's coordinates; it ends exactly on PerchedOllie's spot and size. */
+.flyer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100px;
+  opacity: 0;
+  filter: drop-shadow(0 5px 0 rgba(40, 20, 8, 0.25));
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* ---------- Over everything: letterbox + Skip ---------- */
+
+/* Covers the window, so nothing but Skip can be tapped while the clip plays. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+}
+
+/* The same 1440 x 900 stage as the bedroom (--stage comes from Bedroom). */
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 900px;
+  transform: var(--stage);
+  transform-origin: 0 0;
+}
+
+.bar {
+  position: absolute;
+  left: -1600px;
+  right: -1600px;
+  height: 64px;
+  background: var(--color-letterbox);
+  will-change: transform;
+}
+
+.barTop {
+  top: 0;
+  transform: translateY(-100%);
+}
+
+.barBottom {
+  bottom: 0;
+  transform: translateY(100%);
+}
+
+/* Outside the picture, on windows of another shape: letterbox color. */
+.masks {
+  opacity: 0;
+  will-change: opacity;
+}
+
+.masks span {
+  position: absolute;
+  background: var(--color-letterbox);
+}
+
+.maskLeft {
+  right: 100%;
+  top: -1600px;
+  bottom: -1600px;
+  width: 1600px;
+}
+
+.maskRight {
+  left: 100%;
+  top: -1600px;
+  bottom: -1600px;
+  width: 1600px;
+}
+
+.maskTop {
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 1600px;
+}
+
+.maskBottom {
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 1600px;
+}
+
+.skip {
+  position: absolute;
+  /* 1600px of bar hangs off each side of the stage. */
+  right: 1628px;
+  top: 50%;
+  min-height: 44px;
+  padding: 0 22px;
+  transform: translateY(-50%);
+  border: 2px solid color-mix(in srgb, var(--color-letterbox-text) 70%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-letterbox-text);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skip:hover {
+  border-color: var(--color-letterbox-text);
+  background: color-mix(in srgb, var(--color-letterbox-text) 12%, transparent);
+}
+
+.skip:focus-visible {
+  outline: 3px solid var(--color-letterbox-text);
+  outline-offset: 3px;
+}
+
+/* Reduce motion: the fades go through this dark cover. */
+.cover {
+  position: absolute;
+  inset: 0;
+  background: var(--color-bedroom-night);
+  opacity: 0;
+  pointer-events: none;
+}

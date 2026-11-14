@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import loadingVideo from '../../../assets/videos/loading/loading-1.mp4'
+import loadingVideo from '../../assets/videos/loading/loading-1.mp4'
 import styles from './LoadingVideo.module.css'
 
 /** If the video gives an error or never starts playing, move on after this long. */
 const FALLBACK_MS = 10_000
 
 /**
- * Full-screen loading video after "Done!" on the PIN code page: muted,
- * autoplay, no controls. Calls onDone once:
+ * Full-screen loading video, shown while the Lobby loads the first time it
+ * opens in a session (screens/Lobby/LazyLobby.tsx): muted, autoplay, no
+ * controls. It stays on its last frame until it is taken away. Calls onDone once:
  * - when the video's ended event fires (it always plays to the end), or
  * - 10 seconds after opening if it never starts playing, or 10 seconds after
  *   an error. No timer runs while the video is playing.

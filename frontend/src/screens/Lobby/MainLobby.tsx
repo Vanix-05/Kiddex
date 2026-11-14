@@ -62,6 +62,7 @@ export function MainLobby({
   onLogOut,
   onPlay,
   startAt,
+  onReady,
 }: {
   student: LobbyStudent
   data: LobbyData
@@ -70,6 +71,8 @@ export function MainLobby({
   onPlay?: (game: LobbyGameId, from: LobbyGameFrom) => void
   /** Back from a mini game: start at that game's corner. */
   startAt?: 'stage' | 'match'
+  /** The classroom is on screen, or couldn't open (called once). */
+  onReady?: () => void
 }) {
   const { mission, classmates, ollieLines } = data
   const [settings, changeSettings] = useLobbySettings()
@@ -207,6 +210,16 @@ export function MainLobby({
   const buddyCardOf = card?.type === 'buddy' ? classmates.find((c) => c.id === card.id) : undefined
   const buddyCardArt = buddyCardOf && cast?.classmates.find((c) => c.id === buddyCardOf.id)
   const failed = castFailed || gameFailed
+
+  // Tell whoever is covering the Lobby (the loading video) that it can go.
+  const shown = game !== null || failed
+  const onReadyRef = useRef(onReady)
+  useEffect(() => {
+    onReadyRef.current = onReady
+  }, [onReady])
+  useEffect(() => {
+    if (shown) onReadyRef.current?.()
+  }, [shown])
   const rootStyle = { '--s': scale, '--tag-scale': Math.max(0.68, scale) } as CSSProperties
 
   return (

@@ -1,0 +1,182 @@
+/*
+ * The bedroom world (Bedroom.tsx). Two 1440 x 900 stages, one behind and one
+ * in front of the `backdrop` slot, both scaled the same way to fit the window
+ * (--stage). Inside, every layer's contents are placed in world coordinates
+ * and the layer itself is moved by the camera: transforms and opacity only.
+ * The pictures never move inside their layers, and no filter is ever animated.
+ */
+
+.bedroom {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-bedroom-night);
+}
+
+.stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1440px;
+  height: 900px;
+  color: var(--color-text);
+  transform: var(--stage);
+  transform-origin: 0 0;
+  /* A 3D scene, so the camera can really tilt up (rotateX on .tilt). */
+  perspective: 1600px;
+  pointer-events: none;
+}
+
+.tilt {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+}
+
+.layer,
+.bookBox {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.layer {
+  width: 0;
+  height: 0;
+}
+
+.bookBox {
+  width: 1216px;
+  height: 748px;
+  pointer-events: auto;
+}
+
+/* Each picture is a canvas (Bedroom.tsx) and its own layer: the graphics
+   card scales it, and nothing is decoded or redrawn when the camera zooms. */
+.picture {
+  position: absolute;
+  max-width: none;
+  user-select: none;
+  will-change: transform;
+}
+
+/* The vignette and the light are big gradients: keep them as ready-made layers. */
+.light,
+.vignette {
+  will-change: transform;
+}
+
+/* The out-of-focus copy of a room picture. Its opacity is the focus change,
+   so it is its own layer: fading it never redraws the picture under it. */
+.soft {
+  /* transform too: the camera zooms it, and it must not be redrawn at every zoom level. */
+  will-change: transform, opacity;
+}
+
+/* ---------- Light ---------- */
+
+/* Over the whole room: a dark blue wash (the room sits a little darker than
+   the desk), the lamp's warm round glow low on the left, and a soft blue tint
+   by the window. A small canvas, painted once by Bedroom.tsx and stretched:
+   as a CSS gradient this big it had to be redrawn whenever the camera zoomed. */
+.light {
+  position: absolute;
+}
+
+/* Dark blue at the edges, fixed to the screen. Bigger than the stage, so it
+   also covers wider and taller windows. */
+.vignette {
+  position: absolute;
+  left: -60%;
+  top: -60%;
+  width: 220%;
+  height: 220%;
+}
+
+/* The moonbeam from the window: a soft slanted band that brightens and dims. */
+.moonbeam {
+  position: absolute;
+  width: 230px;
+  height: 640px;
+  background: linear-gradient(90deg, transparent, var(--color-bedroom-moonbeam) 45%, transparent);
+  transform: rotate(-31deg);
+  transform-origin: 50% 0;
+  /* transform too: the camera zooms it, and it must not be redrawn at every zoom level. */
+  will-change: transform, opacity;
+}
+
+/* One star by the moon that twinkles. */
+.star {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  background: var(--color-sticker-fill);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* While the room is in focus the desk goes very slightly soft: a dark veil, not a blur. */
+.deskDim {
+  position: absolute;
+  left: -1500px;
+  width: 4500px;
+  height: 1500px;
+  background: var(--color-bedroom-desk-dim);
+  opacity: 0;
+  /* transform too: the camera zooms it, and it must not be redrawn at every zoom level. */
+  will-change: transform, opacity;
+}
+
+/* The lamp's one soft flicker: its pool of light dips for a moment. */
+.lampDip {
+  position: absolute;
+  left: -200px;
+  width: 1400px;
+  height: 900px;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, var(--color-bedroom-desk-dim), transparent 70%);
+  opacity: 0;
+  /* transform too: the camera zooms it, and it must not be redrawn at every zoom level. */
+  will-change: transform, opacity;
+}
+
+/* Dust in the lamp's light: small soft dots. */
+.dust {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-bedroom-dust), transparent 70%);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* ---------- Hands ---------- */
+
+/* A hand's shadow fades out toward the side where its sleeve is cut off by
+   the picture's edge, so the shadow never ends in a straight line. */
+.shadowLeft {
+  mask-image: linear-gradient(to right, transparent, #000 30%), linear-gradient(to top, transparent, #000 25%);
+  mask-composite: intersect;
+}
+
+.shadowRight {
+  mask-image: linear-gradient(to left, transparent, #000 30%), linear-gradient(to top, transparent, #000 25%);
+  mask-composite: intersect;
+}
+
+/* The hands and their shadows, moved by the clip. Hidden in the still view. */
+.hand {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 240px;
+  max-width: none;
+  opacity: 0;
+  user-select: none;
+  will-change: transform;
+}

@@ -1,0 +1,44 @@
+{
+  "room": {
+    "width": 3168,
+    "height": 1344
+  },
+  "pieces": {
+    "shelf": {
+      "left": 1066,
+      "top": 417,
+      "width": 638,
+      "height": 678
+    },
+    "chair": {
+      "left": 2178,
+      "top": 477,
+      "width": 979,
+      "height": 823
+    },
+    "bed": {
+      "left": 13,
+      "top": 461,
+      "width": 1080,
+      "height": 870
+    }
+  },
+  "desk": {
+    "width": 2752,
+    "height": 1536
+  },
+  "hands": {
+    "left": {
+      "width": 1024,
+      "height": 2089
+    },
+    "right": {
+      "width": 1024,
+      "height": 2009,
+      "tip": {
+        "x": 105,
+        "y": 740
+      }
+    }
+  }
+}

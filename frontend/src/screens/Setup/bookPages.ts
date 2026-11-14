@@ -8,13 +8,15 @@ import { quizQuestions, type BuddyId } from '../../setup/quizData'
  * 7 = Pick your buddy.
  */
 export const GENDER_PAGE = 0
+/** Before the story: the blank page the bedroom intro clip plays on (it turns to Boy or Girl). */
+export const INTRO_PAGE = -1
 export const FIRST_QUESTION_PAGE = 1
 export const LAST_QUESTION_PAGE = quizQuestions.length
 export const REVEAL_PAGE = LAST_QUESTION_PAGE + 1
 export const PET_PAGE = REVEAL_PAGE + 1
 
 /** Which step tab a page belongs to (1 You, 2 Quiz, 3 Buddy). */
-export const tabOfPage = (page: number) => (page === GENDER_PAGE ? 1 : page <= LAST_QUESTION_PAGE ? 2 : 3)
+export const tabOfPage = (page: number) => (page <= GENDER_PAGE ? 1 : page <= LAST_QUESTION_PAGE ? 2 : 3)
 export const TABS = ['You', 'Quiz', 'Buddy'] as const
 
 /**

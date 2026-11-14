@@ -44,6 +44,12 @@ interface StoryBookProps {
   settling: boolean
   /** true when the current step came back with Back (both pages fade in). */
   fadedIn: boolean
+  /**
+   * Done! was tapped: the book goes blank (Ollie winks and fades into the
+   * paper, the writing fades, the tabs slide back behind the book). The
+   * bedroom intro clip starts from exactly that blank book.
+   */
+  finishing?: boolean
   /** Goes up each time Ollie lands on a page: he does his small hop. */
   bounceKey: number
   /** Goes up each time Ollie says a line (see OllieLive). */
@@ -80,6 +86,7 @@ export function StoryBook({
   turningFrom,
   settling,
   fadedIn,
+  finishing = false,
   bounceKey,
   talkKey,
   renderLeft,
@@ -93,7 +100,7 @@ export function StoryBook({
 
   const closed = phase === 'choose'
   // Taps and keys are ignored while the book opens or closes or a page turns.
-  const busy = phase === 'enter' || phase === 'back' || turningFrom !== null || settling
+  const busy = phase === 'enter' || phase === 'back' || turningFrom !== null || settling || finishing
   const live = phase === 'steps' && !busy
   // During a page turn the old left page stays put until the new one lands on it.
   const leftStep = turningFrom ?? step
@@ -155,14 +162,14 @@ export function StoryBook({
   /** Ollie standing in the picture frame: he hops when he lands, and talks. */
   const pageOllie = (
     <div key={bounceKey} className={styles.hop}>
-      <OllieLive talkKey={talkKey} />
+      <OllieLive talkKey={talkKey} wink={finishing} />
     </div>
   )
 
   return createPortal(
     <div
       ref={overlayRef}
-      className={`${styles.overlay} ${styles[phase]}`}
+      className={finishing ? `${styles.overlay} ${styles[phase]} ${styles.finishing}` : `${styles.overlay} ${styles[phase]}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       data-backdrop=""

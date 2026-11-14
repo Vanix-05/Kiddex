@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { Button } from '../../components/Button/Button'
 import { Icon } from '../../components/Icon/Icon'
+import { companionArt } from '../../assets/art'
 import { Companion } from '../../companions/Companion'
 import type { Avatar } from '../../setup/avatar'
 import type { SpreadMode } from './bookPages'
@@ -54,7 +55,13 @@ export function GenderSpread({ mode, avatar, onPick, onNext }: GenderSpreadProps
                 onChange={() => onPick?.(id)}
                 className="visually-hidden"
               />
-              <Companion id={id} className={styles.companion} />
+              {mode === 'arriving' ? (
+                // The copies on the page turning in: the plain picture (the same as the
+                // character standing still). Several animated ones at once make the turn stutter.
+                <img src={companionArt[id]} alt="" className={styles.companion} draggable={false} />
+              ) : (
+                <Companion id={id} className={styles.companion} />
+              )}
               <span className={styles.name}>{name}</span>
               {selected && (
                 <span className={styles.check} aria-hidden="true">

@@ -194,6 +194,26 @@
   animation: fadeIn 280ms ease-out both;
 }
 
+/* Done!: everything on both pages fades into the paper (Ollie too, after his
+   wink starts), and the tabs slide back behind the book. FINISH_MS in timing.ts. */
+.pageLeft > * > *,
+.pageRight > * > * {
+  transition: opacity 500ms ease;
+}
+
+.finishing .pageLeft > * > *,
+.finishing .pageRight > * > * {
+  opacity: 0;
+}
+
+.tabs {
+  transition: transform 500ms ease 100ms;
+}
+
+.finishing .tabs {
+  transform: translateX(-170px);
+}
+
 /* The shadow line at the spine. */
 .gutter {
   composes: gutter from '../../../components/StoryBook/bookParts.module.css';
@@ -519,6 +539,10 @@
 
   .enter .stage,
   .back .stage {
+    transition: none;
+  }
+
+  .tabs {
     transition: none;
   }
 }

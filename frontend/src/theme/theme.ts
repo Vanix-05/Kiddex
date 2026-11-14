@@ -96,22 +96,18 @@ export const theme = {
     ollieFace: '#FEF3E2', // eyelids
     ollieMouth: '#8A3A1C', // inside of the open beak
 
-    // The desk under the setup storybook (screens/Setup/Desk), until the bedroom comes.
-    deskWood: '#A8703F',
-    deskWoodMid: '#8C5A31',
-    deskWoodDark: '#7A4C29',
-    deskPlankGap: 'rgba(52, 26, 10, 0.55)', // dark line between planks
-    deskPlankShine: 'rgba(255, 220, 170, 0.12)', // light edge under it
-    deskGrainLight: 'rgba(255, 235, 200, 0.05)',
-    deskGrainDark: 'rgba(70, 36, 14, 0.07)',
-    deskLamp: 'rgba(255, 214, 150, 0.42)', // lamp glow, top-left
-    deskVignette: 'rgba(30, 14, 4, 0.55)', // darker edges
-    deskPropShadow: 'rgba(30, 14, 4, 0.35)',
-    pencilBody: '#F6C453',
-    pencilStripe: '#E0A93A',
-    pencilWood: '#F3D9B1',
-    eraserPink: '#F7A9A0',
-    eraserBlue: '#7FB7D9',
+    // The kid's bedroom at night (components/Bedroom): the intro clip and the setup book's background.
+    bedroomNight: '#0E102B', // behind every layer
+    bedroomWash: 'rgba(16, 20, 58, 0.26)', // the room sits a little darker than the desk
+    bedroomLampGlow: 'rgba(255, 190, 110, 0.2)', // warm round glow from the desk lamp
+    bedroomWindowTint: 'rgba(120, 165, 255, 0.16)', // soft blue near the window
+    bedroomVignette: 'rgba(8, 10, 34, 0.62)', // dark blue at the edges
+    bedroomMoonbeam: 'rgba(190, 215, 255, 0.13)',
+    bedroomDeskDim: 'rgba(10, 12, 36, 0.5)', // the desk while the room is in focus; the lamp's flicker
+    bedroomDust: 'rgba(255, 236, 196, 0.9)',
+    pencilLead: '#55504E', // the doodles on the page (dark grey pencil)
+    letterbox: '#1D1410', // the clip's bars (same as the bridge cutscene)
+    letterboxText: '#FDF6EC',
 
     // Storybook setup screens
     stickerFill: '#FFFFFF', // white fill of the bubbly sticker text

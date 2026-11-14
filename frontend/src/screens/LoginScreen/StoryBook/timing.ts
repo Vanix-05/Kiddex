@@ -12,6 +12,9 @@ export const TURN_MS = 820
 /** Back on step 1: the cover swings shut (850) and the book shrinks back (700). */
 export const LEAVE_MS = 1550
 
+/** Done!: Ollie winks and fades into the paper, the writing fades, the tabs slide away. Then the intro clip starts. */
+export const FINISH_MS = 700
+
 export type Step = 1 | 2 | 3
 
 /**
