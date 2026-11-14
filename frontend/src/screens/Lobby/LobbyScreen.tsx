@@ -1,5 +1,6 @@
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { companionRegistry } from '../../companions/registry'
+import { rememberLobbySpot } from '../../games/allGames/pageMemory'
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import { isBuddyId } from '../../setup/quizData'
@@ -35,6 +36,10 @@ export function LobbyScreen({ onReady }: { onReady?: () => void }) {
       startAt={at === 'stage' || at === 'match' ? at : undefined}
       onReady={onReady}
       onPlay={(game, from) => navigate(`${paths.play}/${game}?from=${from}&lesson=${data.mission.lessonId}`)}
+      onAllGames={(spot) => {
+        rememberLobbySpot(spot)
+        navigate(paths.games)
+      }}
       onLogOut={() => {
         logOut()
         navigate(paths.welcome)

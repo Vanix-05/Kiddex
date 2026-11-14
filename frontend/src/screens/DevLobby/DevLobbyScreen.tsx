@@ -41,6 +41,7 @@ export function DevLobbyScreen() {
       onLogOut={() => window.location.assign('/')}
       startAt={at === 'stage' || at === 'match' ? at : undefined}
       onPlay={(game, from) => navigate(`/dev/play/${game}?from=${from}&lesson=${data.mission.lessonId}`)}
+      onAllGames={() => navigate('/dev/all-games')}
     />
   )
 }

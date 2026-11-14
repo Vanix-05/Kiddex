@@ -20,7 +20,7 @@ const LETTERS = ['A', 'B', 'C', 'D'] as const
  * question; a wrong pick shows the right answer and why. No timer, no lives.
  * Keys: 1–4 or A–D pick, Enter = Next / Got it.
  */
-export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, onLeave, onPlayGame }: GameProps) {
+export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, onLeave, onPlayGame }: GameProps) {
   const stage = useStageFit()
   const calm = useCalmMotion()
   const { levelFor } = useGameProgress()
@@ -135,6 +135,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, onLeave, 
           <MarqueeBoard w={slots.tall.w} h={slots.tall.h} band={stage.short ? 14 : 24}>
             <ResultsBoard
               game="quiz-show"
+              leaveTo={leaveTo}
               name={player.name}
               summary={summary}
               compact={stage.short}

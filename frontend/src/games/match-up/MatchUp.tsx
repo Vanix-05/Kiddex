@@ -41,7 +41,7 @@ interface Drag {
  * card, then its partner; or drag from one pin to another. A wrong pair turns
  * coral with a hint until Okay. Right only counts on the first try.
  */
-export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, onLeave, onPlayGame }: GameProps) {
+export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, onLeave, onPlayGame }: GameProps) {
   const stage = useStageFit()
   const calm = useCalmMotion()
   const { levelFor } = useGameProgress()
@@ -180,6 +180,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, onLeave, o
           <CorkBoard w={slots.tall.w} h={slots.tall.h} sheet>
             <ResultsBoard
               game="match-up"
+              leaveTo={leaveTo}
               name={player.name}
               summary={summary}
               compact={stage.short}

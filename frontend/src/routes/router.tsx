@@ -10,6 +10,7 @@ import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
 import { LazyDevLobbyScreen, LazyLobbyScreen } from '../screens/Lobby/LazyLobby'
 import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
 import { LazyPlayScreen } from '../games/LazyPlay'
+import { LazyAllGamesScreen } from '../games/allGames/LazyAllGames'
 
 export const router = createBrowserRouter([
   // Login: one beach scene, the card on the right changes per step. The
@@ -49,7 +50,8 @@ export const router = createBrowserRouter([
       { path: paths.customize, element: <CustomizeScreen /> },
       // Its own download, with Pixi (screens/Lobby/preloadLobby.ts).
       { path: paths.lobby, element: <LazyLobbyScreen /> },
-      // Mini games (Quiz Show, Match Up): their own download too.
+      // All games, and the mini games (Quiz Show, Match Up): their own downloads too.
+      { path: paths.games, element: <LazyAllGamesScreen /> },
       { path: `${paths.play}/:gameId`, element: <LazyPlayScreen /> },
     ],
   },
@@ -110,6 +112,11 @@ export const router = createBrowserRouter([
         {
           path: '/dev/games',
           lazy: () => import('../games/dev/DevGamesScreen').then((m) => ({ Component: m.DevGamesScreen })),
+        },
+        // All games with a sample moment: ?sample=today|none|done|nomatch (links at /dev/games).
+        {
+          path: '/dev/all-games',
+          lazy: () => import('../games/dev/DevAllGamesScreen').then((m) => ({ Component: m.DevAllGamesScreen })),
         },
         {
           path: '/dev/play/:gameId',

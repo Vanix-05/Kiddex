@@ -12,11 +12,14 @@ export function ResultsBoard({
   summary,
   lookAgain,
   compact,
+  leaveTo = 'lobby',
   onPlayAgain,
   onNext,
 }: {
   game: GameId
   name: string
+  /** With no next game, the button goes back here. */
+  leaveTo?: 'lobby' | 'games'
   summary: RoundSummary
   /** Up to 2 cards the Student got wrong, with the right answer. */
   lookAgain: { prompt: string; answer: string }[]
@@ -99,7 +102,7 @@ export function ResultsBoard({
           <RotateCcw size={22} strokeWidth={2.6} aria-hidden="true" /> Play again
         </button>
         <button ref={nextButton} type="button" className={styles.next} onClick={onNext}>
-          {nextGame ? `Next game: ${GAMES[nextGame].name}` : 'Back to Lobby'} <ArrowRight size={24} strokeWidth={2.8} aria-hidden="true" />
+          {nextGame ? `Next game: ${GAMES[nextGame].name}` : leaveTo === 'games' ? 'Back to games' : 'Back to Lobby'} <ArrowRight size={24} strokeWidth={2.8} aria-hidden="true" />
         </button>
       </div>
     </div>

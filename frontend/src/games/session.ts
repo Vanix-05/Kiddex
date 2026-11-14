@@ -1,6 +1,7 @@
 // Building rounds and scoring them: shared by every mini game. Pure functions.
 import { MIN_CARDS, TEMPLATE_FOR_TYPE, type QuestionCard } from '../content/questionCard'
 import type { Decision } from './difficulty'
+import { starsFor } from './stars'
 import type { AnswerRecord, GameId, GameResult } from './types'
 
 /** Each game's name, its card type and its round size. */
@@ -37,12 +38,7 @@ export function makeResult(gameId: GameId, lessonId: string, topic: string, star
 
 // ---------- Scoring ----------
 
-/** 1 star for finishing, 2 at 75% or more, 3 for a perfect round. */
-export function starsFor(right: number, total: number): 1 | 2 | 3 {
-  if (total > 0 && right === total) return 3
-  if (total > 0 && right / total >= 0.75) return 2
-  return 1
-}
+export { starsFor }
 
 /** One helpful line under the title: how to get the next star. */
 export function nextStarLine(right: number, total: number): string {

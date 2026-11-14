@@ -8,6 +8,8 @@ import { BoardCard } from './ui/BoardCard'
 import { BuddyCard } from './ui/BuddyCard'
 import { ComingSoonCard, type SoonKind } from './ui/ComingSoonCard'
 import { DoorCard } from './ui/DoorCard'
+import { GameMovedCard, type MovedCorner } from './ui/GameMovedCard'
+import { MISSION_GAMES } from '../../games/mission'
 import { HowToPlayCard } from './ui/HowToPlayCard'
 import { Hud } from './ui/Hud'
 import { LobbyIcon, type LobbyIconName } from './ui/icons'
@@ -23,13 +25,15 @@ type Card =
   | { type: 'howto' | 'settings' | 'door' | 'mission' | 'board' }
   | { type: 'buddy'; id: string }
   | { type: 'soon'; kind: SoonKind }
+  | { type: 'moved'; corner: MovedCorner }
 
 /** The floating labels over the game corners, and their edge arrows. */
 const ZONE_UI: Record<ZoneId, { name: string; sub?: string; icon: LobbyIconName; tint?: string }> = {
   ollie: { name: 'Ollie', icon: 'owl' },
   nook: { name: 'Word Nook', sub: 'Tap to play', icon: 'book', tint: '--color-tint-pink' },
-  stage: { name: 'Quiz Stage', sub: 'Tap to play', icon: 'mic', tint: '--color-tint-lavender' },
-  match: { name: 'Match Corner', sub: 'Tap to play', icon: 'puzzle', tint: '--color-tint-mint' },
+  // No "Tap to play": these corners don't start games any more (they point to All games).
+  stage: { name: 'Quiz Stage', icon: 'mic', tint: '--color-tint-lavender' },
+  match: { name: 'Match Corner', icon: 'puzzle', tint: '--color-tint-mint' },
   door: { name: 'Outside', sub: 'To the island', icon: 'palm' },
 }
 
@@ -52,23 +56,30 @@ const SHOW_FPS = import.meta.env.DEV && new URLSearchParams(window.location.sear
  * The Main Lobby: the Student's section classroom on Rene Island. The room is
  * a Pixi canvas (game/LobbyGame.ts); everything on top of it is React.
  */
-/** The mini games the Lobby opens: from a game corner, or the mission's Start. */
+/**
+ * The mini games the Lobby opens itself: only the mission's Start (the next
+ * unfinished mission game). Everything else goes through All games.
+ */
 export type LobbyGameId = 'quiz-show' | 'match-up'
-export type LobbyGameFrom = 'stage' | 'match' | 'mission'
+export type LobbyGameFrom = 'mission'
+const isLobbyGame = (g: string): g is LobbyGameId => g === 'quiz-show' || g === 'match-up'
 
 export function MainLobby({
   student,
   data,
   onLogOut,
   onPlay,
+  onAllGames,
   startAt,
   onReady,
 }: {
   student: LobbyStudent
   data: LobbyData
   onLogOut: () => void
-  /** Opens a mini game (without it, the corners say Coming soon). */
+  /** Opens a mission game (without it, Start says Coming soon). */
   onPlay?: (game: LobbyGameId, from: LobbyGameFrom) => void
+  /** Opens All games; `spot`: the game corner the Student is at, for coming back. */
+  onAllGames?: (spot: MovedCorner | null) => void
   /** Back from a mini game: start at that game's corner. */
   startAt?: 'stage' | 'match'
   /** The classroom is on screen, or couldn't open (called once). */
@@ -109,11 +120,7 @@ export function MainLobby({
     [mission.title],
   )
 
-  // The latest onPlay and the first startAt, for the game's callbacks (created once).
-  const playRef = useRef(onPlay)
-  useEffect(() => {
-    playRef.current = onPlay
-  }, [onPlay])
+  // The first startAt, for the game (created once).
   const startAtRef = useRef(startAt)
 
   // The game starts with the saved settings; later changes go through its methods.
@@ -142,8 +149,8 @@ export function MainLobby({
           if (id === 'ollie') setCard({ type: 'mission' })
           else if (id === 'board') setCard({ type: 'board' })
           else if (id === 'stars') setCard({ type: 'soon', kind: 'stars' })
-          else if (id === 'stage' && playRef.current) playRef.current('quiz-show', 'stage')
-          else if (id === 'match' && playRef.current) playRef.current('match-up', 'match')
+          // The game corners don't start games any more: they point to All games.
+          else if (id === 'stage' || id === 'match') setCard({ type: 'moved', corner: id })
           else setCard({ type: 'soon', kind: id })
         },
         atDoor: () => setCard({ type: 'door' }),
@@ -205,8 +212,11 @@ export function MainLobby({
 
   const close = () => setCard(null)
   const soon = (kind: SoonKind) => setCard({ type: 'soon', kind })
-  /** The mission's Start: Quiz Show, the first mission game. */
-  const startMission = () => (onPlay ? onPlay('quiz-show', 'mission') : soon('mission'))
+  /** The mission's Start: the next unfinished mission game (the first one again when all are done). */
+  const missionGames = MISSION_GAMES.slice(0, mission.games).filter(isLobbyGame)
+  const nextMissionGame = missionGames.find((g) => !mission.done.includes(g)) ?? missionGames[0]
+  const startMission = () => (onPlay && nextMissionGame ? onPlay(nextMissionGame, 'mission') : soon('mission'))
+  const allGames = (spot: MovedCorner | null) => (onAllGames ? onAllGames(spot) : soon('allGames'))
   const buddyCardOf = card?.type === 'buddy' ? classmates.find((c) => c.id === card.id) : undefined
   const buddyCardArt = buddyCardOf && cast?.classmates.find((c) => c.id === buddyCardOf.id)
   const failed = castFailed || gameFailed
@@ -246,7 +256,7 @@ export function MainLobby({
                   </span>
                   <span>
                     <b>{zone.name}</b>
-                    <small>{zone.sub}</small>
+                    {zone.sub && <small>{zone.sub}</small>}
                   </span>
                 </button>
               )
@@ -302,7 +312,7 @@ export function MainLobby({
             showHint={!hasMoved}
             onStart={startMission}
             onMyRoom={() => soon('myRoom')}
-            onAllGames={() => soon('allGames')}
+            onAllGames={() => allGames(null)}
             onZoom={() => changeSettings({ zoom: settings.zoom === 'close' ? 'far' : 'close' })}
             onSettings={() => setCard({ type: 'settings' })}
             onEmote={(text, emoji) => game.emote(text, emoji)}
@@ -320,6 +330,7 @@ export function MainLobby({
           {card?.type === 'mission' && <MissionCard mission={mission} onStart={startMission} onClose={close} />}
           {card?.type === 'board' && <BoardCard mission={mission} onClose={close} />}
           {card?.type === 'soon' && <ComingSoonCard kind={card.kind} onClose={close} />}
+          {card?.type === 'moved' && <GameMovedCard corner={card.corner} onOpen={() => allGames(card.corner)} onClose={close} />}
           {buddyCardOf && buddyCardArt && (
             <BuddyCard
               classmate={buddyCardOf}

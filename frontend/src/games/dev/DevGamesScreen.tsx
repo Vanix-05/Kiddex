@@ -28,7 +28,16 @@ const STATES: { game: string; state?: DemoState; label: string }[] = [
   { game: 'match-up', state: 'results', label: 'Match Up: Results' },
 ]
 
-const isDemo = (v: string | null): v is DemoState => ['question', 'right', 'wrong', 'results', 'picked', 'miss'].includes(v ?? '')
+/** /dev/all-games samples (see DevAllGamesScreen). */
+const ALL_GAMES: { sample?: string; label: string }[] = [
+  { sample: 'today', label: 'All games (sample, like the mockup: Quiz Show done)' },
+  { sample: 'none', label: 'All games: no mission' },
+  { sample: 'done', label: 'All games: mission done' },
+  { sample: 'nomatch', label: 'All games: a lesson where Match Up is unavailable' },
+  { label: 'All games: your real progress (play from here to see it update)' },
+]
+
+const isDemo =(v: string | null): v is DemoState => ['question', 'right', 'wrong', 'results', 'picked', 'miss'].includes(v ?? '')
 
 /** /dev/games: a link for each game and each state. */
 export function DevGamesScreen() {
@@ -43,8 +52,16 @@ export function DevGamesScreen() {
           </li>
         ))}
         <li>
-          <Link to="/dev/lobby">The Lobby (Quiz Stage and Match Corner open the games)</Link>
+          <Link to="/dev/lobby">The Lobby (All games opens the games page)</Link>
         </li>
+      </ul>
+      <h2>All games</h2>
+      <ul>
+        {ALL_GAMES.map((s) => (
+          <li key={s.label}>
+            <Link to={`/dev/all-games${s.sample ? `?sample=${s.sample}` : ''}`}>{s.label}</Link>
+          </li>
+        ))}
       </ul>
     </main>
   )
@@ -56,5 +73,5 @@ export function DevPlayScreen() {
   const [params] = useSearchParams()
   if (!isGameId(gameId) || !GAMES[gameId].built) return <Navigate to="/dev/games" replace />
   const state = params.get('state')
-  return <GameRoute gameId={gameId} player={ANA} base="/dev/play" lobby="/dev/lobby" demo={isDemo(state) ? state : undefined} />
+  return <GameRoute gameId={gameId} player={ANA} base="/dev/play" lobby="/dev/lobby" games="/dev/all-games" demo={isDemo(state) ? state : undefined} />
 }

@@ -34,12 +34,15 @@ function deck(lessonId: string, topic: string, status: QuestionCard['status']) {
 }
 
 /**
- * FAKE: the lessons the mini games can be played with (src/games/useGameCards.ts),
- * in order. The first one with enough cards for a game is that game's default.
+ * FAKE: the Student's lessons the mini games can be played with: the Teacher
+ * approved them (src/games/lessonCards.ts). In order: the first one with
+ * enough cards for a game is that game's default. `added`: when the Teacher
+ * gave it to the class (All games picks the newest when there is no mission).
  */
 export const fakeGameLessons = [
-  { id: 'g4-fractions', name: 'Fractions', teacher: 'Ms. Cruz', subject: 'Math' },
-  { id: 'mixed', name: 'Mixed Numbers', teacher: 'Ms. Cruz', subject: 'Math' },
+  { id: 'g4-fractions', name: 'Fractions', teacher: 'Ms. Cruz', subject: 'Math', added: '2026-11-10' },
+  { id: 'mixed', name: 'Mixed Numbers', teacher: 'Ms. Cruz', subject: 'Math', added: '2026-11-03' },
+  { id: 'comparing', name: 'Comparing Fractions', teacher: 'Ms. Cruz', subject: 'Math', added: '2026-10-27' },
 ]
 
 // ---------- For the mini games: 20 approved + 2 drafts ----------
@@ -283,9 +286,34 @@ export const mixedCards: QuestionCard[] = [
   }),
 ]
 
+// ---------- Sample lesson "Comparing Fractions" (7 approved) ----------
+// Only 2 pairs, so Match Up needs 2 more: it shows grey on All games.
+
+const cmp = deck('comparing', 'Comparing Fractions', 'approved')
+
+export const comparingCards: QuestionCard[] = [
+  cmp.mc('Which is bigger?', ['2/3', '1/3', '0/3', '1/6'], '2/3', {
+    level: 'easy', sourcePage: 1, explanation: 'Both are thirds, so the one with more parts, 2/3, is bigger.',
+  }),
+  cmp.mc('Which is smaller?', ['1/6', '1/2', '1/3', '1/4'], '1/6', {
+    level: 'easy', sourcePage: 1, explanation: 'All tops are 1. The whole cut into the most parts has the smallest parts: 1/6.',
+  }),
+  cmp.mc('Which sign makes 3/8 ___ 5/8 true?', ['<', '>', '='], '<', {
+    level: 'medium', sourcePage: 2, explanation: 'Both are eighths, and 3 is less than 5, so 3/8 < 5/8.',
+  }),
+  cmp.mc('Which is the same as 1 whole?', ['4/4', '1/4', '4/1', '3/4'], '4/4', {
+    level: 'medium', sourcePage: 2, explanation: 'When the top and bottom are the same, the fraction is one whole.',
+  }),
+  cmp.pair('2/4', 'one half', { level: 'easy', sourcePage: 3 }),
+  cmp.pair('3/9', 'one third', { level: 'medium', sourcePage: 3 }),
+  cmp.blank('3/4 is ___ than 1/4.', ['bigger', 'smaller', 'equal'], 'bigger', {
+    level: 'easy', sourcePage: 1, explanation: 'Three fourths has more of the same parts than one fourth.',
+  }),
+]
+
 // Dev only: check every card when this file loads, so a typo shows up right away.
 if (import.meta.env.DEV) {
-  for (const card of [...fakeQuestionCards, ...equivalentFractionsCards, ...partsCards, ...mixedCards]) {
+  for (const card of [...fakeQuestionCards, ...equivalentFractionsCards, ...partsCards, ...mixedCards, ...comparingCards]) {
     const result = QuestionCardSchema.safeParse(card)
     if (!result.success) {
       const why = result.error.issues.map((i) => `${i.path.join('.') || 'card'}: ${i.message}`).join('; ')

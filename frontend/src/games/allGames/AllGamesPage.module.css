@@ -1,0 +1,747 @@
+/* All games (/games). Sizes match the 1440x900 mockup; text never goes below 15px. */
+
+.page {
+  --orange: var(--color-button-bg);
+  --orange-edge: var(--color-button-border);
+  --orange-glow: rgba(240, 160, 80, 0.28);
+  --card-shadow: var(--color-game-shadow);
+  min-height: 100svh;
+  padding-bottom: 48px;
+  color: var(--color-text);
+  background: linear-gradient(180deg, var(--color-sky) 0%, var(--color-sky-light) 62%, var(--color-neutral-bg) 100%);
+}
+
+/* ---------- Top: Lobby and stars ---------- */
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 26px 0;
+}
+
+.lobby,
+.stars {
+  display: inline-flex;
+  align-items: center;
+  height: 56px;
+  margin: 0;
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--card-shadow);
+  font: 600 20px / 1 var(--font-display);
+  white-space: nowrap;
+}
+
+.lobby {
+  gap: 10px;
+  padding: 0 22px 0 10px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.lobby:hover {
+  background: var(--color-card-bg);
+}
+
+.lobby:active {
+  translate: 0 3px;
+  box-shadow: 0 2px 0 var(--card-shadow);
+}
+
+.lobbyIcon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2.5px solid currentColor;
+  border-radius: 50%;
+}
+
+.stars {
+  gap: 10px;
+  padding: 0 20px 0 16px;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.star {
+  flex: none;
+}
+
+/* ---------- Content column ---------- */
+
+.main {
+  max-width: 1228px;
+  margin: 24px auto 0;
+  padding: 0 24px;
+}
+
+/* ---------- Mission banner ---------- */
+
+.mission {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px 22px;
+  padding: 18px 18px 18px 30px;
+  border: 5px solid var(--orange);
+  border-radius: 30px;
+  background: color-mix(in srgb, var(--color-tint-peach) 50%, var(--color-input-bg));
+  box-shadow:
+    0 0 0 7px var(--orange-glow),
+    0 10px 24px rgba(240, 160, 80, 0.2);
+}
+
+.from {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 9px;
+  border: 2.5px solid var(--orange-edge);
+  border-radius: 10px;
+  background: var(--orange);
+  color: var(--color-button-text);
+  font: 600 16px / 1.3 var(--font-display);
+}
+
+.missionTitle {
+  margin-top: 10px;
+  font: 700 30px / 1.1 var(--font-display);
+}
+
+.missionMeta {
+  margin-top: 4px;
+  font-size: 18px;
+  color: var(--color-text-subtle);
+}
+
+.missionCount {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.missionDots {
+  display: flex;
+  gap: 7px;
+}
+
+.mDot {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--color-ok-fill);
+  border-radius: 50%;
+}
+
+.mDotDone {
+  background: var(--color-ok-fill);
+}
+
+.missionGames {
+  display: grid;
+  grid-template-columns: repeat(2, 390px);
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mGame {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 140px;
+  padding: 8px 14px 8px 8px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 20px;
+  background: var(--color-text-on-dark);
+  box-shadow: 0 5px 0 var(--card-shadow);
+}
+
+.mGameNext {
+  border-color: var(--orange);
+  box-shadow:
+    0 0 0 6px var(--orange-glow),
+    0 5px 0 var(--card-shadow);
+}
+
+.mThumb,
+.thumb {
+  width: 100%;
+  aspect-ratio: 1.65;
+  object-fit: cover;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-neutral-bg);
+}
+
+.thumb {
+  aspect-ratio: 1.9;
+}
+
+.mBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mName {
+  font: 700 23px / 1.1 var(--font-display);
+}
+
+.mLine {
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--color-text-subtle);
+}
+
+.starRow {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.donePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 14px 3px 10px;
+  border: 2.5px solid var(--color-ok-text);
+  border-radius: 999px;
+  background: var(--color-game-right-pill);
+  color: var(--color-text-on-dark);
+  font: 600 16px / 1.2 var(--font-display);
+}
+
+.again {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  /* A 44px tap target without moving the layout. */
+  position: relative;
+}
+
+.again::after {
+  content: '';
+  position: absolute;
+  inset: -6px -8px;
+}
+
+.again:hover {
+  color: var(--color-link);
+}
+
+.play {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  margin-top: 2px;
+  padding: 0 26px 0 20px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--orange);
+  color: var(--color-button-text);
+  box-shadow: 0 5px 0 var(--orange-edge);
+  font: 700 22px / 1 var(--font-display);
+  cursor: pointer;
+}
+
+.play:hover {
+  background: var(--color-button-bg-hover);
+}
+
+.play:active {
+  translate: 0 3px;
+  box-shadow: 0 2px 0 var(--orange-edge);
+}
+
+/* Every mission game done: the banner turns green. */
+.missionDone {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-bg);
+  box-shadow:
+    0 0 0 7px rgba(78, 159, 98, 0.22),
+    0 10px 24px rgba(78, 159, 98, 0.18);
+}
+
+.missionDone .from {
+  border-color: var(--color-ok-text);
+  background: var(--color-game-right-pill);
+  color: var(--color-text-on-dark);
+}
+
+.missionDone .missionCount {
+  color: var(--color-ok-text);
+  font-size: 19px;
+}
+
+/* ---------- Pick a game ---------- */
+
+.pickHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 26px 0 18px;
+}
+
+.pickTitle {
+  font: 700 28px / 1.1 var(--font-display);
+}
+
+.pickTitle small {
+  margin-left: 8px;
+  font: 600 16px / 1 var(--font-body);
+  color: var(--color-text-subtle);
+}
+
+.lessonPill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 3px 4px 3px 16px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  font-size: 16px;
+}
+
+.lessonPill b {
+  margin-left: 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-link);
+}
+
+.change {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 12px;
+  background: var(--color-text-on-dark);
+  color: var(--color-text);
+  font: 700 16px / 1 var(--font-display);
+  cursor: pointer;
+}
+
+.change:hover {
+  background: var(--color-card-bg);
+}
+
+/* ---------- The grid ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  padding: 9px 9px 14px;
+  border: 3px solid var(--color-neutral-line);
+  border-radius: 22px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--card-shadow);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    translate 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.card:hover {
+  translate: 0 -4px;
+  border-color: var(--color-card-border);
+  box-shadow: 0 9px 0 var(--card-shadow);
+}
+
+.card:active {
+  translate: 0 3px;
+  box-shadow: 0 1px 0 var(--card-shadow);
+}
+
+.cardMission {
+  border-color: var(--orange);
+}
+
+.cardMission:hover {
+  border-color: var(--orange-edge);
+}
+
+.tag {
+  position: absolute;
+  top: -14px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 12px 2px 9px;
+  border: 2.5px solid var(--orange-edge);
+  border-radius: 10px;
+  background: var(--orange);
+  color: var(--color-button-text);
+  font: 600 15px / 1.3 var(--font-display);
+}
+
+.cardName {
+  margin: 10px 6px 0;
+  font: 700 21px / 1.15 var(--font-display);
+}
+
+.cardFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 4px 0 6px;
+}
+
+.cardFoot .starRow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cardLine {
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--color-text-subtle);
+}
+
+.reason {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-text-subtle);
+  color: var(--color-text-on-dark);
+  font: 600 15px / 1.3 var(--font-display);
+  white-space: nowrap;
+}
+
+/* A game the lesson can't play: grey, picture faded. Tapping says why. */
+.cardOff {
+  border-color: var(--color-neutral-line);
+  background: var(--color-neutral-bg);
+  box-shadow: 0 5px 0 rgba(74, 52, 38, 0.1);
+  cursor: help;
+}
+
+.cardOff .thumb {
+  filter: grayscale(1);
+  opacity: 0.5;
+  border-color: var(--color-neutral-line);
+}
+
+.cardOff .cardName {
+  color: var(--color-text-subtle);
+}
+
+.cardOff:hover {
+  translate: none;
+  border-color: var(--color-text-subtle);
+  box-shadow: 0 5px 0 rgba(74, 52, 38, 0.1);
+}
+
+.soon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 220px;
+  padding: 16px;
+  border: 3px dashed var(--color-neutral-line);
+  border-radius: 22px;
+  background: rgba(255, 251, 244, 0.35);
+  color: var(--color-text-subtle);
+  text-align: center;
+  font-size: 15px;
+}
+
+.soon b {
+  font: 700 20px / 1.2 var(--font-display);
+}
+
+.soonPlus {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  border: 3px dashed var(--color-neutral-line);
+  border-radius: 50%;
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 30;
+  max-width: calc(100% - 32px);
+  padding: 10px 18px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--card-shadow);
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  translate: -50% 0;
+  animation: toast 2.8s ease forwards;
+}
+
+@keyframes toast {
+  0% {
+    opacity: 0;
+    translate: -50% 10px;
+  }
+  8%,
+  85% {
+    opacity: 1;
+    translate: -50% 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- Lesson picker ---------- */
+
+.dim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--color-game-dim);
+}
+
+.picker {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 22px;
+  border: 4px solid var(--color-card-border);
+  border-radius: 26px;
+  background: var(--color-input-bg);
+  box-shadow: 0 8px 0 var(--card-shadow);
+}
+
+.pickerTitle {
+  padding-right: 44px;
+  font: 700 26px / 1.1 var(--font-display);
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-card-bg);
+}
+
+.lessons {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 16px;
+  border: 3px solid var(--color-neutral-line);
+  border-radius: 16px;
+  background: var(--color-text-on-dark);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lesson:hover {
+  border-color: var(--color-card-border);
+}
+
+.lessonOn {
+  border-color: var(--orange);
+  background: color-mix(in srgb, var(--color-tint-peach) 50%, var(--color-input-bg));
+  color: var(--color-link);
+}
+
+.lessonText {
+  display: grid;
+  gap: 2px;
+}
+
+.lessonText b {
+  font: 700 19px / 1.2 var(--font-display);
+  color: var(--color-text);
+}
+
+.lessonText span {
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+/* ---------- Smaller screens ---------- */
+
+/* Laptops (1366 wide): the mission cards get a little narrower. */
+@media (max-width: 1400px) {
+  .missionGames {
+    grid-template-columns: repeat(2, minmax(330px, 380px));
+  }
+
+  .mGame {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+}
+
+/* Under 1100px: 3 columns, the mission cards under the lesson info. */
+@media (max-width: 1099px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mission {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .missionGames {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Phones: 2 columns, one-column banner, the lesson pill under the heading. */
+@media (max-width: 759px) {
+  .top {
+    padding: 14px 16px 0;
+  }
+
+  .main {
+    margin-top: 18px;
+    padding: 0 16px;
+  }
+
+  .mission {
+    padding: 18px 16px;
+    border-radius: 24px;
+  }
+
+  .missionTitle {
+    font-size: 26px;
+  }
+
+  .missionGames {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mGame {
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .pickHead {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lessonPill {
+    justify-content: space-between;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .cardFoot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reason {
+    white-space: normal;
+  }
+}
+
+/* Reduced motion: no lift or press, only the border color changes. */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card:hover,
+  .card:active,
+  .lobby:active,
+  .play:active {
+    translate: none;
+    transition: none;
+  }
+
+  .card:hover {
+    box-shadow: 0 5px 0 var(--card-shadow);
+  }
+
+  .toast {
+    animation-name: toastStill;
+  }
+
+  @keyframes toastStill {
+    0%,
+    85% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

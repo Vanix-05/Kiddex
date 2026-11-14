@@ -17,7 +17,9 @@ export const paths = {
   customize: '/customize',
   /** Rene Island, the Main Lobby: the Student's section classroom. ?at=stage|match: start at that corner. */
   lobby: '/lobby',
-  /** A mini game: /play/quiz-show or /play/match-up, with ?lesson=<id>&from=stage|match|mission. */
+  /** All games: every mini game as a card, the mission at the top. The only way into the games. */
+  games: '/games',
+  /** A mini game: /play/quiz-show or /play/match-up, with ?lesson=<id>&from=games|mission. */
   play: '/play',
   /** Teacher Login, and the Teacher Dashboard (the planner). Lessons steps: /teacher/lessons/:id/making|check|games */
   teacher: {

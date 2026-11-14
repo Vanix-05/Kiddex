@@ -51,8 +51,12 @@ export interface GameLesson {
   subject: string
 }
 
-/** Where the Student came from, so Leave and Back to games return there. */
-export type GameFrom = 'stage' | 'match' | 'mission' | 'dev'
+/**
+ * Where the Student came from, so Leave and Back to games return there:
+ * games = All games; mission = the Lobby's mission card; stage / match = old
+ * links from the Lobby corners (back to that corner); dev = /dev/games.
+ */
+export type GameFrom = 'games' | 'stage' | 'match' | 'mission' | 'dev'
 
 /** Dev screens (/dev/games): open a game at one moment. */
 export type DemoState = 'question' | 'right' | 'wrong' | 'results' | 'picked' | 'miss'
@@ -67,6 +71,8 @@ export interface GameProps {
   lessonCanPlay: (game: GameId) => boolean
   /** Dev only: start at this moment; nothing is saved. */
   demo?: DemoState
+  /** Where onLeave goes, for the Results button without a next game ("Back to games"). */
+  leaveTo: 'lobby' | 'games'
   onLeave: () => void
   onPlayGame: (game: GameId) => void
 }

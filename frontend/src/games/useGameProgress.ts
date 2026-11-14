@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { START_LEVEL } from './difficulty'
 import { dayOf } from './mission'
+import { starsFor } from './stars'
 import type { GameId, GameResult, Level } from './types'
 
 /**
@@ -78,5 +79,14 @@ export function useGameProgress() {
     [saved.results],
   )
 
-  return { levelFor, saveRound, playedToday, xpEarned: saved.xpEarned, starsEarned: saved.starsEarned }
+  /** The best stars (0 = never finished) the Student ever got in a game with this lesson. */
+  const bestStars = useCallback(
+    (gameId: GameId, lessonId: string): number =>
+      saved.results
+        .filter((r) => r.gameId === gameId && r.lessonId === lessonId && Array.isArray(r.answers))
+        .reduce((best, r) => Math.max(best, starsFor(r.answers.filter((a) => a.right).length, r.answers.length)), 0),
+    [saved.results],
+  )
+
+  return { levelFor, saveRound, playedToday, bestStars, xpEarned: saved.xpEarned, starsEarned: saved.starsEarned }
 }

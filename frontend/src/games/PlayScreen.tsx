@@ -9,8 +9,8 @@ import { GAMES, isGameId } from './session'
 
 /**
  * /play/:gameId?lesson=…&from=… : a mini game for the logged-in Student, in
- * their Customize look. Leave and Back to games return to the Lobby corner
- * they came from.
+ * their Customize look. Leave and Back to games return to All games
+ * (?from=games), or the Lobby otherwise.
  */
 export function PlayScreen() {
   const { gameId } = useParams()
@@ -21,5 +21,5 @@ export function PlayScreen() {
   if (!avatar || !isBuddyId(companionId)) return <Navigate to={paths.setup.quiz} replace />
 
   const player = { name: student.name, avatar, buddy: companionId, buddyName: buddyName ?? companionRegistry[companionId].name, look }
-  return <GameRoute gameId={gameId} player={player} base={paths.play} lobby={paths.lobby} />
+  return <GameRoute gameId={gameId} player={player} base={paths.play} lobby={paths.lobby} games={paths.games} />
 }

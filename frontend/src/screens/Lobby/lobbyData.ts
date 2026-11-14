@@ -1,4 +1,5 @@
 /** What the Lobby shows. The shapes the backend will send (see useLobbyData.ts). */
+import type { GameId } from '../../games/types'
 import type { Avatar } from '../../setup/avatar'
 import type { Look } from '../../setup/customizeData'
 import type { BuddyId } from '../../setup/quizData'
@@ -31,9 +32,12 @@ export interface Mission {
   teacher: string
   title: string
   subject: string
+  /** How many games (the first ones of MISSION_GAMES, games/mission.ts). 0: no mission today. */
   games: number
   /** Mission games finished today for this lesson. */
   gamesDone: number
+  /** Which ones (the same count as gamesDone). */
+  done: GameId[]
   due: string
   xp: number
   stars: number

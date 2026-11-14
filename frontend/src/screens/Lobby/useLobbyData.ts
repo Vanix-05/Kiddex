@@ -27,11 +27,11 @@ export function useLobbyData(): LobbyData {
     }
     const { mission } = lobbyMock
     const today = playedToday(mission.lessonId)
-    const gamesDone = MISSION_GAMES.slice(0, mission.games).filter((g) => today.includes(g)).length
+    const done = MISSION_GAMES.slice(0, mission.games).filter((g) => today.includes(g))
     return {
       ...lobbyMock,
       student: { ...base, level, xp, stars: base.stars + starsEarned },
-      mission: { ...mission, gamesDone },
+      mission: { ...mission, gamesDone: done.length, done },
     }
   }, [xpEarned, starsEarned, playedToday])
 }

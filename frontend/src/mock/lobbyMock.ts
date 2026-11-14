@@ -42,6 +42,7 @@ export const lobbyMock: LobbyData = {
     games: 2,
     // The hook (useLobbyData) counts the games finished today.
     gamesDone: 0,
+    done: [],
     due: 'Friday',
     // Most a perfect run can earn: Quiz Show 8 x 5 + 10, Match Up 5 x 5 + 10; 3 stars each.
     xp: 85,
