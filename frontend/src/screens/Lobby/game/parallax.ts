@@ -1,6 +1,6 @@
 /**
  * Light parallax. Far islands and clouds move slower than the room, and the
- * clouds drift; big leaves close to the camera move faster. All of it stands
+ * clouds drift. All of it stands
  * still when Moving effects is on Less (or the OS asks for reduced motion).
  */
 import { Container, Graphics } from 'pixi.js'
@@ -8,7 +8,6 @@ import { RD, RW } from './room'
 import type { Scene } from './scene'
 
 const FAR_LAG = 0.25
-const NEAR_RUSH = 0.3
 
 export interface Parallax {
   /** camX / camY: what the camera looks at, in world px. */
@@ -22,10 +21,10 @@ export function drawParallax(scene: Scene): Parallax {
 
   const islands = new Container()
   for (const [x, y, s] of [
-    [-12, 3, 0.9],
-    [12, 29, 1.0],
-    [8, -15, 0.8],
-    [34, 10, 0.8],
+    [-13, 3, 0.9],
+    [12, 30, 1.0],
+    [-16, -9, 0.8],
+    [-6, 27, 0.75],
   ]) {
     const g = drawFarIsland(s)
     g.position.set(...P(x, y))
@@ -43,21 +42,6 @@ export function drawParallax(scene: Scene): Parallax {
   }
   layers.far.addChild(islands, clouds)
 
-  // Big leaves at the island's front edge.
-  const leaves = new Container()
-  for (const [x, y, flip, s] of [
-    [2, 22.5, 1, 0.9],
-    [17, 23, -1, 0.85],
-    [30, 13, -1, 0.8],
-    [-9, 12, 1, 0.8],
-  ]) {
-    const g = drawLeaves(flip, s)
-    const [X, Y] = P(x, y)
-    g.position.set(X, Y + 60)
-    leaves.addChild(g)
-  }
-  layers.near.addChild(leaves)
-
   // A cloud that drifts off one side comes back on the other.
   const WRAP = 1500
 
@@ -67,7 +51,6 @@ export function drawParallax(scene: Scene): Parallax {
       const dx = (camX - centreX) * k
       const dy = (camY - centreY) * k
       layers.far.position.set(dx * FAR_LAG, dy * FAR_LAG)
-      leaves.position.set(-dx * NEAR_RUSH, -dy * NEAR_RUSH)
       if (still) return
       for (const c of drift) {
         c.g.x += c.speed * dt
@@ -105,25 +88,5 @@ function drawCloud(s: number) {
   ]) {
     g.circle(a * s, b * s, r * s).fill({ color: 0xffffff, alpha: 0.9 })
   }
-  return g
-}
-
-function drawLeaves(flip: number, s: number) {
-  const g = new Graphics()
-  for (const [a, len, color] of [
-    [-1.0, 150, 0x4f9a46],
-    [-0.4, 190, 0x5fae52],
-    [0.25, 170, 0x4f9a46],
-    [0.85, 140, 0x67b858],
-  ]) {
-    const dx = Math.sin(a) * len * s * flip
-    const dy = -Math.cos(a) * len * s
-    g.moveTo(0, 0)
-      .quadraticCurveTo(dx * 0.5 - 30 * s, dy * 0.5, dx, dy)
-      .quadraticCurveTo(dx * 0.5 + 30 * s, dy * 0.5 + 10 * s, 0, 0)
-      .fill(color)
-      .stroke({ width: 3, color: 0x2f6a2a })
-  }
-  g.alpha = 0.95
   return g
 }

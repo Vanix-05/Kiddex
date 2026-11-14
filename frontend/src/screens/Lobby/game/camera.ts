@@ -6,6 +6,15 @@ import type { Container } from 'pixi.js'
 import type { Projection } from './projection'
 import { RD, RW } from './room'
 
+/** How far the camera may look, in world px. drawOutside draws just past it. */
+export function islandBounds(proj: Projection) {
+  // The island's corners, plus room above for the trees.
+  const corners = [proj.P(-6, 21), proj.P(28, -7), proj.P(-6, -6), proj.P(28, 21)]
+  const xs = corners.map((p) => p[0])
+  const ys = corners.map((p) => p[1])
+  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys) - 160, y1: Math.max(...ys) }
+}
+
 export type Zoom = 'close' | 'far'
 
 export class Camera {
@@ -28,11 +37,7 @@ export class Camera {
 
   setProjection(proj: Projection) {
     this.proj = proj
-    // The island's corners, plus room above for the palms.
-    const corners = [proj.P(-6, 21), proj.P(28, -7), proj.P(-6, -6), proj.P(28, 21)]
-    const xs = corners.map((p) => p[0])
-    const ys = corners.map((p) => p[1])
-    this.bounds = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys) - 160, y1: Math.max(...ys) }
+    this.bounds = islandBounds(proj)
   }
 
   resize(width: number, height: number) {
@@ -56,7 +61,7 @@ export class Camera {
     const target = this.targetScale()
     this.scale = snap ? target : this.scale + (target - this.scale) * Math.min(1, dt * 5)
 
-    let [tx, ty] = this.mode === 'far' ? proj.P(RW / 2, RD / 2, 50) : proj.P(followX, followY, 40)
+    let [tx, ty] = this.mode === 'far' ? proj.P(RW / 2, RD / 2, 110) : proj.P(followX, followY, 40)
     const halfW = this.width / 2 / this.scale
     const halfH = this.height / 2 / this.scale
     // When the view is wider than the island, min/max would cross: centre instead.
