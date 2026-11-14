@@ -87,22 +87,27 @@
 
 /* ---------- Emote bubbles ---------- */
 
+/* About 2x the old size, so emotes read from across the room. The game places
+   the bubble's bottom just above the head (never over the face or the name
+   tag) and scales it with the HUD, not the camera, so zooming keeps its size. */
 .bubble {
   z-index: 2;
-  padding: 4px 12px;
-  font-size: 15px;
+  padding: 8px 22px;
+  font-size: 26px;
+  line-height: 1.3;
   font-weight: 600;
   background: var(--color-lobby-chip);
-  border: 3px solid var(--color-card-border);
-  border-radius: 16px;
+  border: 4px solid var(--color-card-border);
+  border-radius: 28px;
   /* As long as the game keeps it (2.6 s), fading at the end. */
   animation: bubble 2.6s both;
 }
 
 .bubbleEmoji {
-  padding: 0 9px;
-  font-size: 22px;
-  border-radius: 18px;
+  padding: 4px 16px;
+  font-size: 56px;
+  line-height: 1.15;
+  border-radius: 34px;
 }
 
 .bubble::after,
@@ -119,6 +124,16 @@
   border-right: 3px solid var(--color-card-border);
   border-bottom: 3px solid var(--color-card-border);
   transform: rotate(45deg);
+}
+
+/* The emote bubble's tail, scaled up to match. */
+.bubble::after {
+  bottom: -14px;
+  width: 20px;
+  height: 20px;
+  margin-left: -12px;
+  border-right-width: 4px;
+  border-bottom-width: 4px;
 }
 
 @keyframes bubble {

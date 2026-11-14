@@ -909,11 +909,12 @@ export class LobbyGame {
         const figure = this.figureOf(part ? `${id}:${part}` : id)
         if (!figure) continue
         const [sx, sy] = camera.toScreen(figure.topX, figure.topY)
-        this.place(el, sx, sy - 12 * ui, 0.5, 1, ui)
+        // Bottom of the bubble (its tail's tip) just above the head.
+        this.place(el, sx, sy - 22 * ui, 0.5, 1, ui)
       } else if (kind === 'action') {
         // Over the Student's head, above their bubble if they have one.
         const [sx, sy] = camera.toScreen(me.kid.topX, me.kid.topY)
-        this.place(el, sx, sy - 16 - (this.bubbles.has(me.id) ? 50 * ui : 0), 0.5, 1, 1)
+        this.place(el, sx, sy - 16 - (this.bubbles.has(me.id) ? 110 * ui : 0), 0.5, 1, 1)
       }
     }
 

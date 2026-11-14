@@ -359,10 +359,14 @@
 }
 
 .emo {
+  display: grid;
+  place-items: center;
   width: 44px;
   padding: 0;
-  font-size: 20px;
+  font-size: 32px;
+  line-height: 1;
   border-radius: 50%;
+  overflow: hidden;
 }
 
 .phrase {
