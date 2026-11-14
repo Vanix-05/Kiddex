@@ -13,6 +13,7 @@ import {
   clamp,
   ease,
   easeOut,
+  bodyAt,
   feetAt,
   lerp,
   moveWater,
@@ -68,6 +69,12 @@ const FEET_Y = 625
 /** The pier ends here; past it there are no planks for a shadow. */
 const PIER_END = 790
 const SIZE: Record<Who, number> = { you: 250, buddy: 260 }
+/**
+ * On the pier the buddy is 56/86 of the kid's head-to-feet height, the same as on
+ * the Customize Bridge and in the Lobby. In the boat both shrink to their seats.
+ */
+const pierScale = (who: Who, id: CompanionId) =>
+  who === 'you' ? 1 : (SIZE.you * bodyAt('boy') * 56) / 86 / (SIZE.buddy * bodyAt(id))
 /** The moored boat: its hull middle, and its scale. */
 const BOAT_A = { x: 800 + 130 * 1.5, y: 478 + 170 * 1.5, scale: 1.5 }
 const WALK: Record<Who, { start: number; dur: number; x0: number; x1: number; steps: number }> = {
@@ -110,7 +117,8 @@ function riderA(t: number, who: Who, id: CompanionId, boat: BoatPose) {
   const step = Math.sin(e * Math.PI * w.steps)
   const lift = e > 0 && e < 1 ? Math.abs(step) * 22 : 0
   const hop = HOP[who]
-  if (t < hop.start) return { x, y: FEET_Y - lift, rot: step * 3 * (e < 1 ? 1 : 0), scale: 1, lift }
+  const k = pierScale(who, id)
+  if (t < hop.start) return { x, y: FEET_Y - lift, rot: step * 3 * (e < 1 ? 1 : 0), scale: k, lift }
 
   const p = seg(t, hop.start, hop.start + HOP_SECONDS)
   const seat = boatToWorld(boat, seatFeet(who, id))
@@ -119,7 +127,7 @@ function riderA(t: number, who: Who, id: CompanionId, boat: BoatPose) {
     x: lerp(x, seat.x, p),
     y,
     rot: lerp(0, boat.rot, p),
-    scale: lerp(1, (SEATS[who].size * boat.scale) / SIZE[who], ease(p)),
+    scale: lerp(k, (SEATS[who].size * boat.scale) / SIZE[who], ease(p)),
     lift: FEET_Y - y,
   }
 }

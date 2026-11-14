@@ -17,6 +17,8 @@ export const shotAlpha = (t: number, a: number, b: number, fade = 0.25) => clamp
 
 /** How far a companion's feet are from the top of its square image (0..1). */
 export const feetAt = (id: CompanionId) => companionRegistry[id].anchors.feet.y / 100
+/** Top of the head to the feet, as a part of its square image (0..1). Ears and hats reach above it. */
+export const bodyAt = (id: CompanionId) => (companionRegistry[id].anchors.feet.y - companionRegistry[id].anchors.headTop.y) / 100
 
 export interface Point {
   x: number
