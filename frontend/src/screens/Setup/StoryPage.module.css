@@ -1,0 +1,173 @@
+/*
+ * What the setup storybook's picture pages share (Boy or Girl and the quiz:
+ * GenderSpread.tsx, QuizSpread.tsx, storyParts.tsx), in the open book's own
+ * pixels (1216 x 748; left page x 36-608, right page x 608-1180).
+ *
+ * Still pages: nothing floats or loops. A card lifts a little on hover and
+ * presses when tapped; with reduce motion, not even that.
+ */
+
+/* Everything written on the page is handwritten in pencil brown. */
+.hand {
+  color: var(--color-pencil);
+  font-family: var(--font-hand);
+  font-weight: 400;
+}
+
+/* A heading focused by code when the page lands (for screen readers): no ring needed. */
+.title {
+  /* A heading, never edited: no blinking caret, no selection. */
+  caret-color: transparent;
+  user-select: none;
+}
+
+.title:focus {
+  outline: none;
+}
+
+/* ---------- Picture cards (Boy, Girl, the 4 answers) ---------- */
+
+/* A label around a hidden radio: the radio group gives keyboards and screen
+   readers the usual pick-one behavior. Tilted by --tilt. */
+.pickCard {
+  border: 4px solid var(--color-card-border);
+  box-shadow: 0 6px 0 rgba(107, 74, 51, 0.2);
+  color: var(--color-pencil);
+  cursor: pointer;
+  transform: rotate(var(--tilt));
+  transition: transform 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pickCard:hover {
+  transform: rotate(var(--tilt)) translateY(-4px);
+}
+
+.pickCard:active {
+  transform: rotate(var(--tilt)) scale(0.97);
+}
+
+/* The card's radio: invisible, over the whole card, so its box is the card's
+   (where keyboard focus and screen readers point), not a 1px corner. */
+.radio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Keyboard focus is on the radio: show it on the whole card, clear of the picked outline. */
+.pickCard:has(input:focus-visible) {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 12px;
+}
+
+/* Picked: an orange outline (and the star stamp, storyParts.tsx). */
+.picked {
+  box-shadow:
+    0 0 0 6px var(--color-story-picked),
+    0 8px 0 rgba(107, 74, 51, 0.22);
+}
+
+/* The gold star stamp with a ✓, over the picked card's top-right corner. */
+.stamp {
+  position: absolute;
+  top: -26px;
+  right: -26px;
+  z-index: 3;
+  width: 76px;
+  height: 76px;
+  pointer-events: none;
+}
+
+.stampSmall {
+  top: -20px;
+  right: -18px;
+  width: 60px;
+  height: 60px;
+}
+
+/* ---------- Drawn bits ---------- */
+
+.doodle {
+  position: absolute;
+  height: auto;
+  pointer-events: none;
+}
+
+/* Washi tape: the caller sets its place, tilt and color. */
+.tape {
+  position: absolute;
+  z-index: 2;
+  width: 96px;
+  height: 30px;
+  border: 2px solid rgba(91, 58, 34, 0.25);
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+/* The wavy pencil line under the Boy or Girl title. */
+.underline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 14px;
+}
+
+/* ---------- Back and Next ---------- */
+
+/* Next: the usual orange button, handwritten. Off until a pick is made.
+   (Two classes: it overrides components/Button.) */
+.next.next {
+  --size-control-height: 68px;
+  position: absolute;
+  min-width: 0;
+  padding: 0 34px;
+  border-width: 3.5px;
+  border-radius: 22px;
+  font-family: var(--font-hand);
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: 0;
+  transition: transform 120ms ease;
+}
+
+.back {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--size-tap-target);
+  padding: 4px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.back:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pickCard,
+  .next.next {
+    transition: none;
+  }
+  .pickCard:hover,
+  .pickCard:active {
+    transform: rotate(var(--tilt));
+  }
+  .next.next:active:not(:disabled) {
+    transform: none;
+  }
+}

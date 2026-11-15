@@ -14,7 +14,6 @@ import {
   ollieWhoIsTheHero,
   quizQuestions,
   type BuddyId,
-  type QuizAnswer,
 } from '../../setup/quizData'
 import { pickBuddy } from '../../setup/scoring'
 import { GenderSpread } from './GenderSpread'
@@ -38,7 +37,6 @@ import {
   LAST_QUESTION_PAGE,
   LETTERS_DONE_MS,
   PET_PAGE,
-  POP_MS,
   reducedMotion,
   REVEAL_HOLD_MS,
   REVEAL_PAGE,
@@ -47,13 +45,16 @@ import {
   TURN_MS,
   type SpreadMode,
 } from './bookPages'
+import { preloadGenderPage, preloadQuestion } from './storyPictures'
 import styles from './SetupBook.module.css'
 
-/** The page being turned away: which page, and the bubble popped on it. */
+/** The page being turned away. */
 interface Leaving {
   page: number
-  popped: number | null
 }
+
+/** No answer picked yet on any question. */
+const noAnswers = (): (number | null)[] => quizQuestions.map(() => null)
 
 /**
  * The first-time setup (/setup), all in one storybook lying on the desk in
@@ -90,7 +91,8 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   // (Dev: `pullIn` opens the book on Pick your buddy, just after Choose.)
   const [page, setPage] = useState(() => (pullIn ? PET_PAGE : clip === 'playing' ? INTRO_PAGE : GENDER_PAGE))
   const [avatar, setAvatar] = useState<Avatar | null>(pullIn ? 'girl' : null)
-  const [picks, setPicks] = useState<QuizAnswer[]>([])
+  // The card picked on each question (an index into its answers), kept when going Back.
+  const [answers, setAnswers] = useState<(number | null)[]>(noAnswers)
   const [matchedBuddy, setMatchedBuddy] = useState<BuddyId | null>(pullIn?.buddy ?? null)
   const [selectedId, setSelectedId] = useState<BuddyId>(() => pullIn?.buddy ?? firstPick(null))
   // Nicknames typed so far, per buddy, so switching back keeps them.
@@ -103,14 +105,19 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   // The magic fall has taken over the screen: this book has nothing left to draw.
   const [fallen, setFallen] = useState(false)
 
-  const [popped, setPopped] = useState<number | null>(null)
   const [leaving, setLeaving] = useState<Leaving | null>(null)
   const [fading, setFading] = useState<'out' | 'in' | null>(null)
   // Goes up each time a new page has landed: focus moves to its title.
   const [landed, setLanded] = useState(0)
 
-  // Taps are ignored while the clip plays, a page turns or fades, a bubble pops or the reveal plays.
-  const busy = clip !== 'over' || leaving !== null || popped !== null || fading === 'out' || chosen || page === REVEAL_PAGE
+  // Taps are ignored while the clip plays, a page turns or fades, or the reveal plays.
+  const busy = clip !== 'over' || leaving !== null || fading === 'out' || chosen || page === REVEAL_PAGE
+
+  // The pictures of the page after this one are decoded ahead, so it never turns in half-loaded.
+  useEffect(() => {
+    if (page <= GENDER_PAGE) preloadGenderPage()
+    if (page >= GENDER_PAGE && page < LAST_QUESTION_PAGE) preloadQuestion(page - GENDER_PAGE)
+  }, [page])
 
   // ---------- Timers ----------
   const timers = useRef<number[]>([])
@@ -128,26 +135,40 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
 
   /** The reveal holds, then turns to Pick your buddy on its own. */
   const holdReveal = () =>
-    later((reducedMotion() ? 0 : LETTERS_DONE_MS) + REVEAL_HOLD_MS, () => turn(REVEAL_PAGE, PET_PAGE, null))
+    later((reducedMotion() ? 0 : LETTERS_DONE_MS) + REVEAL_HOLD_MS, () => turn(REVEAL_PAGE, PET_PAGE))
 
   /** Next: the right page turns over the spine; the next page is underneath. */
-  const turn = (from: number, next: number, poppedOnIt: number | null) => {
+  const turn = (from: number, next: number) => {
     const arrive = () => {
       setLanded((n) => n + 1)
       if (next === REVEAL_PAGE) holdReveal()
     }
-    setPopped(null)
     setFading(null)
     setPage(next)
     if (reducedMotion()) {
       arrive()
       return
     }
-    setLeaving({ page: from, popped: poppedOnIt })
+    setLeaving({ page: from })
     later(TURN_MS, () => {
       setLeaving(null)
       arrive()
     })
+  }
+
+  /** Back: a quick fade to an earlier page (FADE_MS out, then in). Its picks are kept. */
+  const fadeTo = (to: number) => {
+    const show = () => {
+      setPage(to)
+      setFading('in')
+      setLanded((n) => n + 1)
+    }
+    if (reducedMotion()) {
+      show()
+      return
+    }
+    setFading('out')
+    later(FADE_MS, show)
   }
 
   // ---------- The intro clip ----------
@@ -159,7 +180,7 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   /** The clip hands over: Ollie is on the book, and the blank page turns to Boy or Girl (or just shows it). */
   const beginStory = useCallback((turnPage: boolean) => {
     setClip('story')
-    if (turnPage) turnRef.current(INTRO_PAGE, GENDER_PAGE, null)
+    if (turnPage) turnRef.current(INTRO_PAGE, GENDER_PAGE)
     else setPage(GENDER_PAGE)
   }, [])
   const endClip = useCallback(() => {
@@ -183,45 +204,41 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   }
 
   const genderNext = () => {
-    if (!busy && avatar) turn(GENDER_PAGE, FIRST_QUESTION_PAGE, null)
+    if (!busy && avatar) turn(GENDER_PAGE, FIRST_QUESTION_PAGE)
   }
 
-  /** A bubble: it pops, the others fade, then the page turns. */
-  const answer = (answerIndex: number) => {
+  /** A card on a question page: it is picked (tapping another changes the pick). Nothing turns yet. */
+  const pickAnswer = (answerIndex: number) => {
     if (busy) return
     const q = page - FIRST_QUESTION_PAGE
-    const nextPicks = [...picks.slice(0, q), quizQuestions[q].answers[answerIndex]]
-    setPicks(nextPicks)
-    setPopped(answerIndex)
-    later(POP_MS, () => {
-      if (page < LAST_QUESTION_PAGE) {
-        turn(page, page + 1, answerIndex)
-        return
-      }
-      // The last answer: work out the match, then on to the reveal.
-      const match = pickBuddy(nextPicks)
-      setMatchedBuddy(match)
-      setSelectedId(firstPick(match))
-      setNames({})
-      turn(page, REVEAL_PAGE, answerIndex)
-    })
+    setAnswers((a) => a.map((old, i) => (i === q ? answerIndex : old)))
   }
 
-  /** Back on Pick your buddy: a quick fade back to question 5. The first 4 answers stay. */
-  const petBack = () => {
-    if (busy) return
-    const toLastQuestion = () => {
-      setPage(LAST_QUESTION_PAGE)
-      setPicks((p) => p.slice(0, LAST_QUESTION_PAGE - FIRST_QUESTION_PAGE))
-      setFading('in')
-      setLanded((n) => n + 1)
-    }
-    if (reducedMotion()) {
-      toLastQuestion()
+  /** Next (Finish on question 5): the page turns. After question 5, the match is worked out first. */
+  const quizNext = () => {
+    const q = page - FIRST_QUESTION_PAGE
+    if (busy || answers[q] === null) return
+    if (page < LAST_QUESTION_PAGE) {
+      turn(page, page + 1)
       return
     }
-    setFading('out')
-    later(FADE_MS, toLastQuestion)
+    // Every answer is picked by now (Next is off until it is).
+    const picked = answers.flatMap((a, i) => (a === null ? [] : [quizQuestions[i].answers[a]]))
+    const match = pickBuddy(picked)
+    setMatchedBuddy(match)
+    setSelectedId(firstPick(match))
+    setNames({})
+    turn(page, REVEAL_PAGE)
+  }
+
+  /** Back on a question: question 1 goes to Boy or Girl, the others to the question before. */
+  const quizBack = () => {
+    if (!busy) fadeTo(page - 1)
+  }
+
+  /** Back on Pick your buddy: a quick fade back to question 5, with all 5 answers kept. */
+  const petBack = () => {
+    if (!busy) fadeTo(LAST_QUESTION_PAGE)
   }
 
   const choose = () => {
@@ -279,12 +296,21 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
 
   // ---------- The pages ----------
 
-  const spread = (p: number, mode: SpreadMode, poppedHere: number | null): ReactNode => {
+  const spread = (p: number, mode: SpreadMode): ReactNode => {
     // The clip's blank page: once it turns away, the doodles left on it are part of the page.
     if (p === INTRO_PAGE) return mode === 'live' ? null : <Doodles mode="left" />
     if (p === GENDER_PAGE) return <GenderSpread mode={mode} avatar={avatar} onPick={pickAvatar} onNext={genderNext} />
     if (p <= LAST_QUESTION_PAGE)
-      return <QuizSpread mode={mode} index={p - FIRST_QUESTION_PAGE} popped={poppedHere} onChoose={answer} />
+      return (
+        <QuizSpread
+          mode={mode}
+          index={p - FIRST_QUESTION_PAGE}
+          picked={answers[p - FIRST_QUESTION_PAGE]}
+          onPick={pickAnswer}
+          onNext={quizNext}
+          onBack={quizBack}
+        />
+      )
     if (p === REVEAL_PAGE) return <RevealSpread mode={mode} />
     return (
       <PetSpread
@@ -328,18 +354,18 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
         <>
           {/* The left half of the page being left stays until the page lands... */}
           <div className={`${styles.spread} ${styles.clipLeft}`} aria-hidden="true" inert>
-            {spread(leaving.page, 'still', leaving.popped)}
+            {spread(leaving.page, 'still')}
           </div>
           {/* ...and the right half of the next page is already underneath. */}
           <div className={`${styles.spread} ${styles.clipRight}`} aria-hidden="true" inert>
-            {spread(page, 'arriving', null)}
+            {spread(page, 'arriving')}
           </div>
         </>
       ) : (
         // The page you're on. Keyed by page, so its entrance plays when it lands.
         <div key={page} ref={liveRef} className={liveClass} inert={fading === 'out'}>
           {/* (Dev pull-in: the page has been open a while, so no arrival animation.) */}
-          {spread(page, pullIn ? 'still' : 'live', popped)}
+          {spread(page, pullIn ? 'still' : 'live')}
         </div>
       )}
       {introParts.onPage}
@@ -355,14 +381,14 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
           <div className={book.turnLift}>
             <div className={`${book.face} ${book.faceBack}`}>
               <div className={`${book.paper} ${book.paperLeft}`}>
-                <div className={`${styles.spread} ${styles.onLeftPage}`}>{spread(page, 'arriving', null)}</div>
+                <div className={`${styles.spread} ${styles.onLeftPage}`}>{spread(page, 'arriving')}</div>
               </div>
               <span className={`${book.shade} ${book.shadeBack}`} />
             </div>
             <div className={book.face}>
               <div className={`${book.paper} ${book.paperRight}`}>
                 <div className={`${styles.spread} ${styles.onRightPage}`}>
-                  {spread(leaving.page, 'still', leaving.popped)}
+                  {spread(leaving.page, 'still')}
                 </div>
               </div>
               <span className={`${book.shade} ${book.shadeFront}`} />

@@ -77,7 +77,7 @@
   top: -23px;
 }
 
-/* Back on Pick your buddy: fade out, then question 5 fades in. */
+/* Back (on a question or Pick your buddy): fade out, then the earlier page fades in. FADE_MS in bookPages.ts. */
 .fadeOut {
   animation: fade-out 250ms ease both;
 }

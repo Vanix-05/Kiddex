@@ -30,7 +30,7 @@ export interface QuizQuestion {
 export const quizQuestions: QuizQuestion[] = [
   {
     question: 'How will you respond to someone mean to you?',
-    ollie: 'Hoo-hoo! Pop the bubble that feels most like you!',
+    ollie: 'Tap the picture that feels most like you!',
     answers: [
       { text: 'Tell a grown-up', buddies: ['dog', 'ram'] },
       { text: 'Stay calm and walk away', buddies: ['kitty', 'axolotl'] },

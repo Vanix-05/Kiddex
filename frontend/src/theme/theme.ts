@@ -106,6 +106,15 @@ export const theme = {
     bedroomDeskDim: 'rgba(10, 12, 36, 0.5)', // the desk while the room is in focus; the lamp's flicker
     bedroomDust: 'rgba(255, 236, 196, 0.9)',
     pencilLead: '#55504E', // the doodles on the page (dark grey pencil)
+    // The setup storybook's drawn pages (Boy or Girl, the quiz): handwriting, tape, the pick.
+    pencil: '#4A3526', // handwritten text
+    storyPicked: '#F08A3C', // the picked card's outline
+    storyStar: '#F6C453', // the gold star stamp and the stars beside "Question N of 5"
+    storyChip: '#FFD08A', // the "Question N of 5" chip
+    storyUnderline: '#E9A23B', // the wavy pencil underline under the title
+    storyBoy: '#7FB0E8', // the Boy card's tape and ribbon
+    storyGirl: '#F08AA6', // the Girl card's tape and ribbon
+    storySky: '#BFE0F7', // the tape on a question's scene picture
     magicGlow: '#FFD76A', // the gold glow of the page the buddy reaches out of
     magicGlowSoft: 'rgba(255, 215, 106, 0)',
     speedLine: 'rgba(110, 104, 100, 0.55)', // pencil speed lines in the rush
@@ -254,6 +263,8 @@ export const theme = {
   fonts: {
     body: "'Fredoka', 'Baloo 2', 'Nunito', system-ui, sans-serif",
     display: "'Fredoka', 'Baloo 2', 'Nunito', system-ui, sans-serif",
+    /** Handwriting: the text written on the setup storybook's Boy or Girl and quiz pages. */
+    hand: "'Patrick Hand', 'Fredoka', 'Baloo 2', system-ui, sans-serif",
   },
 
   radii: {

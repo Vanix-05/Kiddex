@@ -107,3 +107,25 @@ export const bedroomArt = {
 }
 /** Sizes and places of the bedroom pictures, in their own pixels (see make-web-art.mjs). */
 export const bedroomLayout = bedroomLayoutJson
+
+// The setup storybook's Boy or Girl and quiz pages: still, hand-drawn
+// pictures. WebP copies made by `npm run web-art` from assets/storybook/*.
+// The answer pictures a..d follow the order of the answers in setup/quizData.ts.
+const storybookFiles = import.meta.glob<string>('./storybook/web/*.webp', { eager: true, import: 'default' })
+const storybookPicture = (name: string): string => {
+  const url = storybookFiles[`./storybook/web/${name}.webp`]
+  if (!url) throw new Error(`Missing storybook picture ${name}.webp (run npm run web-art)`)
+  return url
+}
+const QUESTIONS = [1, 2, 3, 4, 5]
+
+export const storybookArt = {
+  /** The pencil boy and girl, on a transparent background. */
+  kids: { boy: storybookPicture('kid-boy'), girl: storybookPicture('kid-girl') },
+  /** The Boy and Girl cards' backgrounds. */
+  cardBg: { boy: storybookPicture('bg-boy'), girl: storybookPicture('bg-girl') },
+  /** One scene per question: scenes[0] is question 1. */
+  scenes: QUESTIONS.map((n) => storybookPicture(`q${n}-scene`)),
+  /** The 4 answer pictures per question: answers[0][0] is question 1's first answer. */
+  answers: QUESTIONS.map((n) => ['a', 'b', 'c', 'd'].map((letter) => storybookPicture(`q${n}-${letter}`))),
+}

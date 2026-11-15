@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { companionArt } from '../../../assets/art'
 import type { BedroomHandle } from '../../../components/Bedroom/Bedroom'
 import { rightHandWithTipAt, rightPageToWorld, STILL_FRAME, type HandPose } from '../../../components/Bedroom/camera'
 import { OllieLive } from '../../../components/StoryBook/OllieLive'
 import { LoginScreen } from '../../LoginScreen/LoginScreen'
 import { reducedMotion } from '../bookPages'
+import { preloadGenderPage } from '../storyPictures'
 import { Doodles } from './Doodles'
 import { LEFT_OPACITY, OWL, OWL_BOX } from './doodleLayout'
 import {
@@ -122,12 +122,8 @@ export function useIntroClip({ bedroom, active, handedOver, freezeAt, onStory, o
     if (!room) return
     const calm = reducedMotion() && freezeAt === undefined
 
-    // The page the clip turns to shows the Boy and the Girl: have their pictures decoded by then.
-    for (const picture of [companionArt.boy, companionArt.girl]) {
-      const img = new Image()
-      img.src = picture
-      void img.decode().catch(() => {})
-    }
+    // The page the clip turns to shows the Boy and the Girl cards: have their pictures decoded by then.
+    preloadGenderPage()
 
     // The doodles' lines, with their lengths (for the drawing order and the pencil tip).
     const doodle = (name: DoodleName): Doodle => {

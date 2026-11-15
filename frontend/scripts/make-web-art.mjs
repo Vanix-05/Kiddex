@@ -28,6 +28,13 @@
 //   hand-*.webp             the hands, 1024 wide, tinted cooler and darker to
 //                           match the night
 //   hand-*-shadow.webp      a soft dark shape of each hand, for its shadow
+//
+// Storybook (src/assets/storybook/*, the setup storybook's Boy or Girl and
+// quiz pages) -> src/assets/storybook/web/, quality 85:
+//   q*-scene.webp           a question's scene, 1000 wide (drawn ~456 wide: 2x)
+//   q*-a..d.webp            the answer pictures, 520 wide (drawn ~208 wide: 2x)
+//   bg-*.webp               the Boy and Girl cards' backgrounds, 600 wide (drawn 282 wide)
+//   kid-*.webp              the pencil boy and girl, 600 tall, with transparency (drawn 296 tall)
 
 import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
@@ -180,3 +187,25 @@ for (const [key, hand] of [['left', 'hand-left'], ['right', 'hand-right-pencil']
 
 writeFileSync(join(bedroomWeb, 'layout.json'), JSON.stringify(layout, null, 2) + String.fromCharCode(10))
 console.log('layout.json', JSON.stringify(layout))
+
+// ---------- Storybook ----------
+
+const storybook = join(root, 'storybook')
+const storybookWeb = join(storybook, 'web')
+mkdirSync(storybookWeb, { recursive: true })
+const STORYBOOK_SIZES = [
+  { match: /^q\d-scene\./, width: 1000 },
+  { match: /^q\d-[a-d]\./, width: 520 },
+  { match: /^bg-/, width: 600 },
+  { match: /^kid-/, height: 600 },
+]
+for (const file of readdirSync(storybook).filter((f) => /\.(png|jpe?g)$/.test(f)).sort()) {
+  const size = STORYBOOK_SIZES.find((s) => s.match.test(file))
+  if (!size) continue
+  const name = file.replace(/\.(png|jpe?g)$/, '.webp')
+  const info = await sharp(join(storybook, file))
+    .resize({ width: size.width, height: size.height, withoutEnlargement: true })
+    .webp({ quality: QUALITY, alphaQuality: 100, effort: 6 })
+    .toFile(join(storybookWeb, name))
+  report(file, info, name)
+}

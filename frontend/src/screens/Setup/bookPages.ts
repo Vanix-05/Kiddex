@@ -29,10 +29,8 @@ export type SpreadMode = 'live' | 'still' | 'arriving'
 
 /** The page turn. Must match .turn in components/StoryBook/bookParts.module.css. */
 export const TURN_MS = 820
-/** Back on Pick your buddy: the page fades out, then question 5 fades in. */
+/** Back (on a question or Pick your buddy): the page fades out, then the earlier one fades in. */
 export const FADE_MS = 250
-/** A tapped bubble pops (the others fade). Must match bubble-pop in Quiz.module.css. */
-export const POP_MS = 420
 /** Choose: confetti and "A perfect team!" before the Customize Bridge. */
 export const CHOSEN_MS = 1800
 

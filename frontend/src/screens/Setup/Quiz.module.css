@@ -1,205 +1,149 @@
 /*
  * Quiz spread (QuizSpread.tsx), in the open book's own pixels (1216 x 748;
- * left page x 36-608, right page x 608-1180). The pop must match POP_MS
- * (420ms) in bookPages.ts.
+ * left page x 36-608, right page x 608-1180). Shared card, stamp, tape and
+ * button styles: StoryPage.module.css.
  */
 
-/* Large title across the top of the open book (quiz and Boy or Girl). */
-.question {
+/* ---------- Left page ---------- */
+
+/* "Question 1 of 5" and the 5 stars. */
+.progress {
   position: absolute;
-  top: 52px;
-  left: 60px;
-  right: 60px;
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 42px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
-  text-wrap: balance;
-  transition: opacity 300ms ease;
-  /* A heading, never edited: no blinking caret, no selection. */
-  caret-color: transparent;
-  user-select: none;
-}
-
-/* Focused by code when the page turns (for screen readers): no ring needed. */
-.question:focus {
-  outline: none;
-}
-
-/* Fades while the tapped bubble pops. */
-.questionGone {
-  opacity: 0;
-}
-
-/* "Page 1 of 5", bottom-left. */
-.pageNumber {
-  position: absolute;
-  left: 62px;
-  bottom: 46px;
-  color: var(--color-text-subtle);
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
-}
-
-/* ---------- Answer bubbles ---------- */
-
-/* Each bubble has a cell (placed by QuizSpread.tsx) and sits a little
-   off-center in it, at its own size. */
-.cell {
-  position: absolute;
+  left: 70px;
+  top: 44px;
   display: flex;
   align-items: center;
-  width: 430px;
-  height: 240px;
+  gap: 12px;
 }
 
-.float {
-  width: min(var(--w), 100% - var(--x));
-  margin-left: var(--x);
-  translate: 0 var(--y);
-  animation: bubble-float var(--float) ease-in-out var(--float-delay) infinite;
+.chip {
+  padding: 1px 12px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-story-chip);
+  font-size: 23px;
+  transform: rotate(-2deg);
 }
 
-@keyframes bubble-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-9px);
-  }
+.stars {
+  display: flex;
+  gap: 4px;
 }
 
-.bubble {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-height: 172px;
-  padding: 14px 40px;
+/* The question: up to 2 lines. */
+.question {
+  position: absolute;
+  left: 70px;
+  top: 96px;
+  width: 500px;
+  margin: 0;
+  font-size: 44px;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+/* The scene, in a white photo frame. */
+.scene {
+  position: absolute;
+  left: 84px;
+  top: 226px;
+  width: 476px;
+  height: 344px;
+  padding: 10px;
   border: 4px solid var(--color-card-border);
-  /* oval */
-  border-radius: 50%;
-  box-shadow: 0 6px 0 rgba(107, 74, 51, 0.25);
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: calc(29px * var(--text));
-  font-weight: 600;
-  line-height: 1.15;
+  border-radius: 22px;
+  background: var(--color-sticker-fill);
+  box-shadow: 0 7px 0 rgba(91, 58, 34, 0.18);
+  transform: rotate(-1.5deg);
+}
+
+.scenePicture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.sceneTape {
+  left: 280px;
+  top: 212px;
+  background: var(--color-story-sky);
+  transform: rotate(-3deg);
+}
+
+.back {
+  left: 64px;
+  top: 632px;
+}
+
+/* ---------- Right page ---------- */
+
+.pickOne {
+  position: absolute;
+  left: 652px;
+  top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 34px;
+}
+
+/* The 4 answer cards, 2 x 2. */
+.cards {
+  position: absolute;
+  left: 650px;
+  top: 100px;
+  display: grid;
+  grid-template-columns: 236px 236px;
+  gap: 20px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 236px;
+  padding: 10px 10px 0;
+  border-radius: 24px;
+}
+
+/* Its picture on top. */
+.art {
+  flex: none;
+  width: 100%;
+  height: 164px;
+  overflow: hidden;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-sticker-fill);
+}
+
+.art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Its label underneath, at most 2 lines. */
+.label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-size: 26px;
+  line-height: 1;
   text-align: center;
   text-wrap: balance;
-  cursor: pointer;
-  transform: rotate(var(--tilt));
-  transition:
-    transform 160ms ease,
-    opacity 300ms ease;
 }
 
-/* Shine, like a soap bubble. */
-.bubble::before {
-  content: '';
-  position: absolute;
-  top: 14%;
-  left: 14%;
-  width: 16%;
-  height: 22%;
-  border-radius: 50%;
-  background: var(--color-sticker-fill);
-  opacity: 0.75;
-  transform: rotate(-30deg);
-  pointer-events: none;
-}
-
-.bubble:hover {
-  transform: rotate(var(--tilt)) scale(1.05);
-}
-
-.bubble:active {
-  transform: rotate(var(--tilt)) scale(0.96);
-}
-
-.bubble:focus-visible {
-  outline-offset: 6px;
-}
-
-/* Tapped: grows and pops, with a ring bursting outward. */
-.bubble[data-state='popped'] {
-  animation: bubble-pop 420ms ease-out forwards;
-  pointer-events: none;
-}
-
-.bubble[data-state='popped']::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border: 4px dashed var(--color-title-rays);
-  border-radius: 50%;
-  animation: pop-ring 420ms ease-out forwards;
-}
-
-@keyframes bubble-pop {
-  40% {
-    transform: rotate(var(--tilt)) scale(1.18);
-    opacity: 1;
-  }
-  100% {
-    transform: rotate(var(--tilt)) scale(1.45);
-    opacity: 0;
-  }
-}
-
-@keyframes pop-ring {
-  from {
-    transform: scale(1);
-    opacity: 1;
-  }
-  to {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-
-/* The other bubbles fade away. */
-.bubble[data-state='faded'] {
-  opacity: 0;
-  transform: rotate(var(--tilt)) scale(0.85);
-  pointer-events: none;
-}
-
-/* Already popped (the copy of the page turning away). */
-.bubble[data-state='gone'] {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.lavender {
-  background: var(--color-tint-lavender);
-}
-.peach {
-  background: var(--color-tint-peach);
-}
-.pink {
-  background: var(--color-tint-pink);
-}
-.periwinkle {
-  background: var(--color-tint-periwinkle);
-}
-
-/* Reduced motion: no floating or popping, just fades. */
-@media (prefers-reduced-motion: reduce) {
-  .float {
-    animation: none;
-  }
-  .bubble,
-  .bubble[data-state='popped'],
-  .bubble[data-state='popped']::after {
-    animation: none;
-    transition: opacity 200ms ease;
-  }
-  .bubble[data-state='popped'] {
-    opacity: 0;
-  }
+/* Next (Finish on the last question), at the bottom right: its right edge stays put. */
+.next {
+  right: 104px;
+  top: 622px;
 }

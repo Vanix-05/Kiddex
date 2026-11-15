@@ -1,119 +1,128 @@
 /*
  * Boy or Girl spread (GenderSpread.tsx), in the open book's own pixels
- * (1216 x 748; left page x 36-608, right page x 608-1180). The title is
- * Quiz.module.css .question.
+ * (1216 x 748; left page x 36-608, right page x 608-1180). Shared card,
+ * stamp, tape and button styles: StoryPage.module.css.
  */
 
-/* One tile centered on each page. */
-.tile {
+.title {
   position: absolute;
-  top: 140px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 300px;
-  height: 400px;
-  padding: 16px 10px 18px;
-  border: 4px solid rgba(107, 74, 51, 0.3);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 5px 0 rgba(107, 74, 51, 0.15);
-  cursor: pointer;
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease;
+  top: 38px;
+  left: 60px;
+  right: 60px;
+  font-size: 54px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* The words, with the wavy pencil line under them. */
+.titleText {
+  position: relative;
+  display: inline-block;
+  padding: 0 10px 8px;
+}
+
+/* ---------- The two picture cards ---------- */
+
+/* A framed card of cream-white paper, centered on its page. */
+.card {
+  position: absolute;
+  top: 128px;
+  width: 322px;
+  height: 448px;
+  border-radius: 26px;
+  /* cream-white paper, lighter than the book's pages */
+  background: #fffdf7;
 }
 
 .boy {
-  left: 172px;
-  background: var(--color-tint-periwinkle);
+  --tilt: -2deg;
+  --ribbon: var(--color-story-boy);
+  left: 161px;
 }
 
 .girl {
-  left: 744px;
-  background: var(--color-tint-pink);
+  --tilt: 2deg;
+  --ribbon: var(--color-story-girl);
+  left: 733px;
 }
 
-.tile:hover:not(.selected) {
-  transform: translateY(-3px);
-  border-color: rgba(107, 74, 51, 0.55);
+/* Washi tape on the top-left corner, in the card's color. */
+.tape {
+  left: -24px;
+  top: 10px;
+  background: var(--ribbon);
+  transform: rotate(-38deg);
 }
 
-/* Keyboard focus is on the hidden radio: show it on the whole tile, clear of
-   the picked tile's own orange ring. */
-.tile:has(input:focus-visible) {
-  outline: 4px solid var(--color-focus-ring);
-  outline-offset: 12px;
-}
-
-/*
- * Picked: thick orange border + ring, a check badge and a small hop.
- * No scaling here: a scaled tile shows the character as a resized snapshot,
- * which looks blurry. The hop ends with no transform, so it stays crisp.
- */
-.selected {
-  border-color: var(--color-selected);
-  box-shadow:
-    0 0 0 4px var(--color-selected),
-    0 8px 20px rgba(191, 90, 22, 0.25);
-  animation: pick-hop 420ms ease-out;
-}
-
-@keyframes pick-hop {
-  40% {
-    transform: translateY(-10px);
-  }
-  70% {
-    transform: translateY(2px);
-  }
-}
-
-.check {
+/* The picture window: the background, and the pencil kid standing in front of it. */
+.window {
   position: absolute;
-  top: -16px;
-  right: -16px;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 3px solid var(--color-card-border);
-  border-radius: 50%;
-  background: var(--color-button-bg);
-  color: var(--color-button-text);
+  left: 16px;
+  top: 16px;
+  width: 282px;
+  height: 330px;
+  overflow: hidden;
+  border: 3.5px solid var(--color-card-border);
+  border-radius: 18px;
 }
 
-/* The animated character (its rig is square). */
-.companion {
-  width: 290px;
-  height: 290px;
-  margin: -6px 0 0;
+.background {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
+.kid {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  height: 296px;
+  width: auto;
+  transform: translateX(-50%);
+}
+
+/* The ribbon banner across the bottom, with the name. */
+.ribbon {
+  position: absolute;
+  left: -22px;
+  right: -22px;
+  top: 350px;
+  height: 66px;
+}
+
+.ribbon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--ribbon);
+  stroke: var(--color-card-border);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+}
+
+/* The folded ends, a little darker-looking behind the band. */
+.ribbonEnd {
+  opacity: 0.85;
+}
+
+/* White handwriting with a brown outline. */
 .name {
-  margin-top: auto;
-  padding: 3px 22px;
-  border-radius: var(--radius-pill);
-  background: var(--color-label-pill-bg);
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 700;
-}
-
-/* Next, under the Girl tile. Off until a tile is picked. */
-.next {
-  --size-control-height: 76px;
   position: absolute;
-  left: 744px;
-  top: 584px;
-  width: 300px;
-  font-size: 30px;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 6px;
+  color: #fff;
+  font-size: 44px;
+  -webkit-text-stroke: 7px var(--color-card-border);
+  paint-order: stroke fill;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tile {
-    transition: none;
-  }
-  .selected {
-    animation: none;
-  }
+/* Next, at the bottom right of the right page. */
+.next {
+  right: 118px;
+  top: 618px;
 }
