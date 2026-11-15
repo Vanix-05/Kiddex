@@ -22,9 +22,27 @@ import { EMOTES } from './emotes'
 import { drawParallax, type Parallax } from './parallax'
 import type { Point } from './pathfind'
 import { makeProjection, type Angle, type Projection } from './projection'
-import { ACTION_SPOTS, floorHeight, insideRoom, OLLIE_AT, onDoorMat, SEATS, STAGE, STAR_BOARD, START, ZONE_IDS, ZONES, type Seat, type SpotId, type ZoneId } from './room'
+import {
+  ACTION_SPOTS,
+  DESK_SEAT,
+  floorHeight,
+  insideRoom,
+  OLLIE_AT,
+  onDoorMat,
+  SEATS,
+  STAGE,
+  STAR_BOARD,
+  START,
+  TEACHER_DESK,
+  TEACHER_DESK_H,
+  ZONE_IDS,
+  ZONES,
+  type Seat,
+  type SpotId,
+  type ZoneId,
+} from './room'
 import { makeLayers, makeScene, type Layers, type Scene } from './scene'
-import { Walker, type Figure, type FigureArt, type SeatBook } from './walker'
+import { Walker, type Figure, type FigureArt, type Lid, type SeatBook } from './walker'
 
 export type { Angle } from './projection'
 export type { Zoom } from './camera'
@@ -42,10 +60,14 @@ export interface CastMember {
 }
 
 export interface LobbyCast {
-  me: CastMember
+  /** The Student and their buddy. null in the Teacher's view: Ollie is the Teacher there. */
+  me: CastMember | null
   classmates: CastMember[]
   ollie: HTMLImageElement
 }
+
+/** The Teacher's Ollie, as a walker id (and its name tag's anchor key). */
+export const TEACHER_ID = 'teacher'
 
 export interface LobbyOptions {
   angle: Angle
@@ -58,6 +80,12 @@ export interface LobbyOptions {
   startAt?: ZoneId
   /** How big the Class Garden has grown: 0 (just planted) .. 4 (in bloom). */
   gardenStage: number
+  /**
+   * The Teacher's view-only visit: the Teacher is Ollie, who starts sitting on
+   * the Teacher's Desk and hops around. No Student actions (sit, pet, wave,
+   * emotes, the door).
+   */
+  viewer?: boolean
 }
 
 /** The places with something new to do: they get a "!" and an edge arrow, and their label stays up. */
@@ -136,6 +164,18 @@ const CLASSMATE_SPEED = 1.5
 const BUBBLE_S = 2.6
 const HAPPY_S = 2.4
 const OLLIE_HEIGHT = 98
+/** The Teacher's Ollie, hopping around: a little smaller than behind the desk. */
+const TEACHER_OLLIE_HEIGHT = 90
+/**
+ * Ollie's eyelids, in 0..1 of his picture (ollie-cutout, 428x600): the same
+ * places as the setup storybook's blinking Ollie (OllieLive.module.css).
+ */
+const OLLIE_LIDS = [
+  { x: 0.345, y: 0.328 },
+  { x: 0.716, y: 0.328 },
+]
+const OLLIE_LID_W = 0.17
+const OLLIE_LID_H = 0.15
 const MAX_DT = 0.05
 /** Zone labels are buttons: they never shrink under a 44px tap target. */
 const MIN_ZONE_SCALE = 0.82
@@ -214,7 +254,11 @@ export class LobbyGame {
     this.camera = new Camera(this.world, this.proj)
     this.camera.mode = options.zoom
     this.osReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    for (const member of [cast.me, ...cast.classmates]) this.names.set(member.id, member)
+    for (const member of [...(cast.me ? [cast.me] : []), ...cast.classmates]) this.names.set(member.id, member)
+  }
+
+  private get viewer() {
+    return this.options.viewer === true
   }
 
   // ---------- Start and stop ----------
@@ -325,22 +369,49 @@ export class LobbyGame {
     const { me, classmates, ollie } = this.cast
     this.ollieTexture = this.textureOf(ollie)
 
-    const meArt = this.artOf(me.kid)
-    this.calmTexture = meArt.texture
-    this.happyTexture = me.happy ? this.textureOf(me.happy.canvas) : null
-    this.me = new Walker({
-      id: me.id,
-      you: true,
-      speed: STUDENT_SPEED,
-      kid: meArt,
-      buddy: this.artOf(me.buddy),
-      seats: this.seats,
-      // Tapping yourself or your buddy pets the buddy.
-      onTapKid: () => this.petBuddy(),
-      onTapBuddy: () => this.petBuddy(),
-    })
-    const start = this.options.startAt ? ZONES[this.options.startAt].spot : START
-    this.me.place(start.x, start.y)
+    if (me && !this.viewer) {
+      const meArt = this.artOf(me.kid)
+      this.calmTexture = meArt.texture
+      this.happyTexture = me.happy ? this.textureOf(me.happy.canvas) : null
+      this.me = new Walker({
+        id: me.id,
+        you: true,
+        speed: STUDENT_SPEED,
+        kid: meArt,
+        buddy: this.artOf(me.buddy),
+        seats: this.seats,
+        // Tapping yourself or your buddy pets the buddy.
+        onTapKid: () => this.petBuddy(),
+        onTapBuddy: () => this.petBuddy(),
+      })
+      const start = this.options.startAt ? ZONES[this.options.startAt].spot : START
+      this.me.place(start.x, start.y)
+    } else {
+      // The Teacher is Ollie: no walking art, so he hops. He starts sitting on
+      // the Teacher's Desk every visit. Tapping him does nothing (the mission
+      // reminder is for Students).
+      const texture = this.ollieTexture
+      const { width: w, height: h } = texture
+      const lids: Lid[] = OLLIE_LIDS.map((eye) => ({
+        x: (eye.x - 0.5) * w,
+        y: (eye.y - 1) * h,
+        rx: (OLLIE_LID_W * w) / 2,
+        ry: (OLLIE_LID_H * h) / 2,
+      }))
+      this.me = new Walker({
+        id: TEACHER_ID,
+        you: true,
+        speed: STUDENT_SPEED,
+        kid: { texture, anchorX: 0.5, anchorY: 1, bodyPx: h },
+        seats: this.seats,
+        onTapKid: () => {},
+        style: 'hop',
+        bodyHeight: TEACHER_OLLIE_HEIGHT,
+        lids,
+      })
+      this.me.place(DESK_SEAT.ax, DESK_SEAT.ay)
+      this.me.sit(DESK_SEAT, true)
+    }
 
     this.classmates = classmates.map((mate, i) => {
       const walker: Walker = new Walker({
@@ -379,21 +450,26 @@ export class LobbyGame {
     this.furniture = drawFurniture(scene, this.options.gardenStage)
     drawRailing(scene)
 
-    // Ollie, behind the Teacher's Desk.
-    const ollie = new Sprite(this.ollieTexture)
-    ollie.anchor.set(0.5, 1)
-    ollie.scale.set(OLLIE_HEIGHT / this.ollieTexture.height)
-    ollie.eventMode = 'static'
-    ollie.cursor = 'pointer'
-    ollie.on('pointertap', (e) => {
-      e.stopPropagation()
-      this.walkToZone('ollie')
-    })
-    const ollieView = new Container()
-    ollieView.addChild(new Graphics().ellipse(0, 0, 26, 9).fill({ color: 0x4a2c17, alpha: 0.16 }), ollie)
-    ollieView.position.set(...this.proj.P(OLLIE_AT.x, OLLIE_AT.y))
-    scene.add(ollieView, OLLIE_AT.x, OLLIE_AT.y)
-    this.ollie = ollie
+    // Ollie, behind the Teacher's Desk. (In the Teacher's view he is the Teacher, so not here.)
+    if (!this.viewer) {
+      const ollie = new Sprite(this.ollieTexture)
+      ollie.anchor.set(0.5, 1)
+      ollie.scale.set(OLLIE_HEIGHT / this.ollieTexture.height)
+      ollie.eventMode = 'static'
+      ollie.cursor = 'pointer'
+      ollie.on('pointertap', (e) => {
+        e.stopPropagation()
+        this.walkToZone('ollie')
+      })
+      const ollieView = new Container()
+      ollieView.addChild(new Graphics().ellipse(0, 0, 26, 9).fill({ color: 0x4a2c17, alpha: 0.16 }), ollie)
+      ollieView.position.set(...this.proj.P(OLLIE_AT.x, OLLIE_AT.y))
+      scene.add(ollieView, OLLIE_AT.x, OLLIE_AT.y)
+      this.ollie = ollie
+    } else {
+      this.ollie = null
+      this.addDeskTap()
+    }
 
     this.addStarBoardTap()
 
@@ -429,6 +505,33 @@ export class LobbyGame {
       if (this.inputEnabled) this.walkTo(STAR_BOARD.spot, () => this.events.tapZone('stars'))
     })
     layers.walls.addChild(tap)
+  }
+
+  /** The Teacher's view: tapping the Teacher's Desk sends Ollie back up onto it. */
+  private addDeskTap() {
+    const { layers, proj } = this
+    if (!layers) return
+    const { x0, y0, x1, y1 } = TEACHER_DESK
+    // The desk's outline on screen: the convex hull of its box's corners.
+    const corners: [number, number][] = []
+    for (const x of [x0, x1]) for (const y of [y0, y1]) for (const z of [0, TEACHER_DESK_H]) corners.push(proj.P(x, y, z))
+    const tap = new Container()
+    tap.hitArea = new Polygon(convexHull(corners).flat())
+    tap.eventMode = 'static'
+    tap.cursor = 'pointer'
+    tap.on('pointertap', (e) => {
+      e.stopPropagation()
+      this.sitOnDesk()
+    })
+    layers.fx.addChild(tap)
+  }
+
+  /** Ollie hops to the front of the desk, then up onto it. */
+  private sitOnDesk() {
+    const me = this.me
+    if (!me || !this.inputEnabled || me.seat === DESK_SEAT) return
+    this.noteMoved()
+    if (me.sitAt(DESK_SEAT, () => (this.depthDirty = true))) this.showMarker(DESK_SEAT.ax, DESK_SEAT.ay, true)
   }
 
   private cached: Container[] = []
@@ -518,10 +621,21 @@ export class LobbyGame {
     this.fpsEl = el
   }
 
+  /** The player's walker id: the Student's, or the Teacher's Ollie. */
+  get playerId() {
+    return this.me?.id ?? TEACHER_ID
+  }
+
   /** Walks to a game corner, Ollie or the door, then opens its card. */
   walkToZone(id: ZoneId) {
-    // Buddy Corner: walk to a free bean bag and sit down there.
     const me = this.me
+    // The Teacher only looks: walk there, and the corner may show its card (React decides).
+    if (this.viewer) {
+      if (id === 'door' || id === 'nook' || id === 'ollie') this.walkTo(ZONES[id].spot, () => {})
+      else this.walkTo(ZONES[id].spot, () => this.events.tapZone(id))
+      return
+    }
+    // Buddy Corner: walk to a free bean bag and sit down there.
     if (id === 'nook' && me) {
       const bags = SEATS.filter((s) => s.kind === 'bag' && !this.seats.has(s))
       bags.sort((a, b) => Math.hypot(a.ax - me.x, a.ay - me.y) - Math.hypot(b.ax - me.x, b.ay - me.y))
@@ -626,7 +740,7 @@ export class LobbyGame {
       return
     }
     const emote = EMOTES['12345'.indexOf(key)]
-    if (key.length === 1 && emote) this.emote(emote.text, emote.emoji)
+    if (key.length === 1 && emote && !this.viewer) this.emote(emote.text, emote.emoji)
   }
 
   private onKeyUp = (e: KeyboardEvent) => {
@@ -657,7 +771,7 @@ export class LobbyGame {
     const p = this.camera.toFloor(screenX, screenY)
     this.noteMoved()
     if (!insideRoom(p.x, p.y)) {
-      this.events.toast('Use the green door to go outside')
+      if (!this.viewer) this.events.toast('Use the green door to go outside')
       this.showMarker(p.x, p.y, false)
       return
     }
@@ -703,7 +817,7 @@ export class LobbyGame {
     this.bubbles.set(key, BUBBLE_S)
     this.events.bubble(key, { text, emoji })
     if (part === 'kid') walker.hop()
-    else walker.buddy.jump = 0.5
+    else if (walker.buddy) walker.buddy.jump = 0.5
     if (walker === this.me && part === 'kid' && this.happyTexture) {
       walker.kid.body.texture = this.happyTexture
       this.happyLeft = HAPPY_S
@@ -712,10 +826,11 @@ export class LobbyGame {
 
   private petBuddy() {
     const me = this.me
-    if (!me || !this.inputEnabled) return
+    const cast = this.cast.me
+    if (!me || !me.buddy || !cast || !this.inputEnabled) return
     this.hearts(me.buddy)
     this.say(me, 'buddy', '💖', true)
-    this.events.toast(`${this.cast.me.buddyName} loves you!`)
+    this.events.toast(`${cast.buddyName} loves you!`)
   }
 
   /** Floating hearts over a figure. */
@@ -745,7 +860,7 @@ export class LobbyGame {
       me.rest({ x: seat.x + 0.6, y: seat.y + 0.1 })
       this.say(me, 'kid', '📖', true)
       this.restIn = 2.5
-      this.events.toast(`${this.cast.me.buddyName} curled up next to you`)
+      this.events.toast(`${this.cast.me?.buddyName ?? 'Your buddy'} curled up next to you`)
     }
   }
 
@@ -757,7 +872,8 @@ export class LobbyGame {
   /** The closest thing the Student can do from where they stand. */
   private findAction(): (NearAction & { run: () => void }) | null {
     const me = this.me
-    if (!me || !this.inputEnabled) return null
+    // The Teacher only looks: no action button.
+    if (!me || !this.inputEnabled || this.viewer) return null
     if (me.seat) {
       return {
         id: 'stand',
@@ -797,7 +913,7 @@ export class LobbyGame {
       }
     })
     // Nothing else around: the buddy is always close by.
-    if (!best && !me.kid.moving) best = { id: 'pet', label: `Pet ${this.cast.me.buddyName}`, run: () => this.petBuddy() }
+    if (!best && !me.kid.moving && this.cast.me) best = { id: 'pet', label: `Pet ${this.cast.me.buddyName}`, run: () => this.petBuddy() }
     return best
   }
 
@@ -822,10 +938,11 @@ export class LobbyGame {
 
     // Everyone walks.
     me.update(dt, this.proj, still, this.keyDirection())
-    let moved = me.kid.moving || me.buddy.moving
+    // Ollie's hop onto or off the desk moves him without a step: re-sort then too.
+    let moved = me.kid.moving || !!me.buddy?.moving || me.kid.jump > 0
     for (const mate of this.classmates) {
       mate.update(dt, this.proj, still, null)
-      moved ||= mate.kid.moving || mate.buddy.moving
+      moved ||= mate.kid.moving || !!mate.buddy?.moving
     }
     // Sitting down and standing up move a kid without a step, so they also re-sort.
     if (moved || this.depthDirty) {
@@ -841,7 +958,7 @@ export class LobbyGame {
     }
 
     // Walking onto the door mat asks "Go outside?" (once per visit to the mat).
-    const onMat = !me.seat && onDoorMat(me.x, me.y)
+    const onMat = !me.seat && !this.viewer && onDoorMat(me.x, me.y)
     if (onMat && !this.onMat && this.inputEnabled) this.reachDoor()
     this.onMat = onMat
 
@@ -1053,4 +1170,21 @@ export class LobbyGame {
       edge.style.setProperty('--point', `${(Math.atan2(dy, dx) + Math.PI / 2).toFixed(2)}rad`)
     }
   }
+}
+
+/** The convex hull of some points (monotone chain), for a tap area around a drawn box. */
+function convexHull(points: [number, number][]): [number, number][] {
+  const p = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  const half = (list: [number, number][]) => {
+    const out: [number, number][] = []
+    for (const pt of list) {
+      while (out.length >= 2 && cross(out[out.length - 2], out[out.length - 1], pt) <= 0) out.pop()
+      out.push(pt)
+    }
+    out.pop()
+    return out
+  }
+  return [...half(p), ...half([...p].reverse())]
 }

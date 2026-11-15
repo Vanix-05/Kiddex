@@ -719,7 +719,7 @@
   pointer-events: none;
 }
 
-/* Cream index tabs with brown text, like the login storybook's step tabs. */
+/* Index tabs with dark brown text, each in its own color (see .bmHome etc.). */
 .bookmark {
   position: absolute;
   left: 46px;
@@ -731,15 +731,17 @@
   justify-content: center;
   gap: 4px;
   padding: 0 44px 0 0;
-  border: 2.5px solid var(--color-card-border);
+  border: 2.5px solid var(--bm-border);
   border-right: 0;
   border-radius: 16px 0 0 16px;
-  background: #efe4d0;
+  background: var(--bm-bg);
   box-shadow:
     0 4px 0 rgba(60, 30, 10, 0.25),
     inset -14px 0 12px -8px rgba(74, 52, 38, 0.28);
-  color: #7a5a40;
+  color: var(--color-text);
   font: 600 15px/1.1 var(--font-display);
+  /* The closed ones are a little muted; the open one is full color. */
+  filter: saturate(0.8);
   cursor: pointer;
   pointer-events: auto;
   transition: transform 150ms ease;
@@ -753,18 +755,39 @@
   outline-offset: -7px;
 }
 
-.bookmarkGreen {
-  border-color: #2f6a40;
-  background: #cfecd6;
-  color: #2a7442;
+/* One color each (--bm-bg, --bm-border). Text and icons stay dark brown. */
+.bmHome {
+  --bm-bg: #ffd08a;
+  --bm-border: #a8641f;
 }
 
-/* The active one: orange, sticks out further, dark text. */
+.bmStudents {
+  --bm-bg: #f9bfae;
+  --bm-border: #a54b3a;
+}
+
+.bmLessons {
+  --bm-bg: #b7dcf4;
+  --bm-border: #3b6f96;
+}
+
+.bmProgress {
+  --bm-bg: #d7cdf5;
+  --bm-border: #6253a8;
+}
+
+.bmLobby {
+  --bm-bg: #bfe6c8;
+  --bm-border: #2f6a40;
+}
+
+/* The open page's bookmark: sticks out further, bigger text and full color
+   (so "open" never rests on color alone). */
 .bookmarkOn {
   left: 24px;
   width: 172px;
-  background: #ffd08a;
-  color: var(--color-text);
+  filter: none;
+  font-size: 17px;
 }
 
 .bookmarkOn:hover {

@@ -105,7 +105,7 @@ export const onDoorMat = (x: number, y: number) =>
 // ---------- Seats ----------
 
 export interface Seat {
-  kind: 'chair' | 'bag'
+  kind: 'chair' | 'bag' | 'desk'
   /** Where the sitter is drawn, and how high (px). */
   x: number
   y: number
@@ -125,6 +125,16 @@ export const SEATS: readonly Seat[] = [
   ),
   ...BEAN_BAGS.map((b): Seat => ({ kind: 'bag', x: b.x, y: b.y + 0.42, z: 11, ax: b.x, ay: b.y + 0.8 })),
 ]
+
+/** Height of the Teacher's Desk top, in px (drawRoom.ts draws it). */
+export const TEACHER_DESK_H = 36
+
+/**
+ * The Teacher's view: Ollie sits on the front edge of the Teacher's Desk,
+ * between the paper and the apple. Just past the desk's front, so he is drawn
+ * in front of it. Not in SEATS: nobody else sits here.
+ */
+export const DESK_SEAT: Seat = { kind: 'desk', x: 2.75, y: TEACHER_DESK.y1 + 0.02, z: TEACHER_DESK_H, ax: 2.75, ay: 3.45 }
 
 // ---------- Game corners ----------
 

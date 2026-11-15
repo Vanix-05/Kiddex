@@ -43,6 +43,9 @@ export interface SessionContextValue extends SessionState {
   /** New Student flow (School ID + one-time code + new PIN code): logs them in
       with no buddy yet, so the first-time setup (quiz) comes next. Fake for now. */
   logInNewStudent: (schoolId: string) => void
+  /** Returning Student (School ID + PIN code): logs them in with their kid and
+      buddy, so the Lobby comes next. Fake for now. */
+  logInReturningStudent: (schoolId: string) => void
   /** Saves the setup picks to the session (no backend yet). */
   finishSetup: (result: SetupResult) => void
   /** Customize Bridge: saves the look. */

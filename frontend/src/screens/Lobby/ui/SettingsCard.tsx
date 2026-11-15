@@ -35,7 +35,10 @@ const ON_OFF = [
   ['off', 'Off'],
 ] as const
 
-/** The gear: camera, names, emotes and moving effects. Saved on this device. */
+/**
+ * The gear: camera, names, emotes and moving effects. Saved on this device.
+ * Without onHowTo / onLogOut (the Teacher's view) those buttons don't show.
+ */
 export function SettingsCard({
   settings,
   onChange,
@@ -45,8 +48,8 @@ export function SettingsCard({
 }: {
   settings: LobbySettings
   onChange: (patch: Partial<LobbySettings>) => void
-  onHowTo: () => void
-  onLogOut: () => void
+  onHowTo?: () => void
+  onLogOut?: () => void
   onClose: () => void
 }) {
   return (
@@ -99,14 +102,16 @@ export function SettingsCard({
         </div>
       </div>
       <div className={styles.acts}>
-        <CardButton onClick={onHowTo}>How to play</CardButton>
+        {onHowTo && <CardButton onClick={onHowTo}>How to play</CardButton>}
         <CardButton color="orange" primary onClick={onClose}>
           Done
         </CardButton>
       </div>
-      <button type="button" className={styles.logout} onClick={onLogOut}>
-        Log out
-      </button>
+      {onLogOut && (
+        <button type="button" className={styles.logout} onClick={onLogOut}>
+          Log out
+        </button>
+      )}
     </LobbyCard>
   )
 }

@@ -30,10 +30,10 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  * cutscene plays, so the Lobby opens sooner. One at a time with a rest in
  * between, so the cutscene stays smooth. The pictures are cached by look.
  */
-export async function prewarmStudent(avatar: Avatar, buddy: BuddyId, look: Look) {
+export async function prewarmStudent(avatar: Avatar, buddy: BuddyId, look: Look, restMs = 400) {
   const draws = [() => kidPicture(avatar, look), () => kidPicture(avatar, look, 'happy'), () => buddyPicture(buddy, look)]
   for (const draw of draws) {
-    await pause(400)
+    if (restMs > 0) await pause(restMs)
     await draw().catch(() => {}) // the Lobby tries again, and shows its own message if it can't
   }
 }
@@ -48,25 +48,29 @@ async function loadImage(src: string) {
 /**
  * Everyone's pictures for the room: the Student and their buddy in their
  * Customize look (plus the Student's happy face), each classmate, and Ollie.
- * `cast` is null while they are being drawn.
+ * `cast` is null while they are being drawn. With no Student (the Teacher's
+ * view-only visit), only the classmates and Ollie are drawn.
  */
-export function useLobbyCast(student: LobbyStudent, classmates: readonly Classmate[]) {
+export function useLobbyCast(student: LobbyStudent | null, classmates: readonly Classmate[]) {
   const [cast, setCast] = useState<LobbyCast | null>(null)
   const [failed, setFailed] = useState(false)
-  const { name, avatar, buddy, buddyName } = student
+  const name = student?.name
+  const avatar = student?.avatar
+  const buddy = student?.buddy
+  const buddyName = student?.buddyName
   // The look as text, so a new but equal object doesn't redraw everyone.
-  const lookKey = JSON.stringify(student.look)
+  const lookKey = JSON.stringify(student?.look ?? null)
 
   useEffect(() => {
     let alive = true
-    const look = JSON.parse(lookKey) as Look
+    const look = JSON.parse(lookKey) as Look | null
+    const loadMe = async (): Promise<CastMember | null> => {
+      if (!look || !avatar || !buddy || name === undefined || buddyName === undefined) return null
+      const [kid, happy, pet] = await Promise.all([kidPicture(avatar, look), kidPicture(avatar, look, 'happy'), buddyPicture(buddy, look)])
+      return { id: 'me', name, buddyName, kid, happy, buddy: pet }
+    }
     const load = async (): Promise<LobbyCast> => {
-      const [kid, happy, pet, ollie] = await Promise.all([
-        kidPicture(avatar, look),
-        kidPicture(avatar, look, 'happy'),
-        buddyPicture(buddy, look),
-        loadImage(characterArt.ollie),
-      ])
+      const [me, ollie] = await Promise.all([loadMe(), loadImage(characterArt.ollie)])
       const mates: CastMember[] = []
       for (const mate of classmates) {
         mates.push({
@@ -77,7 +81,7 @@ export function useLobbyCast(student: LobbyStudent, classmates: readonly Classma
           buddy: await buddyPicture(mate.buddy, mate.look),
         })
       }
-      return { me: { id: 'me', name, buddyName, kid, happy, buddy: pet }, classmates: mates, ollie }
+      return { me, classmates: mates, ollie }
     }
     load().then(
       (loaded) => alive && setCast(loaded),

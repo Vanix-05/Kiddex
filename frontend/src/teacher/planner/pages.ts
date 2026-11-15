@@ -47,6 +47,9 @@ export function resolvePage(url: string): ResolvedPage {
 
 export const isStudentsPath = (pathname: string) => !!matchPath(paths.teacher.students, pathname)
 
+/** The Lobby bookmark's page: with a section it opens the classroom full screen. */
+export const isLobbyPath = (pathname: string) => !!matchPath(paths.teacher.lobby, pathname)
+
 export const pageOrder = (url: string) => ORDER[resolvePage(url).key]
 
 /** Just the path part of a URL, for "did the page change?" checks. */

@@ -854,3 +854,44 @@
     animation: none;
   }
 }
+
+/* ---------- The Teacher's view-only visit (ViewerHud) ---------- */
+
+/* Back to planner: top left, where the Student card is for a Student. */
+.back {
+  position: absolute;
+  left: max(var(--edge), env(safe-area-inset-left, 0px));
+  top: calc(16 * var(--u));
+}
+
+.back:hover {
+  background: var(--color-tint-peach);
+}
+
+/* "Viewing Grade 4 – Sampaguita · view only": a cream pill, top middle. */
+.viewing {
+  position: absolute;
+  left: 50%;
+  top: calc(20 * var(--u));
+  transform: translateX(-50%);
+  margin: 0;
+  padding: calc(9 * var(--u)) calc(20 * var(--u));
+  font-size: max(14px, calc(18 * var(--u)));
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-card-bg);
+  border: 3px solid var(--color-card-border);
+  border-radius: 999px;
+  box-shadow: 0 4px 0 var(--color-lobby-shadow);
+  pointer-events: none;
+}
+
+.viewing b {
+  font-weight: 700;
+}
+
+/* The walking hint sits under the Viewing pill. */
+.hintLow {
+  top: calc(84 * var(--u));
+}

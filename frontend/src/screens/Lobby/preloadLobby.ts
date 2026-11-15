@@ -10,6 +10,10 @@ import type { BuddyId } from '../../setup/quizData'
 
 export const preloadLobby = () => import('./LobbyScreen')
 
-/** When the cutscene starts (the look is final): also draw the Student's pictures ahead of time. */
-export const prewarmLobby = (avatar: Avatar, buddy: BuddyId, look: Look) =>
-  import('./useLobbyCast').then((m) => m.prewarmStudent(avatar, buddy, look))
+/**
+ * When the cutscene starts (the look is final), or the loading video does:
+ * also draw the Student's pictures ahead of time. restMs: the rest between
+ * pictures (the cutscene keeps 400ms so it stays smooth; the video needs none).
+ */
+export const prewarmLobby = (avatar: Avatar, buddy: BuddyId, look: Look, restMs?: number) =>
+  import('./useLobbyCast').then((m) => m.prewarmStudent(avatar, buddy, look, restMs))

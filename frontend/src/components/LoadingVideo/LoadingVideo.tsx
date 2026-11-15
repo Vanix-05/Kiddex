@@ -3,55 +3,71 @@ import { createPortal } from 'react-dom'
 import loadingVideo from '../../assets/videos/loading/loading-1.mp4'
 import styles from './LoadingVideo.module.css'
 
-/** If the video gives an error or never starts playing, move on after this long. */
+/** If the video never starts playing, give up on it after this long. */
 const FALLBACK_MS = 10_000
 
 /**
  * Full-screen loading video, shown while the Lobby loads the first time it
  * opens in a session (screens/Lobby/LazyLobby.tsx): muted, autoplay, no
- * controls. It stays on its last frame until it is taken away. Calls onDone once:
- * - when the video's ended event fires (it always plays to the end), or
- * - 10 seconds after opening if it never starts playing, or 10 seconds after
- *   an error. No timer runs while the video is playing.
+ * controls. It always plays to the end, then stays on its last frame until
+ * it is taken away (`leaving`: it fades out, then calls onGone).
+ *
+ * - onDone: once, when the video's ended event fires.
+ * - onFail: once, if the video can't be used: it gives an error, autoplay is
+ *   refused, or it hasn't started playing 10 seconds after opening. The
+ *   caller shows its own loading screen instead. No timer runs while the
+ *   video is playing.
  */
-export function LoadingVideo({ onDone }: { onDone: () => void }) {
+export function LoadingVideo({
+  onDone,
+  onFail,
+  leaving = false,
+  onGone,
+}: {
+  onDone: () => void
+  onFail?: () => void
+  leaving?: boolean
+  onGone?: () => void
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const timer = useRef<number | undefined>(undefined)
-  const done = useRef(false)
-  const onDoneRef = useRef(onDone)
+  const settled = useRef(false)
+  const callbacks = useRef({ onDone, onFail, onGone })
 
   useEffect(() => {
-    onDoneRef.current = onDone
-  }, [onDone])
+    callbacks.current = { onDone, onFail, onGone }
+  }, [onDone, onFail, onGone])
 
   const finish = () => {
-    if (done.current) return
-    done.current = true
+    if (settled.current) return
+    settled.current = true
     window.clearTimeout(timer.current)
-    onDoneRef.current()
+    callbacks.current.onDone()
   }
 
-  const isPlaying = () => {
-    const v = videoRef.current
-    return !!v && !v.paused && !v.ended && !v.error
-  }
-
-  /** Starts the 10-second fallback, unless one is running or the video is playing. */
-  const startFallback = () => {
-    if (timer.current === undefined && !isPlaying()) timer.current = window.setTimeout(finish, FALLBACK_MS)
+  const fail = () => {
+    if (settled.current) return
+    settled.current = true
+    window.clearTimeout(timer.current)
+    // Without onFail, carry on as if it had played.
+    const { onFail: failed, onDone: done } = callbacks.current
+    if (failed) failed()
+    else done()
   }
 
   useEffect(() => {
     // Covers a video that never starts playing; cancelled once it plays.
-    startFallback()
-    // Autoplay can be refused (e.g. browser settings): the fallback covers it.
-    videoRef.current?.play().catch(() => startFallback())
+    timer.current = window.setTimeout(fail, FALLBACK_MS)
+    // Autoplay can be refused (e.g. browser settings).
+    videoRef.current?.play().catch((error: unknown) => {
+      // AbortError: taken away before it started (not a failure).
+      if (!(error instanceof DOMException && error.name === 'AbortError')) fail()
+    })
     return () => {
       window.clearTimeout(timer.current)
       timer.current = undefined
     }
     // Runs once, on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /** Playing: no timer from here on; only the ended event moves on. */
@@ -60,8 +76,20 @@ export function LoadingVideo({ onDone }: { onDone: () => void }) {
     timer.current = undefined
   }
 
+  // Reduced motion: no fade, it just goes.
+  useEffect(() => {
+    if (leaving && window.matchMedia('(prefers-reduced-motion: reduce)').matches) callbacks.current.onGone?.()
+  }, [leaving])
+
   return createPortal(
-    <div className={styles.screen} role="status" aria-label="Loading">
+    <div
+      className={leaving ? `${styles.screen} ${styles.leaving}` : styles.screen}
+      role="status"
+      aria-label="Loading"
+      onAnimationEnd={(e) => {
+        if (leaving && e.target === e.currentTarget) callbacks.current.onGone?.()
+      }}
+    >
       <video
         ref={videoRef}
         className={styles.video}
@@ -73,7 +101,7 @@ export function LoadingVideo({ onDone }: { onDone: () => void }) {
         disablePictureInPicture
         onPlaying={handlePlaying}
         onEnded={finish}
-        onError={startFallback}
+        onError={fail}
       />
     </div>,
     document.body,

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { preloadBedroom } from '../../../components/Bedroom/pictures'
 import { paths } from '../../../routes/paths'
+import { preloadLobby } from '../../Lobby/preloadLobby'
 import { useSession } from '../../../session/session'
 import { BookLeftPage } from '../StoryBook/BookLeftPage'
 import { BookRightPage } from '../StoryBook/BookRightPage'
@@ -31,6 +32,9 @@ const OLLIE_SAYS: Record<StudentKind, readonly { title: string; line: string }[]
 }
 
 const ignoreTyping = () => {}
+
+/** Log in: the padlock's shackle pops open (Padlock.module.css), then the Lobby opens. */
+const PADLOCK_MS = 550
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -66,7 +70,7 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
   // Done!: the book goes blank, then the first-time setup starts (with its bedroom intro clip).
   const [finishing, setFinishing] = useState(false)
   const navigate = useNavigate()
-  const { logInNewStudent } = useSession()
+  const { logInNewStudent, logInReturningStudent } = useSession()
 
   const timer = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(timer.current), [])
@@ -141,7 +145,8 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
 
   /** Back: a quick fade to the previous step. Typed values are kept. */
   const goBack = () => {
-    if (!still) return
+    // After Log in, the Lobby is on its way.
+    if (!still || loggingIn) return
     if (step === 1) {
       closeBook()
       return
@@ -159,11 +164,22 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
     after(FINISH_MS, startSetup)
   }
 
-  /** Returning Student "Log in": any School ID and PIN code work (fake login). */
+  /**
+   * Returning Student "Log in": any 8-digit School ID and 4-digit PIN code
+   * work (fake login). The padlock opens, then the Lobby opens behind the
+   * loading video (screens/Lobby/LazyLobby.tsx).
+   */
   const logIn = () => {
-    if (!still) return
+    if (!still || loggingIn) return
+    if (!/^\d{8}$/.test(schoolId) || !/^\d{4}$/.test(loginPin)) return
     setLoggingIn(true) // the padlock opens
-    // TODO: real login + go to the Main Profile
+    // Start the Lobby's download now; the video starts in a moment.
+    void preloadLobby()
+    after(reducedMotion() ? 0 : PADLOCK_MS, () => {
+      // TODO: send the School ID and PIN code (loginPin) to the backend once it exists.
+      logInReturningStudent(`${schoolId.slice(0, 4)}-${schoolId.slice(4)}`)
+      navigate(paths.lobby)
+    })
   }
 
   /** Log in (fake, no backend yet) and open the setup storybook. */

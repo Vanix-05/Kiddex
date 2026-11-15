@@ -3,6 +3,9 @@
  * following. The buddy trails about 0.85 tiles behind and stops when the kid
  * stops. All motion is done here in Pixi (bob, breathing, flip, shadow); the
  * pictures themselves never change.
+ *
+ * The Teacher's view uses the same walker for Ollie, with no buddy and the
+ * 'hop' style: he has no walking art, so he moves in small quick hops.
  */
 import { Container, Graphics, Rectangle, Sprite, type Texture } from 'pixi.js'
 import type { DepthItem } from './depth'
@@ -20,6 +23,17 @@ export interface FigureArt {
   bodyPx: number
 }
 
+/** An eyelid over one eye, in texture px from the picture's anchor (its feet). */
+export interface Lid {
+  x: number
+  y: number
+  rx: number
+  ry: number
+}
+
+/** How a walker moves: walking with a bob (kids), or hopping (Ollie). */
+export type MoveStyle = 'walk' | 'hop'
+
 /** Head-to-feet height on screen at zoom 1, in px. */
 const KID_BODY = 86
 const BUDDY_BODY = 56
@@ -27,8 +41,26 @@ const BUDDY_GAP = 0.85
 const TRAIL_STEP = 0.08
 const TRAIL_MAX = 60
 const JUMP_S = 0.5
+const JUMP_PX = 18
 /** Curled up on the rug: a little lower and squashed, like sitting. */
 const BUDDY_REST: Seat = { kind: 'bag', x: 0, y: 0, z: 2, ax: 0, ay: 0 }
+
+// Ollie's hops (the 'hop' style).
+/** Hop cycle speed: one hop every ~0.33s. */
+const HOP_RATE = 9.5
+/** How high a small hop goes, px. */
+const HOP_PX = 11
+/** The big hop down from (or up onto) the Teacher's Desk. */
+const BIG_HOP_S = 0.55
+const BIG_HOP_PX = 34
+/** The squash after landing, s. */
+const LAND_S = 0.12
+/** Sit and stand moves on the desk glide there instead of jumping in one frame. */
+const GLIDE_RATE = 9
+/** Eye colors from OllieLive.module.css (the setup storybook's Ollie). */
+const LID_FILL = 0xfef3e2
+const LID_LINE = 0x6b4a33
+const BLINK_S = 0.2
 
 /** Who sits where. Shared by everyone in the room. */
 export type SeatBook = Map<Seat, Walker>
@@ -49,15 +81,49 @@ export interface Figure {
   /** 1 = facing right, -1 = left. */
   face: 1 | -1
   moving: boolean
-  /** Seconds left of a happy jump. */
+  /** Seconds left of a happy jump (or a big hop). */
   jump: number
+  /** That jump's length (s) and height (px). */
+  jumpLen: number
+  jumpPx: number
   /** World px of the top of the head, for bubbles. */
   topX: number
   topY: number
   item: DepthItem | null
+  /** Moves in hops (Ollie). */
+  hopper: boolean
+  /** Hopper: how far up the current small hop is, 0..1. */
+  air: number
+  /** Hopper: seconds left of the squash after a landing. */
+  land: number
+  wasMoving: boolean
+  /** Eyelids (Ollie): children of the body, so they flip and squash with it. */
+  lids: Graphics[]
+  /** Seconds until the next blink, and how far into a blink we are (-1 = not blinking). */
+  blinkIn: number
+  blinkT: number
+  /** The current blink is the quick second one of a double blink. */
+  blinkTwice: boolean
 }
 
-function makeFigure(art: FigureArt, bodyHeight: number, shadowRx: number, shadowRy: number): Figure {
+function makeLid({ x, y, rx, ry }: Lid): Graphics {
+  // Closed, it covers the eye in face color with a thin brown line at its bottom.
+  // It hangs from the top of the eye and grows down (scale.y 0 = open).
+  const g = new Graphics().ellipse(0, ry, rx, ry).fill(LID_FILL)
+  const arc: number[] = []
+  for (let i = 0; i <= 12; i++) {
+    const a = Math.PI * (0.12 + (0.76 * i) / 12)
+    arc.push(Math.cos(a) * rx * 0.96, ry + Math.sin(a) * ry * 0.96)
+  }
+  g.poly(arc, false).stroke({ width: Math.max(6, rx * 0.2), color: LID_LINE, cap: 'round' })
+  g.position.set(x, y - ry)
+  g.eventMode = 'none'
+  g.scale.y = 0
+  g.visible = false
+  return g
+}
+
+function makeFigure(art: FigureArt, bodyHeight: number, shadowRx: number, shadowRy: number, hopper = false, lids: readonly Lid[] = []): Figure {
   const view = new Container()
   const shadow = new Graphics().ellipse(0, 0, shadowRx, shadowRy).fill({ color: 0x4a2c17, alpha: 0.18 })
   const body = new Sprite(art.texture)
@@ -67,6 +133,8 @@ function makeFigure(art: FigureArt, bodyHeight: number, shadowRx: number, shadow
   // Taps count on the body, not on the picture's empty corners (a buddy stands close to its kid).
   const { width, height } = art.texture
   body.hitArea = new Rectangle(-width * 0.28, -height * art.anchorY, width * 0.56, height * art.anchorY)
+  const lidViews = lids.map(makeLid)
+  for (const lid of lidViews) body.addChild(lid)
   view.addChild(shadow, body)
   return {
     view,
@@ -81,9 +149,19 @@ function makeFigure(art: FigureArt, bodyHeight: number, shadowRx: number, shadow
     face: 1,
     moving: false,
     jump: 0,
+    jumpLen: JUMP_S,
+    jumpPx: JUMP_PX,
     topX: 0,
     topY: 0,
     item: null,
+    hopper,
+    air: 0,
+    land: 0,
+    wasMoving: false,
+    lids: lidViews,
+    blinkIn: 1.5 + Math.random() * 2,
+    blinkT: -1,
+    blinkTwice: false,
   }
 }
 
@@ -105,22 +183,29 @@ function trailPoint(trail: readonly Point[], dist: number): Point {
 
 export interface WalkerOptions {
   id: string
-  /** The logged-in Student: walks with the keys and has a ring under their feet. */
+  /** The logged-in Student (or the Teacher's Ollie): walks with the keys and has a ring under their feet. */
   you: boolean
   /** Tiles per second. */
   speed: number
   kid: FigureArt
-  buddy: FigureArt
+  /** No buddy: the Teacher's Ollie. */
+  buddy?: FigureArt
   seats: SeatBook
   onTapKid: () => void
-  onTapBuddy: () => void
+  onTapBuddy?: () => void
+  /** Default 'walk'. */
+  style?: MoveStyle
+  /** Head-to-feet height on screen, px (default: a kid's). */
+  bodyHeight?: number
+  /** Eyelids that blink (Ollie). */
+  lids?: readonly Lid[]
 }
 
 export class Walker {
   readonly id: string
   readonly you: boolean
   readonly kid: Figure
-  readonly buddy: Figure
+  readonly buddy: Figure | null
   speed: number
   /** The kid's place on the floor (the buddy has its own in `buddy`). */
   x = 0
@@ -136,48 +221,65 @@ export class Walker {
   private restSpot: Point | null = null
   private trail: Point[] = []
   private seats: SeatBook
+  private readonly hopper: boolean
+  /** Hopper: the figure is gliding to a new spot (onto or off the desk). */
+  private gliding = false
+  /** The ring under the player's feet. */
+  private ring: Graphics | null = null
 
   constructor(o: WalkerOptions) {
     this.id = o.id
     this.you = o.you
     this.speed = o.speed
     this.seats = o.seats
-    this.kid = makeFigure(o.kid, KID_BODY, 24, 9)
-    this.buddy = makeFigure(o.buddy, BUDDY_BODY, 18, 7)
+    this.hopper = o.style === 'hop'
+    this.kid = makeFigure(o.kid, o.bodyHeight ?? KID_BODY, 24, 9, this.hopper, o.lids)
+    this.buddy = o.buddy ? makeFigure(o.buddy, BUDDY_BODY, 18, 7) : null
     if (o.you) {
       const ring = new Graphics().ellipse(0, 0, 30, 12).stroke({ width: 3, color: 0xf0a050, alpha: 0.9 })
       this.kid.view.addChildAt(ring, 0)
+      this.ring = ring
     }
     this.kid.body.on('pointertap', (e) => {
       e.stopPropagation()
       o.onTapKid()
     })
-    this.buddy.body.on('pointertap', (e) => {
+    this.buddy?.body.on('pointertap', (e) => {
       e.stopPropagation()
-      o.onTapBuddy()
+      o.onTapBuddy?.()
     })
   }
 
   /** Puts both figures into a (re)built scene. They keep their places. */
   attach(scene: Scene) {
-    this.kid.item = scene.add(this.kid.view, this.x, this.y)
-    this.buddy.item = scene.add(this.buddy.view, this.buddy.x, this.buddy.y)
+    this.kid.item = scene.add(this.kid.view, this.kid.x, this.kid.y)
+    if (this.buddy) this.buddy.item = scene.add(this.buddy.view, this.buddy.x, this.buddy.y)
   }
 
   /** Takes both figures out of the scene without destroying them (before a rebuild). */
   detach() {
     this.kid.view.removeFromParent()
-    this.buddy.view.removeFromParent()
-    this.kid.item = this.buddy.item = null
+    this.kid.item = null
+    if (this.buddy) {
+      this.buddy.view.removeFromParent()
+      this.buddy.item = null
+    }
   }
 
   place(x: number, y: number) {
     this.x = x
     this.y = y
-    this.buddy.x = x - 0.5
-    this.buddy.y = y + 0.35
+    this.kid.x = x
+    this.kid.y = y
+    this.gliding = false
+    const bx = x - 0.5
+    const by = y + 0.35
+    if (this.buddy) {
+      this.buddy.x = bx
+      this.buddy.y = by
+    }
     this.trail = [
-      { x: this.buddy.x, y: this.buddy.y },
+      { x: bx, y: by },
       { x, y },
     ]
   }
@@ -205,8 +307,11 @@ export class Walker {
     this.onArrive = null
   }
 
-  /** Snaps onto a seat. false = someone else is on it. */
-  sit(seat: Seat): boolean {
+  /**
+   * Snaps onto a seat. false = someone else is on it.
+   * `instant`: already there (the Teacher's Ollie starts on the desk), no hop.
+   */
+  sit(seat: Seat, instant = false): boolean {
     const taken = this.seats.get(seat)
     if (taken && taken !== this) return false
     this.stand()
@@ -216,6 +321,13 @@ export class Walker {
     this.x = seat.x
     this.y = seat.y
     this.kid.face = 1
+    if (instant) {
+      this.kid.x = seat.x
+      this.kid.y = seat.y
+      this.kid.z = seat.z
+    } else if (seat.kind === 'desk') {
+      this.bigHop()
+    }
     return true
   }
 
@@ -236,30 +348,54 @@ export class Walker {
     this.seat = null
     this.x = seat.ax
     this.y = seat.ay
+    // Off the Teacher's Desk: one bigger hop down.
+    if (seat.kind === 'desk') this.bigHop()
   }
 
   /** Walks to a seat, then sits. */
   sitAt(seat: Seat, onSit?: () => void): boolean {
     if (this.seats.has(seat)) return false
-    return this.goTo(seat.ax, seat.ay, () => {
+    const sit = () => {
       if (this.sit(seat)) onSit?.()
-    })
+    }
+    // Already standing there: no walk needed.
+    if (!this.seat && Math.hypot(this.x - seat.ax, this.y - seat.ay) < 0.05) {
+      this.stop()
+      sit()
+      return true
+    }
+    return this.goTo(seat.ax, seat.ay, sit)
   }
 
   /** A small happy jump, kid and buddy. */
   hop() {
-    if (!this.seat) this.kid.jump = JUMP_S
-    this.buddy.jump = JUMP_S
+    for (const f of [this.seat ? null : this.kid, this.buddy]) {
+      if (!f) continue
+      f.jump = f.jumpLen = JUMP_S
+      f.jumpPx = JUMP_PX
+    }
+  }
+
+  /** Ollie: the big hop onto or off the desk; the figure glides to its new spot meanwhile. */
+  private bigHop() {
+    if (!this.hopper) return
+    const kid = this.kid
+    kid.jump = kid.jumpLen = BIG_HOP_S
+    kid.jumpPx = BIG_HOP_PX
+    this.gliding = true
   }
 
   /** `keyDir`: the walking keys' direction on the floor (the Student only). */
   update(dt: number, proj: Projection, still: boolean, keyDir: Point | null) {
+    const kid = this.kid
+    // Ollie moves while in the air and barely while touching down, so it reads as hopping.
+    const pace = this.hopper && kid.moving && !still ? 0.25 + 1.2 * Math.abs(Math.sin(kid.phase)) : 1
     let vx = 0
     let vy = 0
     if (keyDir) {
       this.stop()
       this.stand()
-      const step = this.speed * dt
+      const step = this.speed * dt * pace
       // Each axis on its own, so the kid slides along walls and desks.
       const nx = this.x + keyDir.x * step
       if (isFree(nx, this.y)) {
@@ -276,7 +412,7 @@ export class Walker {
       const dx = next.x - this.x
       const dy = next.y - this.y
       const d = Math.hypot(dx, dy)
-      const step = this.speed * dt
+      const step = this.speed * dt * pace
       if (d <= step) {
         this.x = next.x
         this.y = next.y
@@ -298,7 +434,6 @@ export class Walker {
       this.think(dt)
     }
 
-    const kid = this.kid
     kid.moving = Math.abs(vx) + Math.abs(vy) > 1e-4
     if (kid.moving) {
       const sx = proj.screenDx(vx, vy)
@@ -309,12 +444,23 @@ export class Walker {
         if (this.trail.length > TRAIL_MAX) this.trail.shift()
       }
     }
-    kid.x = this.x
-    kid.y = this.y
+    if (this.gliding && !still) {
+      const k = Math.min(1, dt * GLIDE_RATE)
+      kid.x += (this.x - kid.x) * k
+      kid.y += (this.y - kid.y) * k
+      if (Math.hypot(this.x - kid.x, this.y - kid.y) < 0.01) this.gliding = false
+    } else {
+      this.gliding = false
+      kid.x = this.x
+      kid.y = this.y
+    }
     drawFigure(kid, dt, proj, still, this.seat)
+    // Ollie's ring goes up onto the desk with him, like his shadow.
+    if (this.hopper && this.ring) this.ring.position.y = -kid.z
 
-    // The buddy heads for the point a little way back along the kid's trail.
     const buddy = this.buddy
+    if (!buddy) return
+    // The buddy heads for the point a little way back along the kid's trail.
     const target = this.restSpot ?? trailPoint(this.trail, BUDDY_GAP)
     const dx = target.x - buddy.x
     const dy = target.y - buddy.y
@@ -357,39 +503,109 @@ export class Walker {
 
   destroy() {
     this.kid.view.destroy({ children: true })
-    this.buddy.view.destroy({ children: true })
+    this.buddy?.view.destroy({ children: true })
   }
 }
 
-/** Places one figure and applies its motion: bob when walking, breathing when idle. */
+/** Blinks every 2.5-5s, sometimes twice (like OllieLive). Also with reduced motion. */
+function blink(f: Figure, dt: number) {
+  if (!f.lids.length) return
+  if (f.blinkT < 0) {
+    f.blinkIn -= dt
+    if (f.blinkIn > 0) return
+    f.blinkT = 0
+  }
+  f.blinkT += dt
+  const k = f.blinkT / BLINK_S
+  // Down, a short hold, and up again.
+  const closed = k >= 1 ? 0 : k < 0.45 ? k / 0.45 : k < 0.55 ? 1 : (1 - k) / 0.45
+  for (const lid of f.lids) {
+    lid.scale.y = closed
+    lid.visible = closed > 0.02
+  }
+  if (k >= 1) {
+    f.blinkT = -1
+    if (!f.blinkTwice && Math.random() < 0.25) {
+      f.blinkTwice = true
+      f.blinkIn = 0.06
+    } else {
+      f.blinkTwice = false
+      f.blinkIn = 2.5 + Math.random() * 2.5
+    }
+  }
+}
+
+/** Places one figure and applies its motion: bob (or hops) when moving, breathing when idle. */
 function drawFigure(f: Figure, dt: number, proj: Projection, still: boolean, seat: Seat | null) {
   const floor = seat ? seat.z : floorHeight(f.x, f.y)
-  f.z += (floor - f.z) * Math.min(1, dt * 14)
+  f.z += (floor - f.z) * Math.min(1, dt * (f.hopper ? 8 : 14))
   const [X, Y] = proj.P(f.x, f.y)
   f.view.position.set(X, Y)
   f.shadow.position.set(0, -f.z)
 
-  f.phase += dt * (f.moving ? 11 : 2.2)
   let lift = 0
   let squash = 1
   let tilt = 0
-  if (!still) {
+  if (f.hopper) {
+    // Small quick hops: up and down from the floor, stretched in the air,
+    // squashed when touching down. Each walk starts from the floor.
+    if (f.moving && !f.wasMoving) f.phase = 0
+    const landed = f.air > 0 || f.jump > 0
+    f.wasMoving = f.moving
     if (f.moving) {
-      const up = Math.abs(Math.sin(f.phase))
-      lift = up * 7
-      squash = 1 - (1 - up) * 0.05
-      tilt = Math.sin(f.phase) * 0.04
-    } else if (seat) {
-      squash = 0.93 + Math.sin(f.phase) * 0.006
+      f.phase += dt * HOP_RATE
+      f.air = Math.abs(Math.sin(f.phase))
     } else {
-      squash = 1 + Math.sin(f.phase) * 0.012
+      f.phase += dt * 2.2
+      // Stopped mid-hop: come down first.
+      f.air = Math.max(0, f.air - dt * 7)
     }
-  } else if (seat) {
-    squash = 0.93
-  }
-  if (f.jump > 0) {
-    f.jump = Math.max(0, f.jump - dt)
-    if (!still) lift += Math.sin((1 - f.jump / JUMP_S) * Math.PI) * 18
+    if (f.jump > 0) {
+      f.jump = Math.max(0, f.jump - dt)
+      if (!still) {
+        const k = Math.sin((1 - f.jump / f.jumpLen) * Math.PI)
+        lift += k * f.jumpPx
+        squash = 1 + 0.08 * k
+      }
+    }
+    if (landed && f.air === 0 && f.jump === 0) f.land = LAND_S
+    if (!still) {
+      if (f.air > 0) {
+        const ground = Math.pow(1 - f.air, 6)
+        const rising = f.moving ? Math.abs(Math.cos(f.phase)) : 1
+        lift += f.air * HOP_PX
+        squash *= 1 + 0.08 * rising * (1 - ground) - 0.16 * ground
+        tilt = f.face * 0.05 * (1 - ground)
+      } else if (f.land > 0) {
+        f.land = Math.max(0, f.land - dt)
+        squash *= 1 - 0.14 * (f.land / LAND_S)
+      } else if (f.jump === 0) {
+        squash = seat ? 0.95 + Math.sin(f.phase) * 0.008 : 1 + Math.sin(f.phase) * 0.015
+      }
+    } else if (seat) {
+      squash = 0.95
+    }
+    blink(f, dt)
+  } else {
+    f.phase += dt * (f.moving ? 11 : 2.2)
+    if (!still) {
+      if (f.moving) {
+        const up = Math.abs(Math.sin(f.phase))
+        lift = up * 7
+        squash = 1 - (1 - up) * 0.05
+        tilt = Math.sin(f.phase) * 0.04
+      } else if (seat) {
+        squash = 0.93 + Math.sin(f.phase) * 0.006
+      } else {
+        squash = 1 + Math.sin(f.phase) * 0.012
+      }
+    } else if (seat) {
+      squash = 0.93
+    }
+    if (f.jump > 0) {
+      f.jump = Math.max(0, f.jump - dt)
+      if (!still) lift += Math.sin((1 - f.jump / f.jumpLen) * Math.PI) * f.jumpPx
+    }
   }
 
   // Straight view: the back of the room is a little smaller.
@@ -398,7 +614,8 @@ function drawFigure(f: Figure, dt: number, proj: Projection, still: boolean, sea
   f.body.position.set(0, -f.z - lift)
   f.body.rotation = tilt
   f.body.scale.set(f.base * f.face * Math.sqrt(2 - squash) * depth, scaleY)
-  f.shadow.scale.set(depth)
+  // Ollie's shadow shrinks while he is up in the air.
+  f.shadow.scale.set(depth * (f.hopper ? 1 - Math.min(0.5, lift / 60) : 1))
 
   if (f.item) {
     f.item.x0 = f.item.x1 = f.x

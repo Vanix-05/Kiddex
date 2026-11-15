@@ -6,7 +6,8 @@ import styles from './ui.module.css'
 
 /**
  * A classmate's Buddy card: the kid and their buddy, names, level and badges.
- * No scores. Wave, or ask them to walk with you.
+ * No scores. Wave, or ask them to walk with you (a Student only: the
+ * Teacher's view shows the card without them).
  */
 export function BuddyCard({
   classmate,
@@ -23,8 +24,8 @@ export function BuddyCard({
   buddyUrl: string
   /** They are walking with the Student right now. */
   walking: boolean
-  onWave: () => void
-  onWalk: (walk: boolean) => void
+  onWave?: () => void
+  onWalk?: (walk: boolean) => void
   onClose: () => void
 }) {
   const kind = companionRegistry[classmate.buddy].name
@@ -43,14 +44,20 @@ export function BuddyCard({
           <LobbyIcon name="medal" size={16} /> {classmate.badges} badges
         </span>
       </div>
-      <div className={styles.acts}>
-        <CardButton color="orange" primary onClick={onWave}>
-          👋 Wave
-        </CardButton>
-        <CardButton color="green" onClick={() => onWalk(!walking)}>
-          {walking ? 'Stop' : 'Walk with me'}
-        </CardButton>
-      </div>
+      {(onWave || onWalk) && (
+        <div className={styles.acts}>
+          {onWave && (
+            <CardButton color="orange" primary onClick={onWave}>
+              👋 Wave
+            </CardButton>
+          )}
+          {onWalk && (
+            <CardButton color="green" onClick={() => onWalk(!walking)}>
+              {walking ? 'Stop' : 'Walk with me'}
+            </CardButton>
+          )}
+        </div>
+      )}
     </LobbyCard>
   )
 }

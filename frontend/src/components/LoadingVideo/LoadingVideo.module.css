@@ -17,3 +17,15 @@
   object-position: 50% 75%;
   pointer-events: none;
 }
+
+/* The Lobby is ready and the video has ended: fade to the Lobby underneath. */
+.leaving {
+  animation: fadeOut 450ms ease forwards;
+  pointer-events: none;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}

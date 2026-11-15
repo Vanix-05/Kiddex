@@ -21,6 +21,7 @@ import { SettingsCard } from './ui/SettingsCard'
 import { Toast } from './ui/Toast'
 import { useLobbyCast, type LobbyStudent } from './useLobbyCast'
 import { useLobbySettings } from './useLobbySettings'
+import { ViewerHud } from './ui/ViewerHud'
 import styles from './LobbyScreen.module.css'
 
 type Card =
@@ -72,7 +73,18 @@ function howToSeen() {
 /** 1 on a big screen; smaller on short ones (1366x650, phones in landscape). */
 const hudScale = () => Math.max(0.55, Math.min(1, window.innerHeight / 860, window.innerWidth / 1300))
 
-const SHOW_FPS = import.meta.env.DEV && new URLSearchParams(window.location.search).has('fps')
+/** Dev only: ?fps shows the frame rate (read when the Lobby opens, so /teacher/lobby?fps works too). */
+const showFps = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('fps')
+
+/** The Teacher's view-only visit (see MainLobby's `viewer`). */
+export interface LobbyViewer {
+  /** The Teacher's name, on Ollie's name tag: "Ms. Cruz". */
+  name: string
+  /** The section's classroom: "Grade 4 – Sampaguita". */
+  section: string
+  /** Back to planner. */
+  onBack: () => void
+}
 
 /**
  * The Main Lobby: the Student's section classroom on Rene Island. The room is
@@ -88,6 +100,7 @@ const isLobbyGame = (g: string): g is LobbyGameId => g === 'quiz-show' || g === 
 
 export function MainLobby({
   student,
+  viewer,
   data,
   onLogOut,
   onPlay,
@@ -95,9 +108,18 @@ export function MainLobby({
   startAt,
   onReady,
 }: {
-  student: LobbyStudent
+  /** The logged-in Student and their buddy (not in the Teacher's view). */
+  student?: LobbyStudent
+  /**
+   * The Teacher's view-only visit: the Teacher is Ollie (with their name tag),
+   * starting on the Teacher's Desk. No kid or buddy, and nothing only for
+   * Students (emotes, sit, pet, Walk with me, the Prize Wheel spin, All
+   * games, My Room, the door). Settings has no Log out.
+   */
+  viewer?: LobbyViewer
   data: LobbyData
-  onLogOut: () => void
+  /** The Student's Log out (the Teacher logs out from the planner). */
+  onLogOut?: () => void
   /** Opens a mission game (without it, Start says Coming soon). */
   onPlay?: (game: LobbyGameId, from: LobbyGameFrom) => void
   /** Opens All games; `spot`: the game corner the Student is at, for coming back. */
@@ -109,12 +131,13 @@ export function MainLobby({
 }) {
   const { mission, classmates, ollieLines, garden, wheel } = data
   const [settings, changeSettings] = useLobbySettings()
-  const { cast, failed: castFailed } = useLobbyCast(student, classmates)
+  const { cast, failed: castFailed } = useLobbyCast(viewer ? null : (student ?? null), classmates)
 
   const hostRef = useRef<HTMLDivElement>(null)
   const [game, setGame] = useState<LobbyGame | null>(null)
   const [gameFailed, setGameFailed] = useState(false)
-  const [card, setCard] = useState<Card | null>(() => (howToSeen() ? null : { type: 'howto' }))
+  // How to play opens by itself for a Student (once per session), never for the Teacher.
+  const [card, setCard] = useState<Card | null>(() => (viewer || howToSeen() ? null : { type: 'howto' }))
   const [near, setNear] = useState<NearAction | null>(null)
   const [bubbles, setBubbles] = useState<Record<string, BubbleContent>>({})
   const [toast, setToast] = useState<{ text: string; id: number } | null>(null)
@@ -123,34 +146,44 @@ export function MainLobby({
   const [ollieLine, setOllieLine] = useState(0)
   const [scale, setScale] = useState(hudScale)
   const [playAnyway, setPlayAnyway] = useState(false)
+  const [fps] = useState(showFps)
   const [spun, setSpun] = useState<WheelPrize | null>(readSpin)
   /** Stars won on the wheel this visit (FAKE: the backend will add them to the Student's count). */
   const [bonusStars, setBonusStars] = useState(() => readSpin()?.stars ?? 0)
 
   // Finishing Ollie's mission earns one spin a day, and waters the Class Garden.
-  const missionDone = mission.games > 0 && mission.gamesDone >= mission.games
+  // The Teacher's view shows the section's garden as it is, and no news (they only look).
+  const viewOnly = !!viewer
+  const missionDone = !viewOnly && mission.games > 0 && mission.gamesDone >= mission.games
   const wheelState: WheelState = !missionDone ? 'locked' : spun ? 'used' : 'ready'
   const gardenDone = Math.min(garden.goal, garden.done + (missionDone ? 1 : 0))
   const gardenStage = gardenDone >= garden.goal ? 4 : Math.min(3, Math.floor((gardenDone / garden.goal) * 4))
-  const news: ZoneNews = useMemo(() => ({ ollie: !missionDone, stage: wheelState === 'ready' }), [missionDone, wheelState])
+  const news: ZoneNews = useMemo(
+    () => (viewOnly ? {} : { ollie: !missionDone, stage: wheelState === 'ready' }),
+    [viewOnly, missionDone, wheelState],
+  )
   const gardenRef = useRef(gardenStage)
+  // Fixed for the game's life (it is made once).
+  const viewOnlyRef = useRef(viewOnly)
 
   useEffect(() => {
+    if (viewOnly) return
     try {
       sessionStorage.setItem(HOWTO_KEY, '1')
     } catch {
       // Ignore: How to play just opens again next visit.
     }
-  }, [])
+  }, [viewOnly])
 
   // The words on the walls.
+  const section = viewer?.section ?? SECTION
   const roomText = useMemo(
     () => ({
-      hello: `Hello, ${SECTION.split('–').pop()?.trim() ?? SECTION}!`,
+      hello: `Hello, ${section.split('–').pop()?.trim() ?? section}!`,
       today: `Today: ${mission.title}`,
-      banner: SECTION,
+      banner: section,
     }),
-    [mission.title],
+    [section, mission.title],
   )
 
   // The first startAt, for the game (created once).
@@ -171,7 +204,15 @@ export function MainLobby({
     const created = new LobbyGame(
       host,
       cast,
-      { angle: saved.angle, zoom: saved.zoom, classmateEmotes: saved.emotes, lessMotion: saved.motion === 'less', startAt: startAtRef.current, gardenStage: gardenRef.current },
+      {
+        angle: saved.angle,
+        zoom: saved.zoom,
+        classmateEmotes: saved.emotes,
+        lessMotion: saved.motion === 'less',
+        startAt: startAtRef.current,
+        gardenStage: gardenRef.current,
+        viewer: viewOnlyRef.current,
+      },
       roomText,
       {
         ready: () => setGame(created),
@@ -182,7 +223,11 @@ export function MainLobby({
           if (id === 'ollie') setCard({ type: 'mission' })
           else if (id === 'board') setCard({ type: 'board' })
           else if (id === 'stars') setCard({ type: 'soon', kind: 'stars' })
-          else if (id === 'stage') setCard({ type: 'wheel' })
+          else if (id === 'stage') {
+            // Spinning is for Students.
+            if (viewOnlyRef.current) setToast({ text: 'Students spin the Prize Wheel after their mission', id: ++toasts })
+            else setCard({ type: 'wheel' })
+          }
           else if (id === 'match') setCard({ type: 'garden' })
           // Buddy Corner with every bean bag taken (walkToZone sits down when one is free).
           else setToast({ text: 'Every bean bag is taken right now', id: ++toasts })
@@ -277,7 +322,7 @@ export function MainLobby({
         <>
           {/* Things that follow the room: the game moves them every frame. */}
           <div className={styles.world}>
-            {ZONE_IDS.filter((id) => id !== 'ollie').map((id) => {
+            {ZONE_IDS.filter((id) => id !== 'ollie' && !(viewer && id === 'door')).map((id) => {
               const zone = ZONE_UI[id]
               return (
                 <button
@@ -298,9 +343,12 @@ export function MainLobby({
                 </button>
               )
             })}
-            <button ref={game.anchorRef('zone:ollie')} type="button" className={`${styles.anchored} ${styles.ollieBubble}`} onClick={() => game.walkToZone('ollie')}>
-              {ollieLines[ollieLine % ollieLines.length]}
-            </button>
+            {/* Ollie's speech bubble is for Students: in the Teacher's view, Ollie is the Teacher. */}
+            {!viewer && (
+              <button ref={game.anchorRef('zone:ollie')} type="button" className={`${styles.anchored} ${styles.ollieBubble}`} onClick={() => game.walkToZone('ollie')}>
+                {ollieLines[ollieLine % ollieLines.length]}
+              </button>
+            )}
             {ZONE_IDS.map((id) => (
               <span key={id} ref={game.anchorRef(`excl:${id}`)} className={`${styles.anchored} ${styles.excl}`} aria-hidden="true">
                 !
@@ -328,9 +376,9 @@ export function MainLobby({
                   {mate.name}
                 </span>
               ))}
-            <span ref={game.anchorRef(`tag:${cast.me.id}`)} className={`${styles.anchored} ${styles.tag} ${styles.tagYou}`}>
+            <span ref={game.anchorRef(`tag:${game.playerId}`)} className={`${styles.anchored} ${styles.tag} ${styles.tagYou}`}>
               <i className={styles.dot} />
-              {student.name} (you)
+              {viewer ? viewer.name : `${student?.name ?? ''} (you)`}
             </span>
 
             {Object.entries(bubbles).map(([who, bubble]) => (
@@ -342,28 +390,48 @@ export function MainLobby({
             {near && !card && <ActionButton key={near.id} label={near.label} anchorRef={game.anchorRef('action')} onRun={() => game.runAction()} />}
           </div>
 
-          <Hud
-            student={{ ...data.student, name: student.name, stars: data.student.stars + bonusStars }}
-            headUrl={cast.me.kid.url}
-            mission={mission}
-            classmatesHere={classmates.length}
-            zoom={settings.zoom}
-            showHint={!hasMoved}
-            onStart={startMission}
-            onMyRoom={() => soon('myRoom')}
-            onAllGames={() => allGames(null)}
-            onZoom={() => changeSettings({ zoom: settings.zoom === 'close' ? 'far' : 'close' })}
-            onSettings={() => setCard({ type: 'settings' })}
-            onEmote={(text, emoji) => game.emote(text, emoji)}
-          >
-            {toast && <Toast key={toast.id} text={toast.text} onDone={() => setToast(null)} />}
-          </Hud>
+          {viewer ? (
+            <ViewerHud
+              section={viewer.section}
+              studentsHere={classmates.length}
+              zoom={settings.zoom}
+              showHint={!hasMoved}
+              onBack={viewer.onBack}
+              onZoom={() => changeSettings({ zoom: settings.zoom === 'close' ? 'far' : 'close' })}
+              onSettings={() => setCard({ type: 'settings' })}
+            >
+              {toast && <Toast key={toast.id} text={toast.text} onDone={() => setToast(null)} />}
+            </ViewerHud>
+          ) : (
+            <Hud
+              student={{ ...data.student, name: student?.name ?? data.student.name, stars: data.student.stars + bonusStars }}
+              headUrl={cast.me?.kid.url ?? ''}
+              mission={mission}
+              classmatesHere={classmates.length}
+              zoom={settings.zoom}
+              showHint={!hasMoved}
+              onStart={startMission}
+              onMyRoom={() => soon('myRoom')}
+              onAllGames={() => allGames(null)}
+              onZoom={() => changeSettings({ zoom: settings.zoom === 'close' ? 'far' : 'close' })}
+              onSettings={() => setCard({ type: 'settings' })}
+              onEmote={(text, emoji) => game.emote(text, emoji)}
+            >
+              {toast && <Toast key={toast.id} text={toast.text} onDone={() => setToast(null)} />}
+            </Hud>
+          )}
 
-          {SHOW_FPS && <output ref={(el) => game.setFpsElement(el)} className={styles.fps} />}
+          {fps && <output ref={(el) => game.setFpsElement(el)} className={styles.fps} />}
 
-          {card?.type === 'howto' && <HowToPlayCard buddyName={student.buddyName} onClose={close} />}
+          {card?.type === 'howto' && <HowToPlayCard buddyName={student?.buddyName ?? ''} onClose={close} />}
           {card?.type === 'settings' && (
-            <SettingsCard settings={settings} onChange={changeSettings} onHowTo={() => setCard({ type: 'howto' })} onLogOut={onLogOut} onClose={close} />
+            <SettingsCard
+              settings={settings}
+              onChange={changeSettings}
+              onHowTo={viewer ? undefined : () => setCard({ type: 'howto' })}
+              onLogOut={viewer ? undefined : onLogOut}
+              onClose={close}
+            />
           )}
           {card?.type === 'door' && <DoorCard onGo={() => soon('island')} onClose={close} />}
           {card?.type === 'mission' && <MissionCard mission={mission} onStart={startMission} onClose={close} />}
@@ -389,7 +457,7 @@ export function MainLobby({
               }}
             />
           )}
-          {card?.type === 'garden' && <GardenCard garden={{ ...garden, done: gardenDone }} stage={gardenStage} section={SECTION} onClose={close} />}
+          {card?.type === 'garden' && <GardenCard garden={{ ...garden, done: gardenDone }} stage={gardenStage} section={section} onClose={close} />}
           {card?.type === 'soon' && <ComingSoonCard kind={card.kind} onClose={close} />}
           {buddyCardOf && buddyCardArt && (
             <BuddyCard
@@ -397,15 +465,24 @@ export function MainLobby({
               kidUrl={buddyCardArt.kid.url}
               buddyUrl={buddyCardArt.buddy.url}
               walking={walkingWith === buddyCardOf.id}
-              onWave={() => {
-                close()
-                game.wave(buddyCardOf.id)
-              }}
-              onWalk={(walk) => {
-                close()
-                game.setFollow(buddyCardOf.id, walk)
-                setWalkingWith(walk ? buddyCardOf.id : null)
-              }}
+              // The Teacher's view: the same card, without Wave or Walk with me.
+              onWave={
+                viewer
+                  ? undefined
+                  : () => {
+                      close()
+                      game.wave(buddyCardOf.id)
+                    }
+              }
+              onWalk={
+                viewer
+                  ? undefined
+                  : (walk) => {
+                      close()
+                      game.setFollow(buddyCardOf.id, walk)
+                      setWalkingWith(walk ? buddyCardOf.id : null)
+                    }
+              }
               onClose={close}
             />
           )}
@@ -425,9 +502,15 @@ export function MainLobby({
               <button type="button" onClick={() => window.location.reload()}>
                 Try again
               </button>
-              <button type="button" onClick={onLogOut}>
-                Log out
-              </button>
+              {viewer ? (
+                <button type="button" onClick={viewer.onBack}>
+                  Back to planner
+                </button>
+              ) : (
+                <button type="button" onClick={onLogOut}>
+                  Log out
+                </button>
+              )}
             </div>
           </div>
         </div>

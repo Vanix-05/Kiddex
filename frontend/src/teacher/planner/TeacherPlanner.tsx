@@ -11,7 +11,8 @@ import { sectionLabel, useFakeMaking, useSection, useTeacher } from '../data/use
 import type { SectionIcon } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
 import { AddStudentDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
-import { isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
+import { LazyTeacherLobbyScreen } from '../../screens/Lobby/LazyLobby'
+import { isLobbyPath, isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
 import { PlannerActionsContext, usePlannerActions } from './plannerActions'
 import { SPREADS } from './spreads'
 import styles from './planner.module.css'
@@ -119,9 +120,15 @@ function Planner() {
   const { logOut } = useSession()
   const url = location.pathname + location.search
   const onStudents = isStudentsPath(location.pathname)
+  // /teacher/lobby with a section: the classroom opens full screen, view only.
+  // Without one, the book shows the "Make a section first" page as usual.
+  const { active: section, label: sectionName } = useSection()
+  const teacher = useTeacher()
+  const onLobby = isLobbyPath(location.pathname) && !!section
 
-  // What the book shows. On /teacher/students it keeps the page underneath.
-  const [bookUrl, setBookUrl] = useState(onStudents ? paths.teacher.home : url)
+  // What the book shows. On /teacher/students it keeps the page underneath,
+  // and in the full-screen Lobby the page the Teacher came from.
+  const [bookUrl, setBookUrl] = useState(onStudents || onLobby ? paths.teacher.home : url)
   const [flip, setFlip] = useState<Flip | null>(null)
   const [win, setWin] = useState<WindowState>(onStudents ? 'open' : 'hidden')
   const [winQuery, setWinQuery] = useState(onStudents ? location.search : '')
@@ -134,6 +141,9 @@ function Planner() {
     if (onStudents) {
       setWin('open')
       setWinQuery(location.search)
+    } else if (onLobby) {
+      // The book stays on its page underneath, for Back to planner.
+      if (win !== 'hidden') setWin('hidden')
     } else {
       if (win === 'open') setWin('closing')
       if (pathOf(url) !== pathOf(bookUrl)) {
@@ -159,6 +169,15 @@ function Planner() {
 
   const closeWindow = () => navigate(bookUrl)
   const close = () => setPopup(null)
+  // Back to planner: the page the Teacher came from (Home if they came straight to the Lobby).
+  const backToPlanner = () => navigate(isLobbyPath(pathOf(bookUrl)) ? paths.teacher.home : bookUrl)
+
+  // Back from the Lobby: keyboard focus goes to the planner page again.
+  const wasOnLobby = useRef(onLobby)
+  useEffect(() => {
+    if (wasOnLobby.current && !onLobby) leftRef.current?.focus({ preventScroll: true })
+    wasOnLobby.current = onLobby
+  }, [onLobby])
   // Made once (setPopup never changes), so pages using them don't re-render for nothing.
   const [actions] = useState(() => ({ newSection: () => setPopup('newSection'), addStudent: () => setPopup('addStudent') }))
 
@@ -175,9 +194,17 @@ function Planner() {
 
   return (
     <PlannerActionsContext.Provider value={actions}>
+      {onLobby && section && (
+        <LazyTeacherLobbyScreen
+          teacherName={teacher.name}
+          section={`Grade ${sectionName}`}
+          onBack={backToPlanner}
+        />
+      )}
       <div
         className={styles.root}
-        style={{ '--flip-ms': `${FLIP_MS}ms` } as CSSProperties}
+        // Under the full-screen Lobby the planner keeps its state but isn't drawn.
+        style={{ '--flip-ms': `${FLIP_MS}ms`, display: onLobby ? 'none' : undefined } as CSSProperties}
         // A click during a page turn finishes it at once.
         onPointerDownCapture={() => flip && setFlip(null)}
       >
@@ -421,12 +448,21 @@ const BOOKMARKS: { key: BookmarkKey; label: string; icon: LucideIcon; top: numbe
   { key: 'lobby', label: 'Lobby', icon: TreePalm, top: 531, to: paths.teacher.lobby },
 ]
 
+/** Each bookmark's own color (planner.module.css). */
+const BOOKMARK_COLORS: Record<BookmarkKey, string> = {
+  home: styles.bmHome,
+  students: styles.bmStudents,
+  lessons: styles.bmLessons,
+  progress: styles.bmProgress,
+  lobby: styles.bmLobby,
+}
+
 function Bookmarks({ active, onGo }: { active: BookmarkKey; onGo: (to: string) => void }) {
   return (
     <nav className={styles.bookmarks} aria-label="Planner pages">
       {BOOKMARKS.map(({ key, label, icon: Icon, top, to }) => {
         const on = key === active
-        const className = [styles.bookmark, key === 'lobby' && styles.bookmarkGreen, on && styles.bookmarkOn]
+        const className = [styles.bookmark, BOOKMARK_COLORS[key], on && styles.bookmarkOn]
           .filter(Boolean)
           .join(' ')
         return (

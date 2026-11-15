@@ -32,5 +32,10 @@ export const SPREADS: Record<PageKey, Spread> = {
     'Progress',
     'Your sections become the tabs on top of this planner. Their progress shows up here.',
   ),
-  lobby: { Left: LobbyLeft, Right: ComingSoonRight },
+  // With a section, /teacher/lobby opens the classroom full screen (TeacherPlanner) instead of this spread.
+  lobby: needsSection(
+    { Left: LobbyLeft, Right: ComingSoonRight },
+    'Lobby',
+    'Your sections become the tabs on top of this planner. Then you can visit their classroom on Rene Island.',
+  ),
 }
