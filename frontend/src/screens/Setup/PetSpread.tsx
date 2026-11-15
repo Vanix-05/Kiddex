@@ -1,17 +1,48 @@
 import { useId, type CSSProperties } from 'react'
+import { storybookArt } from '../../assets/art'
 import { BuddyFigure } from '../../components/BuddyFigure/BuddyFigure'
 import { buddyPicture, isBuddyReady } from '../../components/BuddyFigure/buddyArt'
 import { Button } from '../../components/Button/Button'
 import { Icon } from '../../components/Icon/Icon'
-import { cleanNickname, MAX_NICKNAME, MAX_SKILL, pets, skillRows } from '../../setup/petData'
+import { cleanNickname, MAX_NICKNAME, MAX_SKILL, pets, skillRows, type PetInfo } from '../../setup/petData'
 import type { BuddyId } from '../../setup/quizData'
 import { Confetti } from './Confetti'
-import { TILE_STAGGER_MS, WRITE_MS, type SpreadMode } from './bookPages'
+import { WRITE_MS, type SpreadMode } from './bookPages'
+import story from './StoryPage.module.css'
 import styles from './Pet.module.css'
 
-/** Pet menu: tiles per row, and rows shown before it scrolls. */
-const MENU_COLUMNS = 4
-const MENU_MAX_ROWS = 3
+/*
+ * Where the buddies stand on the meadow (book pixels): the point under each
+ * buddy's feet. Its picture is centered on x, its bottom on y, and its
+ * z-index is y, so the ones in front overlap the ones behind.
+ */
+/** The quiz match, big, on the stump. */
+const STUMP = [323, 338] as const
+/** The other 7 in petData order (the match left out): 3 on the left of the bench, 3 on the right, 1 on the grass in front. */
+const BENCH = [
+  [205, 274],
+  [142, 382],
+  [226, 490],
+  [442, 274],
+  [506, 382],
+  [422, 490],
+  [323, 612],
+] as const
+
+/** How tall each buddy is drawn (book pixels): on the bench, and on the stump. The pictures keep their own width ratio. */
+const HEIGHTS: Record<BuddyId, { bench: number; stump: number }> = {
+  fox: { bench: 102, stump: 178 },
+  kitty: { bench: 101, stump: 177 },
+  axolotl: { bench: 83, stump: 145 },
+  dog: { bench: 85, stump: 147 },
+  otter: { bench: 86, stump: 150 },
+  raccoon: { bench: 93, stump: 161 },
+  ram: { bench: 86, stump: 150 },
+  monkey: { bench: 90, stump: 157 },
+}
+/** The match's still gold glow: its size, and how far its top sits above the buddy's middle. */
+const GLOW_SIZE = 250
+const GLOW_ABOVE_MIDDLE = 120
 
 interface PetSpreadProps {
   mode: SpreadMode
@@ -38,10 +69,14 @@ interface PetSpreadProps {
 
 /**
  * Pick your buddy, the last spread of the setup storybook.
- * Left page: "Meet the gang", a menu of every buddy in petData.ts (the quiz
- * match glows), and Back. Right page: the picked buddy (standing top-right),
- * its details, a Name box and Choose. On arrival "Pick your buddy!" writes
- * itself and the tiles pop in one by one. Drawn in the open book's own pixels.
+ * Left page: one still pencil drawing, a meadow with a tree stump and a
+ * bench. The quiz match stands big on the stump (a soft gold glow behind it,
+ * a "Your match!" ribbon under it); the other buddies stand small on the
+ * bench and the grass, with name tags. Each buddy is a button: tapping it
+ * picks it (an orange pencil circle). Back is at the bottom. Right page: the
+ * picked buddy (standing top-right, the only thing that moves), its details,
+ * a Name box and Choose. On arrival "Pick your buddy!" writes itself.
+ * Drawn in the open book's own pixels.
  */
 export function PetSpread({
   mode,
@@ -64,73 +99,71 @@ export function PetSpread({
   const isMatch = pet.id === matchedBuddy
   const nickname = names[pet.id] ?? ''
   const displayName = nickname.trim() || pet.name
-  const visibleRows = Math.min(Math.ceil(pets.length / MENU_COLUMNS), MENU_MAX_ROWS)
   const modeClass = live ? styles.arrive : mode === 'arriving' ? styles.waiting : ''
+
+  // The match on the stump (if there is none yet, the first buddy); the rest on the bench, as many as there are places.
+  const stumpPet = pets.find((p) => p.id === matchedBuddy) ?? pets[0]
+  const benchPets = pets.filter((p) => p !== stumpPet).slice(0, BENCH.length)
+  const stumpHeight = HEIGHTS[stumpPet.id].stump
+  const [stumpX, stumpY] = STUMP
+
+  const buddy = (p: PetInfo, x: number, y: number, onStump: boolean) => (
+    <li key={p.id}>
+      <GangBuddy
+        pet={p}
+        x={x}
+        y={y}
+        height={HEIGHTS[p.id][onStump ? 'stump' : 'bench']}
+        onStump={onStump}
+        match={p.id === matchedBuddy}
+        selected={p.id === pet.id}
+        chosen={chosen}
+        onPick={() => !busy && onSelect?.(p.id)}
+      />
+    </li>
+  )
 
   return (
     <div className={modeClass} style={{ '--write': `${WRITE_MS}ms` } as CSSProperties}>
-      {/* ---------- Left page: the gang ---------- */}
-      <p className={styles.kicker}>Meet the gang</p>
-      <h2 id={titleId} className={styles.menuTitle} tabIndex={-1} data-page-title={live || undefined}>
+      {/* ---------- Left page: the gang in the meadow ---------- */}
+      <div className={styles.meadow}>
+        <img src={storybookArt.meadow} alt="" className={styles.meadowPicture} draggable={false} />
+      </div>
+      {/* The match's soft gold glow: still. */}
+      <span
+        className={styles.glow}
+        aria-hidden="true"
+        style={{ left: stumpX - GLOW_SIZE / 2, top: stumpY - stumpHeight / 2 - GLOW_ABOVE_MIDDLE, width: GLOW_SIZE, height: GLOW_SIZE }}
+      />
+
+      <p className={`${story.hand} ${styles.kicker}`}>Meet the gang</p>
+      <h2
+        id={titleId}
+        className={`${story.hand} ${story.title} ${styles.menuTitle}`}
+        tabIndex={-1}
+        data-page-title={live || undefined}
+      >
         Pick your buddy!
       </h2>
 
-      <ul
-        className={styles.menu}
-        aria-labelledby={titleId}
-        style={{ '--columns': MENU_COLUMNS, '--visible-rows': visibleRows } as CSSProperties}
-      >
-        {pets.map((p, k) => {
-          const ok = isBuddyReady(p.id)
-          const picture = buddyPicture(p.id)
-          const selected = p.id === pet.id
-          const match = p.id === matchedBuddy
-          return (
-            <li
-              key={p.id}
-              className={styles.menuItem}
-              style={{ '--pop-delay': `${WRITE_MS + k * TILE_STAGGER_MS}ms` } as CSSProperties}
-            >
-              {/* The quiz match glows softly, under its usual look. */}
-              {/* (Not once a buddy is chosen: nothing can be picked any more, and its endless glow would keep redrawing the page.) */}
-              {match && !chosen && <span className={styles.glow} aria-hidden="true" />}
-              <button
-                type="button"
-                className={[styles.tile, styles[p.tint], selected && styles.selected, !ok && styles.locked]
-                  .filter(Boolean)
-                  .join(' ')}
-                onClick={() => !busy && onSelect?.(p.id)}
-                disabled={!ok || chosen}
-                aria-pressed={ok ? selected : undefined}
-                aria-label={ok ? `${p.name}${match ? ', your match' : ''}` : `${p.name}, coming soon`}
-              >
-                <span className={styles.tileArt}>
-                  {ok && picture ? (
-                    <img src={picture} alt="" className={styles.tileImage} draggable={false} />
-                  ) : (
-                    <Silhouette className={styles.tileSilhouette} />
-                  )}
-                </span>
-                <span className={styles.tileName}>{p.name}</span>
-                {!ok && <span className={styles.soonTag}>Coming soon</span>}
-                {selected && (
-                  <span className={styles.check} aria-hidden="true">
-                    <Icon name="check" size={18} />
-                  </span>
-                )}
-              </button>
-              {match && (
-                <span className={styles.matchRibbon} aria-hidden="true">
-                  ★ Your match!
-                </span>
-              )}
-            </li>
-          )
-        })}
+      <ul className={styles.gang} aria-labelledby={titleId}>
+        {buddy(stumpPet, stumpX, stumpY, true)}
+        {benchPets.map((p, i) => buddy(p, BENCH[i][0], BENCH[i][1], false))}
       </ul>
 
-      <button type="button" className={styles.back} onClick={() => !busy && onBack?.()} disabled={chosen}>
-        <Icon name="arrowLeft" size={22} />
+      {stumpPet.id === matchedBuddy && (
+        <span className={`${story.hand} ${styles.matchRibbon}`} aria-hidden="true" style={{ left: stumpX - 82, top: stumpY + 22 }}>
+          <MatchRibbon />★ Your match!
+        </span>
+      )}
+
+      <button
+        type="button"
+        className={`${story.hand} ${styles.back}`}
+        onClick={() => !busy && onBack?.()}
+        disabled={chosen}
+      >
+        <Icon name="arrowLeft" size={24} />
         <span>Back</span>
       </button>
 
@@ -205,6 +238,81 @@ function Silhouette({ className }: { className?: string }) {
       <path d="M28 30 22 8l20 14M72 30l6-22-20 14" />
       <circle cx="50" cy="40" r="26" />
       <ellipse cx="50" cy="88" rx="24" ry="28" />
+    </svg>
+  )
+}
+
+interface GangBuddyProps {
+  pet: PetInfo
+  /** Where its feet are (book pixels). */
+  x: number
+  y: number
+  /** How tall it is drawn (book pixels). */
+  height: number
+  /** On the stump: no name tag (the "Your match!" ribbon is there). */
+  onStump: boolean
+  match: boolean
+  selected: boolean
+  chosen: boolean
+  onPick: () => void
+}
+
+/**
+ * One buddy in the meadow: its plain pencil picture, a button. Picked: an
+ * orange pencil circle around it and an orange name tag. A buddy that isn't
+ * ready (or has no pencil picture yet) is greyed, "Coming soon".
+ */
+function GangBuddy({ pet, x, y, height, onStump, match, selected, chosen, onPick }: GangBuddyProps) {
+  const picture = storybookArt.pencilBuddies[pet.id]
+  const ok = isBuddyReady(pet.id) && !!picture
+  const picked = ok && selected
+  return (
+    <button
+      type="button"
+      className={[styles.buddy, picked && styles.picked, !ok && styles.notReady].filter(Boolean).join(' ')}
+      style={{ left: x, top: y - height, height, zIndex: y }}
+      onClick={onPick}
+      disabled={!ok || chosen}
+      aria-pressed={ok ? selected : undefined}
+      aria-label={ok ? `${pet.name}${match ? ', your match' : ''}` : `${pet.name}, coming soon`}
+    >
+      <span className={styles.buddyArt}>
+        {picked && <PencilRing />}
+        {picture ? (
+          <img src={picture} alt="" className={styles.buddyPicture} draggable={false} />
+        ) : (
+          <Silhouette className={styles.buddySilhouette} />
+        )}
+      </span>
+      {!onStump && <span className={`${story.hand} ${styles.tag}`}>{ok ? pet.name : 'Coming soon'}</span>}
+    </button>
+  )
+}
+
+/** The hand-drawn orange loop around the picked buddy (behind its picture). */
+function PencilRing() {
+  return (
+    <svg className={styles.ring} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d="M50 4C80 3 97 22 96 50S78 97 49 96 3 78 4 49 22 5 54 6"
+        fill="none"
+        style={{ stroke: 'var(--color-story-picked)' }}
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  )
+}
+
+/** The yellow "Your match!" banner with folded ends, under the match's feet. */
+function MatchRibbon() {
+  const ink = { stroke: 'var(--color-card-border)' }
+  return (
+    <svg className={styles.ribbonArt} viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M2 8h22v28H2l9-14z" style={{ ...ink, fill: 'var(--color-story-ribbon-end)' }} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M198 8h-22v28h22l-9-14z" style={{ ...ink, fill: 'var(--color-story-ribbon-end)' }} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d="M16 2h168v32H16z" style={{ ...ink, fill: 'var(--color-story-ribbon)' }} strokeWidth="2.5" strokeLinejoin="round" />
     </svg>
   )
 }

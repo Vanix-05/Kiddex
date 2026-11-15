@@ -115,6 +115,13 @@ export const theme = {
     storyBoy: '#7FB0E8', // the Boy card's tape and ribbon
     storyGirl: '#F08AA6', // the Girl card's tape and ribbon
     storySky: '#BFE0F7', // the tape on a question's scene picture
+    storyLeaf: '#9ED689', // a green sparkle doodle
+    // Pick your buddy's left page (the meadow drawing)
+    storyKicker: '#A85F1C', // "Meet the gang"
+    storyTag: '#FFFAF0', // a buddy's name tag, and Back
+    storyTagPickedText: '#3F2A18', // the picked buddy's name, on the orange tag
+    storyRibbon: '#F6D27A', // the "Your match!" ribbon
+    storyRibbonEnd: '#F2B84B', // its folded ends
     magicGlow: '#FFD76A', // the gold glow of the page the buddy reaches out of
     magicGlowSoft: 'rgba(255, 215, 106, 0)',
     speedLine: 'rgba(110, 104, 100, 0.55)', // pencil speed lines in the rush

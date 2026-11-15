@@ -9,6 +9,7 @@
  */
 
 // Scene
+import type { BuddyId } from '../setup/quizData'
 import sun from './scene/sun.svg'
 import cloud from './scene/cloud.svg'
 import island from './scene/island.svg'
@@ -128,4 +129,13 @@ export const storybookArt = {
   scenes: QUESTIONS.map((n) => storybookPicture(`q${n}-scene`)),
   /** The 4 answer pictures per question: answers[0][0] is question 1's first answer. */
   answers: QUESTIONS.map((n) => ['a', 'b', 'c', 'd'].map((letter) => storybookPicture(`q${n}-${letter}`))),
+  /** Pick your buddy's left page: the meadow with the tree stump and the bench (no buddies in it). */
+  meadow: storybookPicture('buddy-meadow'),
+  /** The buddies in pencil, on a transparent background (pencil-<id>.webp). A buddy without one shows a silhouette. */
+  pencilBuddies: Object.fromEntries(
+    Object.entries(storybookFiles).flatMap(([path, url]) => {
+      const id = /\/pencil-([a-z]+)\.webp$/.exec(path)?.[1]
+      return id ? [[id, url]] : []
+    }),
+  ) as Partial<Record<BuddyId, string>>,
 }

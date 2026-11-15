@@ -23,6 +23,9 @@ function decode(urls: readonly string[]) {
 export const preloadGenderPage = () =>
   decode([storybookArt.cardBg.boy, storybookArt.cardBg.girl, storybookArt.kids.boy, storybookArt.kids.girl])
 
+/** Pick your buddy's left page: the meadow and the pencil buddies. */
+export const preloadPetPage = () => decode([storybookArt.meadow, ...Object.values(storybookArt.pencilBuddies)])
+
 /** A question's scene and its 4 answer pictures (0 = question 1). */
 export const preloadQuestion = (index: number) => {
   if (index < 0 || index >= storybookArt.scenes.length) return

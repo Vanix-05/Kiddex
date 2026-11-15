@@ -35,17 +35,17 @@ import {
   GENDER_PAGE,
   INTRO_PAGE,
   LAST_QUESTION_PAGE,
-  LETTERS_DONE_MS,
   PET_PAGE,
   reducedMotion,
   REVEAL_HOLD_MS,
   REVEAL_PAGE,
+  REVEAL_WRITE_MS,
   tabOfPage,
   TABS,
   TURN_MS,
   type SpreadMode,
 } from './bookPages'
-import { preloadGenderPage, preloadQuestion } from './storyPictures'
+import { preloadGenderPage, preloadPetPage, preloadQuestion } from './storyPictures'
 import styles from './SetupBook.module.css'
 
 /** The page being turned away. */
@@ -117,6 +117,8 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   useEffect(() => {
     if (page <= GENDER_PAGE) preloadGenderPage()
     if (page >= GENDER_PAGE && page < LAST_QUESTION_PAGE) preloadQuestion(page - GENDER_PAGE)
+    // While the reveal shows (and from question 5, just before it): Pick your buddy's meadow and pencil buddies.
+    if (page >= LAST_QUESTION_PAGE) preloadPetPage()
   }, [page])
 
   // ---------- Timers ----------
@@ -135,7 +137,7 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
 
   /** The reveal holds, then turns to Pick your buddy on its own. */
   const holdReveal = () =>
-    later((reducedMotion() ? 0 : LETTERS_DONE_MS) + REVEAL_HOLD_MS, () => turn(REVEAL_PAGE, PET_PAGE))
+    later((reducedMotion() ? 0 : REVEAL_WRITE_MS) + REVEAL_HOLD_MS, () => turn(REVEAL_PAGE, PET_PAGE))
 
   /** Next: the right page turns over the spine; the next page is underneath. */
   const turn = (from: number, next: number) => {

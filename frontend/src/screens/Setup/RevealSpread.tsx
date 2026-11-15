@@ -1,78 +1,62 @@
 import type { CSSProperties } from 'react'
-import { LETTERS_DONE_MS, REVEAL_TEXT, type SpreadMode } from './bookPages'
+import { REVEAL_TEXT, REVEAL_WRITE_MS, type SpreadMode } from './bookPages'
+import { Doodle, WavyUnderline } from './storyParts'
+import story from './StoryPage.module.css'
 import styles from './Reveal.module.css'
 
-/** Each half, word by word, with the position of each word's first letter in
-    the whole line (for the pop-in order: it carries on across the spine). */
-const HALVES = REVEAL_TEXT.map((half, h) => {
-  const offset = REVEAL_TEXT.slice(0, h).reduce((sum, prev) => sum + prev.length + 1, 0)
-  return half.split(' ').map((word, w, all) => ({
-    word,
-    start: offset + all.slice(0, w).reduce((sum, prev) => sum + prev.length + 1, 0),
-  }))
-})
-
-/** Small gold sparkles around the words (book pixels), twinkling once the letters are in. */
-const SPARKLES = [
-  [150, 250, 0],
-  [520, 230, 0.5],
-  [470, 420, 1.1],
-  [200, 440, 1.6],
-  [700, 236, 0.3],
-  [1080, 262, 0.9],
-  [1120, 402, 1.4],
-  [760, 430, 0.7],
+/** When each half starts writing itself, and for how long (ms): the left half, then the right. */
+const WRITING = [
+  { from: 300, takes: 900 },
+  { from: 1300, takes: 900 },
 ] as const
 
 /**
- * "your perfect buddy is...": the big sticker-text lead-in. "your perfect"
- * on the left page, "buddy is..." on the right, letters popping in one by
- * one. SetupBook turns to Pick your buddy on its own after REVEAL_HOLD_MS.
- * Before it plays (`arriving`), the pages are still blank.
+ * "your perfect buddy is...": handwritten in pencil, writing itself across
+ * the two pages ("your perfect" on the left, "buddy is..." on the right).
+ * When the writing is done (REVEAL_WRITE_MS), a wavy underline and a few
+ * still doodles fade in. SetupBook turns to Pick your buddy on its own
+ * after REVEAL_HOLD_MS. Before it plays (`arriving`), the pages are blank;
+ * turning away (`still`), everything is simply there.
  */
 export function RevealSpread({ mode }: { mode: SpreadMode }) {
   const live = mode === 'live'
   const modeClass = mode === 'arriving' ? styles.waiting : mode === 'still' ? styles.still : ''
 
   return (
-    <div className={modeClass}>
-      {HALVES.map((words, h) => (
+    <div className={modeClass} style={{ '--done': `${REVEAL_WRITE_MS}ms` } as CSSProperties}>
+      {REVEAL_TEXT.map((half, h) => (
         <p
-          key={h}
-          className={[styles.sticker, h === 0 ? styles.left : styles.right].join(' ')}
+          key={half}
+          className={[story.hand, story.title, styles.line, h === 0 ? styles.left : styles.right].join(' ')}
           // The whole line is read once, from the left half.
           aria-label={h === 0 ? REVEAL_TEXT.join(' ') : undefined}
           aria-hidden={h === 0 ? undefined : true}
           tabIndex={h === 0 ? -1 : undefined}
           data-page-title={(live && h === 0) || undefined}
         >
-          {words.map(({ word, start }) => (
-            <span key={start} className={styles.word} aria-hidden="true">
-              {[...word].map((letter, i) => (
-                <span key={i} className={styles.letter} style={{ '--i': start + i } as CSSProperties}>
-                  {letter}
-                </span>
-              ))}
+          <span
+            className={styles.ink}
+            aria-hidden="true"
+            style={{ '--from': `${WRITING[h].from}ms`, '--takes': `${WRITING[h].takes}ms` } as CSSProperties}
+          >
+            {half}
+          </span>
+          {h === 1 && (
+            <span className={`${styles.after} ${styles.underline}`}>
+              <WavyUnderline />
             </span>
-          ))}
+          )}
         </p>
       ))}
 
-      {live &&
-        SPARKLES.map(([x, y, delay], i) => (
-          <span
-            key={i}
-            className={styles.sparkle}
-            aria-hidden="true"
-            style={
-              {
-                left: `${x}px`,
-                top: `${y}px`,
-                '--sparkle-delay': `${LETTERS_DONE_MS / 1000 - 0.6 + delay}s`,
-              } as CSSProperties
-            }
-          />
-        ))}
+      <div className={styles.after} aria-hidden="true">
+        <Doodle kind="sparkle" x={120} y={170} size={34} color="var(--color-story-star)" />
+        <Doodle kind="heart" x={470} y={420} size={32} color="var(--color-story-girl)" />
+        <Doodle kind="squiggle" x={110} y={440} size={110} color="var(--color-story-boy)" rotate={-8} />
+        <Doodle kind="sparkle" x={980} y={180} size={30} color="var(--color-story-boy)" />
+        <Doodle kind="sparkle" x={700} y={430} size={26} color="var(--color-story-leaf)" />
+        <Doodle kind="heart" x={1060} y={400} size={28} color="var(--color-story-star)" />
+      </div>
     </div>
   )
 }

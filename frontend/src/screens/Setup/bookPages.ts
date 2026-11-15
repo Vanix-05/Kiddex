@@ -34,18 +34,15 @@ export const FADE_MS = 250
 /** Choose: confetti and "A perfect team!" before the Customize Bridge. */
 export const CHOSEN_MS = 1800
 
-/** "your perfect buddy is...": each letter pops in, 45ms apart, 450ms each (Reveal.module.css). */
-export const REVEAL_TEXT = ['your perfect', 'buddy is...'] as const
-export const LETTER_STAGGER_MS = 45
-export const LETTER_POP_MS = 450
-const revealLength = REVEAL_TEXT.join(' ').length
-export const LETTERS_DONE_MS = (revealLength - 1) * LETTER_STAGGER_MS + LETTER_POP_MS
+/** "your perfect buddy is...": the line writes itself in pencil, left half then right half (Reveal.module.css). */
+export const REVEAL_TEXT = ['your perfect', 'buddy is…'] as const
+/** When the writing is done (the underline and doodles then fade in). */
+export const REVEAL_WRITE_MS = 2200
 /** How long the finished line stays up before the page turns on its own. */
 export const REVEAL_HOLD_MS = 2000
 
-/** Pick your buddy: "Pick your buddy!" writes itself, then the tiles pop in (Pet.module.css). */
+/** Pick your buddy: "Pick your buddy!" writes itself on arrival (Pet.module.css). */
 export const WRITE_MS = 1600
-export const TILE_STAGGER_MS = 100
 
 /** The first buddy picked on Pick your buddy: the quiz match if it's ready, else the first ready one. */
 export const firstPick = (matched: BuddyId | null): BuddyId =>

@@ -29,12 +29,14 @@
 //                           match the night
 //   hand-*-shadow.webp      a soft dark shape of each hand, for its shadow
 //
-// Storybook (src/assets/storybook/*, the setup storybook's Boy or Girl and
-// quiz pages) -> src/assets/storybook/web/, quality 85:
+// Storybook (src/assets/storybook/*, the setup storybook's Boy or Girl, quiz
+// and Pick your buddy pages) -> src/assets/storybook/web/, quality 85:
 //   q*-scene.webp           a question's scene, 1000 wide (drawn ~456 wide: 2x)
 //   q*-a..d.webp            the answer pictures, 520 wide (drawn ~208 wide: 2x)
 //   bg-*.webp               the Boy and Girl cards' backgrounds, 600 wide (drawn 282 wide)
 //   kid-*.webp              the pencil boy and girl, 600 tall, with transparency (drawn 296 tall)
+//   buddy-meadow.webp       Pick your buddy's left page, 1150 wide (drawn 569 wide)
+//   pencil-*.webp           the 8 buddies in pencil, 400 tall, with transparency (drawn up to 178 tall)
 
 import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
@@ -198,6 +200,8 @@ const STORYBOOK_SIZES = [
   { match: /^q\d-[a-d]\./, width: 520 },
   { match: /^bg-/, width: 600 },
   { match: /^kid-/, height: 600 },
+  { match: /^buddy-meadow\./, width: 1150 },
+  { match: /^pencil-/, height: 400 },
 ]
 for (const file of readdirSync(storybook).filter((f) => /\.(png|jpe?g)$/.test(f)).sort()) {
   const size = STORYBOOK_SIZES.find((s) => s.match.test(file))
