@@ -155,7 +155,16 @@ export function GamesLeft({ lessonId, live }: PageProps) {
 // ---------- Right page ----------
 
 /** The next few school days, for the due date list. */
-const DUE_DATES = (first: string) => [first, 'Mon, Nov 17', 'Tue, Nov 18', 'Wed, Nov 19', 'Fri, Nov 21']
+function DUE_DATES(first: string) {
+  const days: string[] = []
+  const d = new Date()
+  while (days.length < 8) {
+    d.setDate(d.getDate() + 1)
+    if (d.getDay() !== 0 && d.getDay() !== 6) days.push(d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))
+  }
+  // The default (next Friday) first, then the other school days in order.
+  return [first, ...days.filter((x) => x !== first)].slice(0, 6)
+}
 
 export function GamesRight({ lessonId, live }: PageProps) {
   const { lesson, games, inPack } = usePackGames(lessonId)
@@ -167,7 +176,7 @@ export function GamesRight({ lessonId, live }: PageProps) {
   const ids = useId()
   const [name, setName] = useState(lesson ? `${lesson.topic} Review` : '')
   const [giveTo, setGiveTo] = useState<'section' | 'pick'>('section')
-  const [sectionId, setSectionId] = useState(active.id)
+  const [sectionId, setSectionId] = useState(active?.id ?? '')
   const [due, setDue] = useState(dueLabel)
   const [assigned, setAssigned] = useState(false)
   const section = sections.find((s) => s.id === sectionId) ?? active
@@ -290,7 +299,7 @@ export function GamesRight({ lessonId, live }: PageProps) {
           icon={<Package size={22} aria-hidden="true" />}
           onClick={assign}
         >
-          Assign to {sectionLabel(section)}
+          Assign to {section ? sectionLabel(section) : 'your class'}
         </Btn>
         <span className={styles.toastSlot} role="status">
           {assigned && (

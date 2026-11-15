@@ -2,7 +2,7 @@
 //
 // Every fake question card lives here (src/content/questionCard.ts has the format):
 // - fakeQuestionCards: 20 approved Grade 4 fraction cards + 2 drafts, for building the mini games
-// - partsCards / mixedCards: the Teacher Dashboard's sample lessons
+// - mixedCards / comparingCards: the Student games' other sample lessons (All games: Change lesson)
 // - equivalentFractionsCards: what the fake "AI" writes for any uploaded lesson (16 cards)
 // - fakeSourceQuotes: the "From your lesson · page N" quotes, by card id (not a card field)
 
@@ -185,63 +185,7 @@ export const equivalentFractionsCards: QuestionCard[] = [
   }),
 ]
 
-// ---------- Sample lesson "Fractions: Parts of a Whole" (12 to check) ----------
-// Only 3 pairs, so Match Up needs 1 more.
-
-const parts = deck('parts', 'Parts of a Whole', 'draft')
-
-export const partsCards: QuestionCard[] = [
-  parts.mc('A pizza is cut into 4 equal parts. One part is…', ['1/4', '1/2', '4/1', '1/3'], '1/4', {
-    level: 'easy', sourcePage: 1, explanation: 'Each of the 4 equal parts is one fourth of the pizza.',
-    quote: ['Each of the 4 equal parts is one fourth of the pizza.', 'one fourth'],
-  }),
-  parts.pair('half', '1/2', {
-    level: 'easy', sourcePage: 1, explanation: 'Two equal parts are called halves. One of them is 1/2.',
-    quote: ['Two equal parts are called halves.', 'halves'],
-  }),
-  parts.blank('The bottom number of a fraction is the ___.', ['denominator', 'numerator', 'whole'], 'denominator', {
-    level: 'easy', sourcePage: 2, explanation: 'The denominator tells how many equal parts the whole has.',
-    quote: ['The denominator tells how many equal parts the whole has.', 'denominator'],
-  }),
-  parts.blank('The top number of a fraction is the ___.', ['numerator', 'denominator', 'whole'], 'numerator', {
-    level: 'easy', sourcePage: 2, explanation: 'The numerator tells how many parts we are talking about.',
-    quote: ['The numerator tells how many parts we are talking about.', 'numerator'],
-  }),
-  parts.mc('Which shape shows 1/3 shaded?', ['1 of 3 equal parts', '1 of 4 equal parts', '3 of 3 parts', '2 of 3 parts'], '1 of 3 equal parts', {
-    level: 'medium', sourcePage: 3, explanation: 'One of three equal parts is one third.',
-    quote: ['One of three equal parts is one third.', 'one third'],
-  }),
-  parts.pair('3 of 8 parts', '3/8', {
-    level: 'medium', sourcePage: 4, explanation: 'Three of eight equal parts is three eighths.',
-    quote: ['Three of eight equal parts is three eighths.', 'three eighths'],
-  }),
-  parts.blank('Parts must be ___ to make a fraction.', ['equal', 'big', 'round'], 'equal', {
-    level: 'medium', sourcePage: 4, explanation: 'Fractions only work when all the parts are equal.',
-    quote: ['Fractions only work when all the parts are equal.', 'equal'],
-  }),
-  parts.mc('How many fourths make a whole?', ['4', '2', '1', '8'], '4', {
-    level: 'easy', sourcePage: 5, explanation: 'Four fourths make one whole.',
-    quote: ['Four fourths make one whole.', 'Four fourths'],
-  }),
-  parts.pair('2 of 5 parts', '2/5', {
-    level: 'medium', sourcePage: 6, explanation: 'Two of five equal parts is two fifths.',
-    quote: ['Two of five equal parts is two fifths.', 'two fifths'],
-  }),
-  parts.mc('Which fraction is one whole?', ['6/6', '1/6', '6/1', '0/6'], '6/6', {
-    level: 'medium', sourcePage: 7, explanation: 'When the top and bottom are the same, the fraction is one whole.',
-    quote: ['When the top and bottom are the same, the fraction is one whole.', 'one whole'],
-  }),
-  parts.blank('You ate 5 of 6 slices. You ate five ___.', ['sixths', 'fifths', 'halves'], 'sixths', {
-    level: 'hard', sourcePage: 9, explanation: 'The pizza has 6 equal slices, so each slice is one sixth. Five slices are five sixths.',
-    quote: ['Five of six slices is five sixths.', 'five sixths'],
-  }),
-  parts.mc('Which is the biggest part?', ['1/2', '1/3', '1/4', '1/8'], '1/2', {
-    level: 'hard', sourcePage: 11, explanation: 'The fewer the parts, the bigger each part is. 2 parts is the fewest.',
-    quote: ['The fewer the parts, the bigger each part is.', 'bigger each part'],
-  }),
-]
-
-// ---------- Sample lesson "Mixed Numbers" (15 approved) ----------
+// ---------- Lesson "Mixed Numbers" (15 approved): a Student games lesson (All games) ----------
 
 const mixed = deck('mixed', 'Mixed Numbers', 'approved')
 const mixedQuote: [string, string] = ['A mixed number is a whole number and a fraction together.', 'a whole number and a fraction']
@@ -313,7 +257,7 @@ export const comparingCards: QuestionCard[] = [
 
 // Dev only: check every card when this file loads, so a typo shows up right away.
 if (import.meta.env.DEV) {
-  for (const card of [...fakeQuestionCards, ...equivalentFractionsCards, ...partsCards, ...mixedCards, ...comparingCards]) {
+  for (const card of [...fakeQuestionCards, ...equivalentFractionsCards, ...mixedCards, ...comparingCards]) {
     const result = QuestionCardSchema.safeParse(card)
     if (!result.success) {
       const why = result.error.issues.map((i) => `${i.path.join('.') || 'card'}: ${i.message}`).join('; ')

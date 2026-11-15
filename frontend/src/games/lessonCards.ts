@@ -1,11 +1,11 @@
 import type { QuestionCard } from '../content/questionCard'
-import { comparingCards, equivalentFractionsCards, fakeGameLessons, fakeQuestionCards, mixedCards, partsCards } from '../mock/questionCards'
+import { comparingCards, equivalentFractionsCards, fakeGameLessons, fakeQuestionCards, mixedCards } from '../mock/questionCards'
 
 // FAKE for now: every card and lesson comes from src/mock/questionCards.ts.
 // Replace the insides with the API later; useGameCards, canPlay (catalog.ts)
 // and useAllGames only use these.
 
-const ALL_CARDS: readonly QuestionCard[] = [...fakeQuestionCards, ...mixedCards, ...partsCards, ...equivalentFractionsCards, ...comparingCards]
+const ALL_CARDS: readonly QuestionCard[] = [...fakeQuestionCards, ...mixedCards, ...equivalentFractionsCards, ...comparingCards]
 
 /** Every card of a lesson (drafts too: the games keep only approved ones). */
 export const cardsOf = (lessonId: string) => ALL_CARDS.filter((c) => c.lessonId === lessonId)

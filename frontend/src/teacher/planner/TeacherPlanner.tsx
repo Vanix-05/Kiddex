@@ -1,33 +1,34 @@
-import { startTransition, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react'
+import { startTransition, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, ChartNoAxesColumn, Flower, Flower2, House, Maximize, Plus, Rose, TreePalm, Users, type LucideIcon } from 'lucide-react'
-import { characterArt } from '../../assets/art'
+import { BookOpen, ChartNoAxesColumn, Flower, Flower2, House, LogOut, Maximize, Plus, Rose, TreePalm, Users, type LucideIcon } from 'lucide-react'
 import { KiddexLogo } from '../../components/KiddexLogo/KiddexLogo'
 import { SceneBackground } from '../../components/SceneBackground/SceneBackground'
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import { enterFullscreen, exitFullscreen, useIsFullscreen } from '../fullscreen'
-import { TestDataProvider } from '../data/TestDataProvider'
+import { TeacherDataProvider } from '../data/TeacherDataProvider'
 import { sectionLabel, useFakeMaking, useSection, useTeacher } from '../data/useTeacherData'
 import type { SectionIcon } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
+import { AddStudentDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
 import { isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
+import { PlannerActionsContext, usePlannerActions } from './plannerActions'
 import { SPREADS } from './spreads'
-import { SHOW_TEST_SWITCH } from '../data/testDataContext'
-import { TestViewSwitch } from './TestViewSwitch'
 import styles from './planner.module.css'
 
 /** How long a page turn takes. */
 const FLIP_MS = 650
 
 /**
- * The planner group's outer box in design px (bookmarks, tabs, book, chip,
- * switch, with room for the bookmark hover and the book's shadow). Only this
- * box is scaled; the island scene fills the window by itself.
+ * The planner group's outer box in design px, tight around what must show:
+ * the badge's left edge (20), the top of the open section tab (43), the
+ * cover's right edge (1400) and the ribbon's tip (888). The book's soft
+ * shadow and the bookmark hover may reach into the margin. Only this box is
+ * scaled; the island scene fills the window by itself.
  */
-const BOX = { x: 18, y: 36, w: 1388, h: 854 }
+const BOX = { x: 20, y: 43, w: 1380, h: 845 }
 /** Space kept free around the planner, in screen px. */
-const MARGIN = 16
+const MARGIN = 12
 
 /**
  * The KIDDEX logo at the window's top-left: its box in screen px at each size
@@ -64,9 +65,9 @@ function fitPlanner(): Fit {
   // (their top-left corners in design px).
   const fits = ({ right, bottom }: { right: number; bottom: number }) =>
     [
-      [216, 41],
+      [216, 43],
       [24, 151],
-      [151, 104],
+      [151, 106],
     ].every(([x, y]) => right + LOGO_GAP <= left + x * scale || bottom + LOGO_GAP <= top + y * scale)
   const logo = LOGO_SIZES.find(fits)?.size ?? null
   return { scale, left, top, logo }
@@ -94,14 +95,15 @@ interface Flip {
 }
 
 type WindowState = 'hidden' | 'open' | 'closing'
+type Popup = 'newSection' | 'addStudent' | 'logOut' | null
 
-/** The Teacher Dashboard: an open spiral planner on the island scene. */
+/** The Teacher Dashboard: an open hardcover planner on the island scene. */
 export function TeacherPlanner() {
   return (
-    <TestDataProvider>
+    <TeacherDataProvider>
       <FakeMaking />
       <Planner />
-    </TestDataProvider>
+    </TeacherDataProvider>
   )
 }
 
@@ -114,6 +116,7 @@ function FakeMaking() {
 function Planner() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { logOut } = useSession()
   const url = location.pathname + location.search
   const onStudents = isStudentsPath(location.pathname)
 
@@ -122,6 +125,7 @@ function Planner() {
   const [flip, setFlip] = useState<Flip | null>(null)
   const [win, setWin] = useState<WindowState>(onStudents ? 'open' : 'hidden')
   const [winQuery, setWinQuery] = useState(onStudents ? location.search : '')
+  const [popup, setPopup] = useState<Popup>(null)
 
   // React to URL changes while rendering (no extra paint with the old page).
   const [seenUrl, setSeenUrl] = useState(url)
@@ -150,83 +154,111 @@ function Planner() {
 
   const { style: fitStyle, logo } = usePlannerFit()
   const fullscreen = useIsFullscreen()
-  const { tabsRef, rowRef, buttonRef, switchRef, iconOnly, switchVars } = useTopRow(!fullscreen)
   const page = resolvePage(bookUrl).key
   const activeMark: BookmarkKey = win === 'open' ? 'students' : bookmarkFor(page)
 
   const closeWindow = () => navigate(bookUrl)
+  const close = () => setPopup(null)
+  // Made once (setPopup never changes), so pages using them don't re-render for nothing.
+  const [actions] = useState(() => ({ newSection: () => setPopup('newSection'), addStudent: () => setPopup('addStudent') }))
+
+  const leave = () => {
+    // One transition: the router changes pages in a transition, so a
+    // separate log-out would render first, on the old Teacher page,
+    // and the guard would send us to the Welcome card instead.
+    exitFullscreen()
+    startTransition(() => {
+      navigate(paths.teacher.login)
+      logOut()
+    })
+  }
 
   return (
-    <div
-      className={styles.root}
-      style={{ '--flip-ms': `${FLIP_MS}ms` } as CSSProperties}
-      // A click during a page turn finishes it at once.
-      onPointerDownCapture={() => flip && setFlip(null)}
-    >
-      <div className={styles.scene} aria-hidden="true">
-        <SceneBackground>{null}</SceneBackground>
-      </div>
-
-      {/* Fixed size at the window's top-left (not scaled with the planner). */}
-      {logo && (
-        <div className={logo === 'small' ? `${styles.brand} ${styles.brandSmall}` : styles.brand}>
-          <KiddexLogo />
+    <PlannerActionsContext.Provider value={actions}>
+      <div
+        className={styles.root}
+        style={{ '--flip-ms': `${FLIP_MS}ms` } as CSSProperties}
+        // A click during a page turn finishes it at once.
+        onPointerDownCapture={() => flip && setFlip(null)}
+      >
+        <div className={styles.scene} aria-hidden="true">
+          <SceneBackground>{null}</SceneBackground>
         </div>
-      )}
 
-      <div className={`${styles.stage} ${styles.bookStage}`} style={fitStyle} inert={win === 'open' ? true : undefined}>
-        <div className={styles.cover} aria-hidden="true" />
-
-        <main>
-          <div className={styles.slotL}>
-            <Half url={bookUrl} side="L" live paperRef={leftRef} />
+        {/* Fixed size at the window's top-left (not scaled with the planner). */}
+        {logo && (
+          <div className={logo === 'small' ? `${styles.brand} ${styles.brandSmall}` : styles.brand}>
+            <KiddexLogo />
           </div>
-          <div className={styles.slotR}>
-            <Half url={bookUrl} side="R" live />
-          </div>
-        </main>
+        )}
 
-        {flip && !flip.fade && <PageTurn flip={flip} to={bookUrl} onDone={() => setFlip(null)} />}
-        {flip && flip.fade && (
-          <div className={styles.fadeOld} inert aria-hidden="true" onAnimationEnd={() => setFlip(null)}>
+        <div className={`${styles.stage} ${styles.bookStage}`} style={fitStyle} inert={win === 'open' || popup ? true : undefined}>
+          <BookBack />
+
+          <main>
             <div className={styles.slotL}>
-              <Half url={flip.from} side="L" />
+              <Half url={bookUrl} side="L" live paperRef={leftRef} />
             </div>
             <div className={styles.slotR}>
-              <Half url={flip.from} side="R" />
+              <Half url={bookUrl} side="R" live />
             </div>
-          </div>
-        )}
+          </main>
 
-        <Rings />
-      </div>
+          {flip && !flip.fade && <PageTurn flip={flip} to={bookUrl} onDone={() => setFlip(null)} />}
+          {flip && flip.fade && (
+            <div className={styles.fadeOld} inert aria-hidden="true" onAnimationEnd={() => setFlip(null)}>
+              <div className={styles.slotL}>
+                <Half url={flip.from} side="L" />
+              </div>
+              <div className={styles.slotR}>
+                <Half url={flip.from} side="R" />
+              </div>
+            </div>
+          )}
 
-      {win !== 'hidden' && (
-        <div
-          className={win === 'closing' ? `${styles.blur} ${styles.blurOut}` : styles.blur}
-          aria-hidden="true"
-          onClick={win === 'open' ? closeWindow : undefined}
-        />
-      )}
-
-      <div className={`${styles.stage} ${styles.chromeStage}`} style={{ ...fitStyle, ...switchVars }}>
-        <SectionTabs tabsRef={tabsRef} />
-        <Bookmarks active={activeMark} onGo={(to) => navigate(to)} />
-        <div ref={rowRef} className={styles.topRight}>
-          {!fullscreen && <FullscreenButton iconOnly={iconOnly} buttonRef={buttonRef} />}
-          <ProfileChip />
+          <BookFront />
         </div>
-        {SHOW_TEST_SWITCH && <TestViewSwitch boxRef={switchRef} />}
+
         {win !== 'hidden' && (
-          <StudentsWindow
-            closing={win === 'closing'}
-            initialFilter={new URLSearchParams(winQuery).get('filter')}
-            onClose={closeWindow}
-            onClosed={() => setWin('hidden')}
+          <div
+            className={win === 'closing' ? `${styles.blur} ${styles.blurOut}` : styles.blur}
+            aria-hidden="true"
+            onClick={win === 'open' ? closeWindow : undefined}
           />
         )}
+
+        <div className={`${styles.stage} ${styles.chromeStage}`} style={fitStyle} inert={popup ? true : undefined}>
+          <SectionTabs />
+          <Bookmarks active={activeMark} onGo={(to) => navigate(to)} />
+          {!fullscreen && (
+            <div className={styles.topRight}>
+              <FullscreenButton />
+            </div>
+          )}
+          {win !== 'hidden' && (
+            <StudentsWindow
+              closing={win === 'closing'}
+              initialFilter={new URLSearchParams(winQuery).get('filter')}
+              onClose={closeWindow}
+              onClosed={() => setWin('hidden')}
+            />
+          )}
+        </div>
+
+        {/* The Teacher badge: its own layer, so it stays sharp (and lit) over the Log out blur. */}
+        <div
+          className={`${styles.stage} ${popup === 'logOut' ? styles.badgeStageTop : styles.badgeStage}`}
+          style={fitStyle}
+          inert={popup && popup !== 'logOut' ? true : undefined}
+        >
+          <TeacherBadge lit={popup === 'logOut'} onLogOut={() => setPopup('logOut')} />
+        </div>
+
+        {popup === 'logOut' && <LogOutDialog onStay={close} onLogOut={leave} />}
+        {popup === 'newSection' && <NewSectionDialog onClose={close} />}
+        {popup === 'addStudent' && <AddStudentDialog onClose={close} />}
       </div>
-    </div>
+    </PlannerActionsContext.Provider>
   )
 }
 
@@ -241,6 +273,9 @@ function Half({ url, side, live = false, paperRef }: { url: string; side: 'L' | 
       tabIndex={paperRef ? -1 : undefined}
     >
       <Page key={pathOf(url)} lessonId={lessonId} query={query} live={live} />
+      <span className={side === 'L' ? `${styles.pageNum} ${styles.pageNumL}` : `${styles.pageNum} ${styles.pageNumR}`} aria-hidden="true">
+        {pageNumber(key, side)}
+      </span>
     </div>
   )
 }
@@ -281,13 +316,48 @@ function PageTurn({ flip, to, onDone }: { flip: Flip; to: string; onDone: () => 
   )
 }
 
-/** Metal spiral rings down the middle. */
-function Rings() {
+// ---------- The book (maroon hardcover) ----------
+
+/** A gold corner guard (top-left as drawn; the others are mirrored in CSS). */
+function Corner({ className }: { className: string }) {
   return (
-    <div className={styles.rings} aria-hidden="true">
-      {Array.from({ length: 16 }, (_, i) => (
-        <span key={i} className={styles.ring} style={{ top: i * 44 }} />
-      ))}
+    <svg className={`${styles.corner} ${className}`} viewBox="0 0 54 54" aria-hidden="true">
+      <path d="M0 17A17 17 0 0 1 17 0H54L0 54Z" fill="var(--book-gold)" />
+      <path d="M0 17A17 17 0 0 1 17 0H46L0 46Z" fill="var(--book-gold-light)" />
+      <path d="M54 0L0 54" stroke="var(--book-gold-dark)" strokeWidth="2" />
+    </svg>
+  )
+}
+
+/** Under the pages: shadow, cover, gold line and corners, the spine, the stacked page edges and the paper leaves. */
+function BookBack() {
+  return (
+    <div className={styles.bookBack} aria-hidden="true">
+      <span className={styles.bookShadow} />
+      <span className={styles.cover}>
+        <span className={styles.foil} />
+      </span>
+      <Corner className={styles.cornerTL} />
+      <Corner className={styles.cornerTR} />
+      <Corner className={`${styles.cornerBL} ${styles.cornerBottom}`} />
+      <Corner className={`${styles.cornerBR} ${styles.cornerBottom}`} />
+      <span className={styles.hinge} />
+      <span className={`${styles.stack} ${styles.stackL}`} />
+      <span className={`${styles.stack} ${styles.stackR}`} />
+      <span className={`${styles.stack} ${styles.stackB}`} />
+      <span className={`${styles.leaf} ${styles.leafL}`} />
+      <span className={`${styles.leaf} ${styles.leafR}`} />
+    </div>
+  )
+}
+
+/** Over the pages (never over the text): the gutter line, the headband and the ribbon bookmark. */
+function BookFront() {
+  return (
+    <div className={styles.bookFront} aria-hidden="true">
+      <span className={styles.gutter} />
+      <span className={styles.band} />
+      <span className={styles.ribbon} />
     </div>
   )
 }
@@ -297,14 +367,19 @@ function Rings() {
 const TAB_ICONS: Record<SectionIcon, LucideIcon> = { flower: Flower, tulip: Flower2, rose: Rose }
 const TAB_COLORS = { yellow: styles.tabYellow, pink: styles.tabPink, coral: styles.tabCoral }
 
-/** Tabs sit in a row, each as wide as its own label (never squeezed). */
-function SectionTabs({ tabsRef }: { tabsRef: Ref<HTMLDivElement> }) {
+/**
+ * Tabs sit in a row, each as wide as its own label (never squeezed). With no
+ * section yet, only the big dashed "+ New section" tab shows.
+ */
+function SectionTabs() {
   const { sections, active, setActive } = useSection()
+  const { newSection } = usePlannerActions()
+  const first = sections.length === 0
   return (
-    <div ref={tabsRef} className={styles.tabs} role="group" aria-label="Sections">
+    <div className={styles.tabs} role="group" aria-label="Sections">
       {sections.map((s) => {
         const Icon = TAB_ICONS[s.icon]
-        const on = s.id === active.id
+        const on = s.id === active?.id
         return (
           <button
             key={s.id}
@@ -320,14 +395,12 @@ function SectionTabs({ tabsRef }: { tabsRef: Ref<HTMLDivElement> }) {
           </button>
         )
       })}
-      <button
-        type="button"
-        className={`${styles.tab} ${styles.tabNew}`}
-        onClick={() => {
-          // TODO: add a new section.
-        }}
-      >
-        <Plus size={20} aria-hidden="true" /> New
+      <button type="button" className={first ? `${styles.tab} ${styles.tabAdd}` : `${styles.tab} ${styles.tabNew}`} onClick={newSection}>
+        <span className={styles.tabPlus} aria-hidden="true">
+          <Plus size={first ? 18 : 16} strokeWidth={3} />
+        </span>
+        {first ? 'New section' : 'New'}
+        {!first && <span className="visually-hidden"> section</span>}
       </button>
     </div>
   )
@@ -342,10 +415,10 @@ const bookmarkFor = (page: PageKey): BookmarkKey =>
 
 const BOOKMARKS: { key: BookmarkKey; label: string; icon: LucideIcon; top: number; to: string }[] = [
   { key: 'home', label: 'Home', icon: House, top: 151, to: paths.teacher.home },
-  { key: 'students', label: 'Students', icon: Users, top: 240, to: studentsPath() },
-  { key: 'lessons', label: 'Lessons', icon: BookOpen, top: 330, to: paths.teacher.lessons },
-  { key: 'progress', label: 'Progress', icon: ChartNoAxesColumn, top: 420, to: paths.teacher.progress },
-  { key: 'lobby', label: 'Lobby', icon: TreePalm, top: 560, to: paths.teacher.lobby },
+  { key: 'students', label: 'Students', icon: Users, top: 239, to: studentsPath() },
+  { key: 'lessons', label: 'Lessons', icon: BookOpen, top: 327, to: paths.teacher.lessons },
+  { key: 'progress', label: 'Progress', icon: ChartNoAxesColumn, top: 415, to: paths.teacher.progress },
+  { key: 'lobby', label: 'Lobby', icon: TreePalm, top: 531, to: paths.teacher.lobby },
 ]
 
 function Bookmarks({ active, onGo }: { active: BookmarkKey; onGo: (to: string) => void }) {
@@ -365,7 +438,7 @@ function Bookmarks({ active, onGo }: { active: BookmarkKey; onGo: (to: string) =
             aria-current={on ? 'page' : undefined}
             onClick={() => !on && onGo(to)}
           >
-            <Icon size={26} strokeWidth={2.2} aria-hidden="true" />
+            <Icon size={27} strokeWidth={2.2} aria-hidden="true" />
             {label}
           </button>
         )
@@ -374,121 +447,56 @@ function Bookmarks({ active, onGo }: { active: BookmarkKey; onGo: (to: string) =
   )
 }
 
-// ---------- Full screen button + Ms. Cruz ----------
-
-/** Stage px: the round icon-only button, and the space kept around the test switch. */
-const FULLSCREEN_ICON_W = 44
-const SWITCH_GAP = 8
-
-interface TopRow {
-  tabsRef: RefObject<HTMLDivElement | null>
-  rowRef: RefObject<HTMLDivElement | null>
-  buttonRef: RefObject<HTMLButtonElement | null>
-  switchRef: RefObject<HTMLDivElement | null>
-  iconOnly: boolean
-  switchVars: CSSProperties | undefined
-}
-
-/**
- * The top row: tabs, test switch, Full screen button, chip. While the button
- * shows, the test switch is centered in the space between the tabs and the
- * button, and the button drops its label when the switch wouldn't fit beside
- * it. All in stage px (offsetLeft/Width ignore the planner's scale).
- */
-function useTopRow(showButton: boolean): TopRow {
-  const tabsRef = useRef<HTMLDivElement>(null)
-  const rowRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const switchRef = useRef<HTMLDivElement>(null)
-  /** The labelled button's width, kept from when it last showed its label. */
-  const labelW = useRef(0)
-  const [iconOnly, setIconOnly] = useState(false)
-  const [slot, setSlot] = useState<{ left: number; right: number } | null>(null)
-
-  useLayoutEffect(() => {
-    const tabs = tabsRef.current
-    const row = rowRef.current
-    const sw = switchRef.current
-    if (!showButton || !tabs || !row || !sw) return
-    const measure = () => {
-      const button = buttonRef.current
-      const chip = row.lastElementChild as HTMLElement | null
-      const lastTab = tabs.lastElementChild as HTMLElement | null
-      if (!button || !chip || !lastTab) return
-      if (!button.classList.contains(styles.fullscreenIconOnly)) labelW.current = button.offsetWidth
-      // The tabs row clips at its own right edge.
-      const tabsEnd = tabs.offsetLeft + Math.min(lastTab.offsetLeft + lastTab.offsetWidth, tabs.offsetWidth)
-      const gap = parseFloat(getComputedStyle(row).columnGap) || 0
-      const chipLeft = row.offsetLeft + chip.offsetLeft
-      const free = (w: number) => chipLeft - gap - w - tabsEnd - sw.offsetWidth
-      const label = free(labelW.current) >= 2 * SWITCH_GAP
-      setIconOnly(!label)
-      const left = tabsEnd
-      const right = (row.offsetParent as HTMLElement).offsetWidth - (chipLeft - gap - (label ? labelW.current : FULLSCREEN_ICON_W))
-      setSlot((s) => (s && s.left === left && s.right === right ? s : { left, right }))
-    }
-    // Runs once right away, then whenever the switch or button change size,
-    // or the tabs change (their row keeps its size, so watch the tabs inside).
-    const ro = new ResizeObserver(measure)
-    for (const el of [sw, row, buttonRef.current]) if (el) ro.observe(el)
-    const mo = new MutationObserver(measure)
-    mo.observe(tabs, { childList: true, subtree: true, characterData: true })
-    return () => {
-      ro.disconnect()
-      mo.disconnect()
-    }
-  }, [showButton, iconOnly])
-
-  const switchVars =
-    showButton && slot ? ({ '--switch-left': `${slot.left}px`, '--switch-right': `${slot.right}px` } as CSSProperties) : undefined
-  return { tabsRef, rowRef, buttonRef, switchRef, iconOnly, switchVars }
-}
+// ---------- Full screen button ----------
 
 /** Only shows while the page isn't full screen (the Teacher may leave it with Esc). */
-function FullscreenButton({ iconOnly, buttonRef }: { iconOnly: boolean; buttonRef: Ref<HTMLButtonElement> }) {
+function FullscreenButton() {
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className={iconOnly ? `${styles.fullscreen} ${styles.fullscreenIconOnly}` : styles.fullscreen}
-      aria-label={iconOnly ? 'Full screen' : undefined}
-      title={iconOnly ? 'Full screen' : undefined}
-      onClick={enterFullscreen}
-    >
+    <button type="button" className={styles.fullscreen} onClick={enterFullscreen}>
       <Maximize size={18} strokeWidth={2.4} aria-hidden="true" />
-      {!iconOnly && 'Full screen'}
+      Full screen
     </button>
   )
 }
 
-function ProfileChip() {
+// ---------- The Teacher badge (bottom left) ----------
+
+/** "Ms. Cruz" -> "MC" */
+const initials = (name: string) =>
+  name
+    .replace(/\./g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
+/** A Teacher ID on a lanyard, under the Lobby bookmark: the name, "Teacher" and Log out. */
+function TeacherBadge({ lit, onLogOut }: { lit: boolean; onLogOut: () => void }) {
   const teacher = useTeacher()
-  const { logOut } = useSession()
-  const navigate = useNavigate()
   return (
-    <div className={styles.chip}>
-      <span
-        className={styles.chipAvatar}
-        aria-hidden="true"
-        style={{ backgroundImage: `url(${characterArt.ollie})`, backgroundSize: '190%', backgroundPosition: '50% 6%' }}
-      />
-      {teacher.name}
-      <button
-        type="button"
-        className={styles.logOut}
-        onClick={() => {
-          // One transition: the router changes pages in a transition, so a
-          // separate log-out would render first, on the old Teacher page,
-          // and the guard would send us to the Welcome card instead.
-          exitFullscreen()
-          startTransition(() => {
-            navigate(paths.teacher.login)
-            logOut()
-          })
-        }}
-      >
-        · Log out
-      </button>
+    <div className={styles.badgeWrap}>
+      <span className={styles.lanyard} aria-hidden="true" />
+      <div className={lit ? `${styles.badge} ${styles.badgeLit}` : styles.badge}>
+        <span className={styles.avatar} aria-hidden="true">
+          {initials(teacher.name)}
+        </span>
+        <b className={styles.badgeName}>{teacher.name}</b>
+        <span className={styles.badgeRole}>Teacher</span>
+        <button type="button" className={styles.badgeOut} onClick={onLogOut} aria-haspopup="dialog">
+          <LogOut size={19} strokeWidth={2.4} aria-hidden="true" />
+          Log out
+        </button>
+      </div>
+      <span className={styles.clip} aria-hidden="true" />
     </div>
   )
 }
+
+/** Page numbers: Home is pages 1 and 2, Lessons 3 and 4, and so on. */
+const pageNumber = (key: PageKey, side: 'L' | 'R') => {
+  const order: PageKey[] = ['home', 'lessons', 'making', 'check', 'games', 'progress', 'lobby']
+  return order.indexOf(key) * 2 + (side === 'L' ? 1 : 2)
+}
+

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { availableTemplates, MIN_CARDS, TEMPLATE_FOR_TYPE } from '../../content/questionCard'
 import { fakeDraftsFor } from '../../mock/teacherMock'
-import { useTestData } from './testDataContext'
+import { useTeacherStore } from './teacherDataContext'
 import type { FileType, Lesson, QuestionCard, Section, TeacherData, TemplateId, TodoItem } from './types'
 
 /**
  * The only way Teacher screens read and change data.
  *
- * Today these hooks read the fake data (src/mock/teacherMock.ts) through the
- * test-data provider. When the backend exists, replace the insides of these
- * hooks with API calls; the screens don't need to change.
+ * Today they read data kept in memory (TeacherDataProvider): it starts empty
+ * and a refresh clears it. When the backend exists, replace the insides of
+ * these hooks with API calls; the screens don't need to change.
  */
 
 /** "4 – Sampaguita" */
@@ -17,26 +17,72 @@ export const sectionLabel = (s: Section) => `${s.grade} – ${s.name}`
 
 const nowLabel = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
-const activeSection = (d: TeacherData) => d.sections.find((s) => s.id === d.activeSectionId) ?? d.sections[0]
+/** The open section, or undefined before the Teacher makes one. */
+const activeSection = (d: TeacherData): Section | undefined => d.sections.find((s) => s.id === d.activeSectionId) ?? d.sections[0]
 
 export function useTeacher() {
-  return useTestData().data.teacher
+  return useTeacherStore().data.teacher
 }
 
+/** Each new section takes the next tab color and icon. */
+const SECTION_LOOKS: Pick<Section, 'color' | 'icon'>[] = [
+  { color: 'yellow', icon: 'flower' },
+  { color: 'pink', icon: 'tulip' },
+  { color: 'coral', icon: 'rose' },
+]
+
+export const SECTION_GRADES = [3, 4, 5, 6] as const
+
+/** `active` is undefined until the Teacher makes their first section. */
 export function useSection() {
-  const { data, update } = useTestData()
+  const { data, update } = useTeacherStore()
   const active = activeSection(data)
   const setActive = useCallback((id: string) => update((d) => ({ ...d, activeSectionId: id })), [update])
-  return { sections: data.sections, active, label: sectionLabel(active), setActive }
+
+  /** Adds a section (e.g. Grade 4, "Sampaguita") and opens it. */
+  const addSection = useCallback(
+    (grade: number, name: string) =>
+      update((d) => {
+        const id = `sec-${Date.now().toString(36)}`
+        const section: Section = { id, grade, name: name.trim(), ...SECTION_LOOKS[d.sections.length % SECTION_LOOKS.length] }
+        return { ...d, sections: [...d.sections, section], activeSectionId: id }
+      }),
+    [update],
+  )
+
+  return { sections: data.sections, active, label: active ? sectionLabel(active) : '', setActive, addSection }
+}
+
+/** A 6-digit one-time code for a login card, e.g. "482-915". */
+const oneTimeCode = () => {
+  const n = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')
+  return `${n.slice(0, 3)}-${n.slice(3)}`
 }
 
 export function useStudents() {
-  return useTestData().data.students
+  return useTeacherStore().data.students
+}
+
+/** Adds a student by name and School ID. They get a one-time code for their login card. */
+export function useAddStudent() {
+  const { update } = useTeacherStore()
+  return useCallback(
+    (name: string, schoolId: string) =>
+      update((d) => ({
+        ...d,
+        students: [
+          ...d.students,
+          // TODO: the backend makes the student and their one-time code.
+          { id: `s-${Date.now().toString(36)}`, name: name.trim(), schoolId: schoolId.trim(), registered: false, oneTimeCode: oneTimeCode() },
+        ],
+      })),
+    [update],
+  )
 }
 
 /** Numbers for Home: stats, weakest topics, the week chart and Ollie's note. */
 export function useClassSummary() {
-  const { data } = useTestData()
+  const { data } = useTeacherStore()
   const registered = data.students.filter((s) => s.registered).length
   return {
     todayLabel: data.todayLabel,
@@ -57,7 +103,7 @@ export type ShownTodo = TodoItem & { title: string }
 const checkTitle = (n: number) => `Check ${n} AI-drafted question${n === 1 ? '' : 's'}`
 
 export function useTodos() {
-  const { data, update } = useTestData()
+  const { data, update } = useTeacherStore()
   // "Check" items count the lesson's draft cards now, and leave the list at 0.
   const todos = useMemo(
     () =>
@@ -120,7 +166,7 @@ const finishMaking = (d: TeacherData, id: string): TeacherData => {
   const lesson = d.lessons.find((l) => l.id === id)
   if (!lesson || lesson.status !== 'making') return d
   // TODO: the cards come from the backend (AI) once it exists.
-  const { cards, quotes } = fakeDraftsFor(lesson, activeSection(d).grade)
+  const { cards, quotes } = fakeDraftsFor(lesson, activeSection(d)?.grade ?? 4)
   // No title: useTodos counts the draft cards left.
   const todo: TodoItem = {
     id: `t-${id}`,
@@ -144,7 +190,7 @@ const finishMaking = (d: TeacherData, id: string): TeacherData => {
  * whichever page the Teacher is on. Mounted once, in the planner.
  */
 export function useFakeMaking() {
-  const { data, update } = useTestData()
+  const { data, update } = useTeacherStore()
   const making = data.lessons.filter((l) => l.status === 'making')
   const key = making.map((l) => `${l.id}@${l.makingStartedAt}`).join()
   useEffect(() => {
@@ -159,7 +205,7 @@ export function useFakeMaking() {
 }
 
 export function useLessons() {
-  const { data, update } = useTestData()
+  const { data, update } = useTeacherStore()
   const lessons = useMemo(() => data.lessons.map(withCounts(data)), [data])
 
   /** Adds an uploaded lesson (status "making"). Returns its id. */
@@ -208,7 +254,7 @@ export function useLessons() {
 }
 
 export function useLesson(id: string | undefined) {
-  const { data } = useTestData()
+  const { data } = useTeacherStore()
   const lesson = data.lessons.find((l) => l.id === id)
   return lesson ? withCounts(data)(lesson) : undefined
 }
@@ -226,7 +272,7 @@ const settle = (d: TeacherData, lessonId: string): TeacherData => {
 
 /** A lesson's question cards, and the Check page's changes to them. */
 export function useCards(lessonId: string | undefined) {
-  const { data, update } = useTestData()
+  const { data, update } = useTeacherStore()
   const cards = useMemo(() => data.cards.filter((c) => c.lessonId === lessonId), [data.cards, lessonId])
   const { sourceQuotes, editedCardIds } = data
 
@@ -283,7 +329,7 @@ export function useCards(lessonId: string | undefined) {
         answer: '',
         subject: lesson?.subject ?? 'Math',
         topic: lesson?.topic ?? '',
-        grade: activeSection(d).grade,
+        grade: activeSection(d)?.grade ?? 4,
         level: 'easy',
         status: 'draft',
       }
@@ -322,10 +368,10 @@ export function useLessonGames(lessonId: string | undefined) {
 
 /** The topics a question can belong to (Check page dropdown). */
 export function useTopics() {
-  const { data } = useTestData()
+  const { data } = useTeacherStore()
   return useMemo(() => [...new Set(data.lessons.map((l) => l.topic).concat(data.weakTopics.map((t) => t.topic)))], [data])
 }
 
 export function useReviewPackDefaults() {
-  return { dueLabel: useTestData().data.nextDueLabel }
+  return { dueLabel: useTeacherStore().data.nextDueLabel }
 }

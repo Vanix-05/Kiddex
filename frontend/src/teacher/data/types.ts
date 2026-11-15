@@ -148,7 +148,7 @@ export interface SourceQuote {
   highlight: string
 }
 
-/** Everything the dashboard shows, for one test mode. */
+/** Everything the dashboard shows. */
 export interface TeacherData {
   teacher: Teacher
   sections: Section[]

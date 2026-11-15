@@ -19,8 +19,8 @@ describe('canPlay', () => {
   })
 
   it('does not count drafts', () => {
-    // Parts of a Whole: only drafts (the Teacher hasn't checked them yet).
-    expect(canPlay(quiz, 'parts')).toEqual({ ok: false, reason: 'Needs 3 more questions' })
+    // Equivalent Fractions (the fake "AI" upload): 6 Quiz Show cards, all drafts the Teacher hasn't checked.
+    expect(canPlay(quiz, 'g4-equivalent-fractions')).toEqual({ ok: false, reason: 'Needs 3 more questions' })
   })
 
   it('lists every built game once', () => {

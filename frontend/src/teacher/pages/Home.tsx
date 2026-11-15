@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CalendarDays, Check, Gamepad2, Package, User, type LucideIcon } from 'lucide-react'
+import { ArrowRight, CalendarDays, ChartNoAxesColumn, Check, Gamepad2, Package, User, Users, type LucideIcon } from 'lucide-react'
 import { paths } from '../../routes/paths'
 import { useClassSummary, useLessons, useSection, useStudents, useTeacher, useTodos, type ShownTodo } from '../data/useTeacherData'
 import type { TodoTarget } from '../data/types'
 import { lessonStepPath, studentsPath, type PageProps } from '../planner/pages'
+import { usePlannerActions } from '../planner/plannerActions'
 import { Bar, Btn, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Home.module.css'
 
@@ -14,7 +15,8 @@ export function HomeLeft({ live }: PageProps) {
   const { active, label } = useSection()
   const summary = useClassSummary()
   const students = useStudents()
-  const isNew = students.length === 0
+  // No section or no students yet: the first steps instead of To do.
+  const isNew = !active || students.length === 0
 
   return (
     <PageBody side="L">
@@ -22,11 +24,18 @@ export function HomeLeft({ live }: PageProps) {
         Good morning, {teacher.name}!
       </Title>
       <Sub>
-        {summary.todayLabel} · Grade {active.grade} – {active.name}
-        <span className="visually-hidden"> ({label})</span>
+        {summary.todayLabel} ·{' '}
+        {active ? (
+          <>
+            Grade {active.grade} – {active.name}
+            <span className="visually-hidden"> ({label})</span>
+          </>
+        ) : (
+          'Your planner is brand new'
+        )}
       </Sub>
 
-      <Stats />
+      {active && <Stats />}
 
       {isNew ? (
         <>
@@ -175,60 +184,90 @@ function TodoRow({ item, onToggle, onGo }: { item: ShownTodo; onToggle: () => vo
   )
 }
 
-/** A brand-new Teacher: three first steps instead of To do. */
+/**
+ * A brand-new Teacher: four first steps instead of To do. Steps 2 to 4 wait
+ * (faded, can't be clicked) until there's a section. The next step to do is
+ * orange; a finished one gets a green check.
+ */
 function GetStarted({ live }: { live: boolean }) {
   const navigate = useNavigate()
+  const { active } = useSection()
+  const students = useStudents()
   const { lessons } = useLessons()
+  const { newSection, addStudent } = usePlannerActions()
+  const hasSection = !!active
   const steps = [
+    {
+      title: 'Make your first section',
+      detail: 'Like "Grade 4 – Sampaguita".',
+      action: 'New section',
+      onClick: newSection,
+      done: hasSection,
+      locked: false,
+    },
     {
       title: 'Add your students',
       detail: 'Type their names and School IDs.',
       action: 'Add students',
-      onClick: () => navigate(studentsPath()),
-      done: false,
+      onClick: addStudent,
+      done: students.length > 0,
+      locked: !hasSection,
     },
     {
       title: 'Print their login cards',
-      detail: 'Each card has a School ID and a one-time code.',
+      detail: 'School ID and a one-time code.',
       action: 'Print cards',
-      onClick: () => {
-        // TODO: print login cards.
-      },
+      // TODO: print login cards. For now it opens My Students, where the codes are.
+      onClick: () => navigate(studentsPath()),
       done: false,
+      locked: !hasSection,
     },
     {
       title: 'Upload your first lesson',
-      detail: 'KIDDEX drafts game questions for you to check.',
+      detail: 'KIDDEX drafts questions for you to check.',
       action: 'Upload',
       onClick: () => navigate(paths.teacher.lessons),
       done: lessons.length > 0,
+      locked: !hasSection,
     },
   ]
+  const now = steps.findIndex((s) => !s.done && !s.locked)
   return (
     <section className={styles.todo} aria-labelledby="start-title">
       <Heading>
         <span id={live ? 'start-title' : undefined}>Get started</span>
       </Heading>
       <ol className={styles.rows}>
-        {steps.map((s, i) => (
-          <li key={s.title} className={s.done ? `${styles.row} ${styles.rowDone}` : styles.row}>
-            <span className={s.done ? `${styles.stepNo} ${styles.stepNoDone}` : styles.stepNo} aria-hidden="true">
-              {s.done ? <Check size={18} strokeWidth={3} /> : i + 1}
-            </span>
-            <div className={styles.rowText}>
-              <p className={styles.rowTitle}>
-                {s.title}
-                {s.done && <span className="visually-hidden"> (done)</span>}
-              </p>
-              <p className={styles.rowDetail}>{s.detail}</p>
-            </div>
-            {!s.done && (
-              <Btn variant={i === 0 ? 'primary' : 'outline'} onClick={s.onClick}>
-                {s.action}
-              </Btn>
-            )}
-          </li>
-        ))}
+        {steps.map((s, i) => {
+          const rowClass = [styles.row, s.done && styles.rowDone, s.locked && styles.rowLocked].filter(Boolean).join(' ')
+          const noClass = [styles.stepNo, s.done && styles.stepNoDone, i === now && styles.stepNoNow].filter(Boolean).join(' ')
+          return (
+            <li key={s.title} className={rowClass}>
+              <span className={noClass} aria-hidden="true">
+                {s.done ? <Check size={18} strokeWidth={3} /> : i + 1}
+              </span>
+              <div className={styles.rowText}>
+                <p className={styles.rowTitle}>
+                  {s.title}
+                  {s.done && <span className="visually-hidden"> (done)</span>}
+                  {s.locked && <span className="visually-hidden"> (after step 1)</span>}
+                </p>
+                <p className={styles.rowDetail}>{s.detail}</p>
+              </div>
+              {!s.done && (
+                <Btn
+                  variant={i === now ? 'primary' : 'outline'}
+                  className={s.locked ? styles.stepWait : undefined}
+                  disabled={s.locked}
+                  tabIndex={live ? undefined : -1}
+                  onClick={s.onClick}
+                >
+                  {s.action}
+                </Btn>
+              )}
+            </li>
+          )
+        })}
       </ol>
     </section>
   )
@@ -241,20 +280,28 @@ export function HomeRight() {
   const { weekSubject, weakTopics, week, ollieNote } = useClassSummary()
   const navigate = useNavigate()
 
+  // Nothing to show until the students play: empty boxes and a first step.
+  const empty = weakTopics.length === 0 && week.length === 0
+
   return (
     <PageBody side="R">
       <Title color="blue">My class this week</Title>
-      <Btn variant="link" className={styles.openProgress} onClick={() => navigate(paths.teacher.progress)}>
-        Open Progress <ArrowRight size={18} aria-hidden="true" />
-      </Btn>
+      {!empty && (
+        <Btn variant="link" className={styles.openProgress} onClick={() => navigate(paths.teacher.progress)}>
+          Open Progress <ArrowRight size={18} aria-hidden="true" />
+        </Btn>
+      )}
       <Sub>
-        How {active.name} is doing on {weekSubject}
+        {empty || !active || !weekSubject ? 'Nothing here yet. It fills in as your students play.' : `How ${active.name} is doing on ${weekSubject}`}
       </Sub>
 
       <section className={styles.topics}>
         <Heading>Weakest topics</Heading>
         {weakTopics.length === 0 ? (
-          <p className={`${styles.placeholder} ${styles.topicsEmpty}`}>Topics show up after your students play.</p>
+          <p className={`${styles.placeholder} ${styles.topicsEmpty}`}>
+            <ChartNoAxesColumn size={34} strokeWidth={2} aria-hidden="true" />
+            Topics show up after your students play.
+          </p>
         ) : (
           <ul className={styles.topicRows}>
             {weakTopics.map((t) => (
@@ -271,13 +318,16 @@ export function HomeRight() {
       <section className={styles.week}>
         <Heading>Who played each day</Heading>
         {week.length === 0 ? (
-          <p className={`${styles.placeholder} ${styles.chartEmpty}`}>Each day shows up after your students play.</p>
+          <p className={`${styles.placeholder} ${styles.chartEmpty}`}>
+            <Users size={34} strokeWidth={2} aria-hidden="true" />
+            Each day shows up after your students play.
+          </p>
         ) : (
           <WeekChart week={week} />
         )}
       </section>
 
-      <OllieNote>{ollieNote}</OllieNote>
+      <OllieNote>{active ? ollieNote : 'Start with step 1. Your sections become the tabs on top of this planner.'}</OllieNote>
     </PageBody>
   )
 }

@@ -3,6 +3,7 @@ import { ArrowRight, Check, Flame, KeyRound, Plus, Printer, Search, Users, X } f
 import { useSection, useStudents } from '../data/useTeacherData'
 import type { Student, StudentFilter } from '../data/types'
 import { buddyHeads } from '../assets'
+import { usePlannerActions } from '../planner/plannerActions'
 import { Bar, Btn, Chip, Pills, Title } from '../planner/ui'
 import styles from './StudentsWindow.module.css'
 
@@ -156,7 +157,28 @@ const matches = (s: Student, f: StudentFilter) =>
 function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPage }: SheetContentProps) {
   const students = useStudents()
   const { active } = useSection()
+  const { newSection, addStudent } = usePlannerActions()
   const searchId = useId()
+
+  // Before the first section: one friendly message and a way to make it.
+  if (!active) {
+    return (
+      <div className={styles.content}>
+        <Title id={titleId}>My Students</Title>
+        <p className={styles.sub}>No section yet</p>
+        <div className={styles.empty}>
+          <span className={styles.emptyIcon} aria-hidden="true">
+            <Users size={40} strokeWidth={2} />
+          </span>
+          <strong className={styles.emptyTitle}>Make a section first</strong>
+          <p className={styles.emptyLine}>Your students belong to a section, like &ldquo;Grade 4 – Sampaguita&rdquo;. It becomes a tab on top of your planner.</p>
+          <Btn variant="primary" className={styles.bigButton} icon={<Plus size={20} aria-hidden="true" />} onClick={newSection}>
+            New section
+          </Btn>
+        </div>
+      </div>
+    )
+  }
 
   const sub = `Grade ${active.grade} – ${active.name} · ${students.length} student${students.length === 1 ? '' : 's'}`
 
@@ -175,9 +197,7 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
             variant="primary"
             className={styles.bigButton}
             icon={<Plus size={20} aria-hidden="true" />}
-            onClick={() => {
-              // TODO: add students.
-            }}
+            onClick={addStudent}
           >
             Add students
           </Btn>
@@ -230,9 +250,7 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
             variant="primary"
             className={styles.toolButton}
             icon={<Plus size={20} aria-hidden="true" />}
-            onClick={() => {
-              // TODO: add students.
-            }}
+            onClick={addStudent}
           >
             Add students
           </Btn>

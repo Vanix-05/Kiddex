@@ -338,3 +338,40 @@
 .chartEmpty {
   height: 150px;
 }
+
+/* ---------- Get started (first run) ---------- */
+
+/* The next step to do: an orange number. */
+.stepNoNow {
+  border-color: #c9762c;
+  background: var(--color-button-bg);
+  color: #fff;
+}
+
+/* Steps 2 to 4 before there's a section: faded, can't be clicked yet. */
+.rowLocked {
+  opacity: 0.5;
+}
+
+.stepWait,
+.stepWait:disabled {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  cursor: default;
+}
+
+/* Empty boxes on the right page: an icon over the line. */
+.placeholder {
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.35);
+  border-color: #d9c3a3;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.placeholder svg {
+  color: #c9b08c;
+}

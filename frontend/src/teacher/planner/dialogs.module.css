@@ -1,0 +1,226 @@
+/* The planner's small popups (Log out, New section, Add student). Screen px:
+   they are not scaled with the planner. Colors from the teacher-polish mockup. */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(50, 28, 16, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: veilIn 180ms ease-out both;
+}
+
+.card {
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 30px 32px 28px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 24px;
+  background: var(--color-input-bg);
+  box-shadow:
+    0 8px 0 rgba(60, 30, 10, 0.35),
+    0 30px 50px rgba(30, 14, 6, 0.4);
+  text-align: center;
+  color: var(--color-text);
+  outline: none;
+  animation: cardIn 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+.ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--color-warn-bg);
+  color: var(--color-link);
+}
+
+.ringMaroon {
+  background: #f6dfe1;
+  color: var(--color-story-cover);
+}
+
+.title {
+  font: 600 28px / 1.15 var(--font-display);
+}
+
+.text {
+  margin-top: 6px;
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--color-text-subtle);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.stay,
+.leave,
+.save {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  border-radius: 14px;
+  font: 600 18px / 1 var(--font-display);
+  cursor: pointer;
+}
+
+.stay {
+  border: 2.5px solid var(--color-card-border);
+  background: var(--color-text-on-dark);
+  box-shadow: 0 4px 0 rgba(107, 74, 51, 0.22);
+  color: var(--color-text);
+}
+
+.stay:hover {
+  background: var(--color-card-bg);
+}
+
+.leave {
+  border: 0;
+  background: var(--color-story-cover);
+  box-shadow: 0 4px 0 #4d141f;
+  color: #fff6e6;
+}
+
+.leave:hover {
+  background: #8a2d3d;
+}
+
+.save {
+  border: 2.5px solid var(--color-button-border);
+  background: var(--color-button-bg);
+  box-shadow: 0 4px 0 var(--color-button-border);
+  color: var(--color-button-text);
+}
+
+.save:hover {
+  background: var(--color-button-bg-hover);
+}
+
+.stay:active,
+.leave:active,
+.save:active {
+  translate: 0 3px;
+  box-shadow: none;
+}
+
+/* ---------- Forms ---------- */
+
+.form {
+  margin-top: 18px;
+  text-align: left;
+}
+
+.field {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  font: 600 16px / 1.2 var(--font-display);
+}
+
+.grades {
+  display: flex;
+  gap: 8px;
+}
+
+.grade {
+  flex: 1;
+  min-height: 48px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 12px;
+  background: var(--color-text-on-dark);
+  font: 600 20px / 1 var(--font-display);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.grade:hover {
+  background: var(--color-card-bg);
+}
+
+.gradeOn,
+.gradeOn:hover {
+  border-color: var(--color-button-border);
+  background: #ffd08a;
+  box-shadow: inset 0 0 0 2px var(--color-button-border);
+}
+
+.input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 2.5px solid var(--color-input-border);
+  border-radius: 12px;
+  background: var(--color-text-on-dark);
+  font: 500 18px / 1 var(--font-body);
+  color: var(--color-text);
+}
+
+.input::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.input:focus {
+  border-color: var(--color-input-border-focus);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger-text);
+}
+
+.error,
+.added {
+  min-height: 20px;
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.error {
+  color: var(--color-danger-text);
+}
+
+.added {
+  color: var(--color-ok-text);
+}
+
+@keyframes veilIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veil,
+  .card {
+    animation: none;
+  }
+}

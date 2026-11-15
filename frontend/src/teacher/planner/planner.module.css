@@ -1,18 +1,17 @@
 /*
  * Teacher planner. The island scene fills the window by itself. The planner
- * group (bookmarks, tabs, book, Ms. Cruz chip, test switch) is laid out in
- * 1440x900 design px; TeacherPlanner scales just that group's outer box
- * (18,36 to 1406,890) to fit the window with a 16px margin, centered.
- * Positions below are design px, measured from the reference images.
+ * group (bookmarks, tabs, book, the Teacher badge) is laid out in 1440x900
+ * design px; TeacherPlanner scales just that group's outer box (BOX there) to
+ * fit the window with a 16px margin, centered.
  *
- *   cover       151,104 to 1400,878
+ *   cover       151,106 to 1400,876 (maroon hardcover, gold line and corners)
  *   left page   167,121  597x740      right page  788,121  597x740
- *   spine       764..788 (rings centered on x 776)
+ *   gutter      x 776, where the pages meet
  *
- * Two layers share the same scale: the book and, above the Students blur,
- * the chrome (tabs, bookmarks, chip, switch and the Students window), so
- * the chrome stays sharp and clickable. The logo is fixed at the window's
- * top-left, not scaled.
+ * Three layers share the same scale: the book; above the Students blur, the
+ * chrome (tabs, bookmarks, the Students window), so it stays sharp and
+ * clickable; and the Teacher badge, which stays sharp over the Log out blur.
+ * The logo is fixed at the window's top-left, not scaled.
  */
 
 .root {
@@ -94,33 +93,239 @@
   letter-spacing: 0;
 }
 
-/* ---------- Book ---------- */
+/* ---------- Book (maroon hardcover, like the Student login storybook) ---------- */
 
-.cover {
-  position: absolute;
-  left: 151px;
-  top: 104px;
-  width: 1249px;
-  height: 774px;
-  border: 3px solid var(--color-planner-cover-dark);
-  border-radius: 24px;
-  background: var(--color-planner-cover);
-  box-shadow:
-    inset 0 0 0 5px color-mix(in srgb, var(--color-planner-cover) 80%, white),
-    0 8px 0 color-mix(in srgb, var(--color-planner-cover-dark) 55%, transparent),
-    0 22px 44px rgba(40, 30, 20, 0.28);
+.stage {
+  --book-cover: var(--color-story-cover);
+  --book-cover-dark: #4d141f;
+  --book-gold: var(--color-story-gold);
+  --book-gold-light: #f6dc8c;
+  --book-gold-dark: #8a6a1e;
+  --paper: var(--color-card-bg);
+  --paper-edge: #f6ecd8;
+  --paper-line: #c9b08c;
+  /* A small tile of paper grain, drawn once and repeated (no live filter). */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 .62 0 0 0 0 .5 0 0 0 0 .36 0 0 0 .2 -.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
-/* Darker strip down the middle, behind the rings. */
-.cover::after {
+.bookBack,
+.bookFront {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.bookFront {
+  z-index: 8;
+}
+
+.bookBack > *,
+.bookFront > * {
+  position: absolute;
+}
+
+/* A soft blurred shadow on the table under the book. */
+.bookShadow {
+  left: 170px;
+  top: 834px;
+  width: 1220px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(40, 22, 10, 0.45);
+  filter: blur(16px);
+}
+
+/* The cover: maroon cloth, a darker bottom edge for the board's thickness. */
+.cover {
+  left: 151px;
+  top: 106px;
+  width: 1249px;
+  height: 770px;
+  border-radius: 18px;
+  background-color: var(--book-cover);
+  /* Light cloth weave (CSS only). */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(30, 4, 10, 0.1) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 220, 220, 0.05) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.07), transparent 60%);
+  /* The board's thickness, a little thinner than the mockup so the pages can be bigger. */
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+    inset 0 0 0 3px #3f1019,
+    0 3px 0 #6a1f2c,
+    0 7px 0 var(--book-cover-dark),
+    0 8px 0 #2e0a11,
+    0 14px 18px rgba(40, 22, 10, 0.32);
+}
+
+/* A thin gold line inside the cover's edge. */
+.foil {
+  position: absolute;
+  inset: 5px;
+  border: 2px solid rgba(233, 194, 90, 0.8);
+  border-radius: 13px;
+  box-shadow:
+    0 0 0 1px rgba(60, 10, 18, 0.35),
+    inset 0 0 0 1px rgba(60, 10, 18, 0.3);
+}
+
+/* Gold corner guards on all four corners. */
+.corner {
+  width: 42px;
+  height: 42px;
+}
+
+.cornerTL {
+  left: 153px;
+  top: 108px;
+}
+
+.cornerTR {
+  left: 1356px;
+  top: 108px;
+  transform: scaleX(-1);
+}
+
+.cornerBL {
+  left: 153px;
+  top: 832px;
+  transform: scaleY(-1);
+}
+
+.cornerBR {
+  left: 1356px;
+  top: 832px;
+  transform: scale(-1);
+}
+
+/* The bottom guards sit a little in shadow. */
+.cornerBottom {
+  filter: brightness(0.9);
+}
+
+/* The spine's hinge, seen between the pages. */
+.hinge {
+  left: 749px;
+  top: 106px;
+  width: 54px;
+  height: 778px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #3f1019, var(--book-cover) 28%, #96384a 50%, var(--book-cover) 72%, #3f1019);
+}
+
+/* The page block: thin stacked paper showing at the left, right and bottom. */
+.stack {
+  background: repeating-linear-gradient(90deg, #fffaf0 0 2px, #d9c7a8 2px 3px);
+}
+
+.stackL {
+  left: 158px;
+  top: 124px;
+  width: 14px;
+  height: 732px;
+  border-radius: 8px 0 0 8px;
+  box-shadow:
+    inset 0 0 0 1.5px #b79c7c,
+    inset 5px 0 6px -4px rgba(74, 52, 38, 0.35);
+}
+
+.stackR {
+  left: 1380px;
+  top: 124px;
+  width: 14px;
+  height: 732px;
+  border-radius: 0 8px 8px 0;
+  box-shadow:
+    inset 0 0 0 1.5px #b79c7c,
+    inset -5px 0 6px -4px rgba(74, 52, 38, 0.35);
+}
+
+.stackB {
+  left: 166px;
+  top: 852px;
+  width: 1220px;
+  height: 17px;
+  border-radius: 0 0 8px 8px;
+  background: repeating-linear-gradient(180deg, #fffaf0 0 2px, #d9c7a8 2px 3px);
+  box-shadow:
+    inset 0 0 0 1.5px #b79c7c,
+    inset 0 -5px 6px -4px rgba(74, 52, 38, 0.4);
+}
+
+/* The bottom edge dips into the spine. */
+.stackB::after {
   content: '';
   position: absolute;
-  left: 608px;
-  top: 8px;
-  bottom: 8px;
-  width: 28px;
-  border-radius: 6px;
-  background: linear-gradient(to right, var(--color-planner-spine), var(--color-planner-cover), var(--color-planner-spine));
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 60px;
+  margin-left: -30px;
+  background: linear-gradient(90deg, transparent, rgba(74, 52, 38, 0.45), transparent);
+}
+
+/* The paper behind each page: fills the gap up to the gutter, darker and curving into it. */
+.leaf {
+  top: 119px;
+  width: 612px;
+  height: 744px;
+  background-color: var(--paper);
+}
+
+.leafL {
+  left: 164px;
+  border-radius: 10px 2px 2px 10px;
+  background-image: linear-gradient(90deg, transparent calc(100% - 13px), #a38f7b calc(100% - 12px), #93795f calc(100% - 3px), #6a4c33 100%), var(--grain);
+  box-shadow: inset 0 0 0 1.5px var(--paper-line);
+}
+
+.leafR {
+  left: 776px;
+  border-radius: 2px 10px 10px 2px;
+  background-image: linear-gradient(270deg, transparent calc(100% - 13px), #a38f7b calc(100% - 12px), #93795f calc(100% - 3px), #6a4c33 100%), var(--grain);
+  box-shadow: inset 0 0 0 1.5px var(--paper-line);
+}
+
+/* The dark gutter line where the pages meet. */
+.gutter {
+  left: 774px;
+  top: 119px;
+  width: 4px;
+  height: 744px;
+  background: linear-gradient(90deg, rgba(60, 36, 20, 0.55), rgba(30, 16, 8, 0.8), rgba(60, 36, 20, 0.55));
+}
+
+/* The striped headband at the top of the spine. */
+.band {
+  left: 756px;
+  top: 111px;
+  width: 40px;
+  height: 8px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #f0a050 0 5px, #fff3d6 5px 10px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* The orange ribbon bookmark hanging out at the bottom. */
+.ribbon {
+  left: 744px;
+  top: 852px;
+  width: 30px;
+  height: 36px;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0 2px, transparent 2px 5px),
+    linear-gradient(90deg, #f6b871, #f0a050 35%, #d98a3b 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  filter: drop-shadow(0 3px 2px rgba(40, 22, 10, 0.35));
+}
+
+.ribbon::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 16px;
+  background: linear-gradient(180deg, rgba(40, 22, 10, 0.45), transparent);
 }
 
 .slotL,
@@ -139,80 +344,80 @@
   left: 788px;
 }
 
-/* Lined cream paper. The left page has the red margin line. */
+/*
+ * Cream paper with faint ruled lines (the left page has the red margin). Each
+ * page darkens and curves into the gutter, with a soft highlight just before
+ * it, and a light grain. All in the page's background, so it sits under the text.
+ */
 .paper {
   --line: 44px;
   position: absolute;
   inset: 0;
   overflow: clip;
-  background-color: var(--color-card-bg);
+  background-color: var(--paper);
   color: var(--color-text);
   outline: none;
+  box-shadow:
+    inset 0 0 0 1.5px var(--paper-line),
+    inset 0 10px 12px -8px rgba(74, 52, 38, 0.22);
 }
 
 .paperL {
-  border-radius: 14px 3px 3px 14px;
+  border-radius: 10px 2px 2px 10px;
   background-image:
     linear-gradient(
       to right,
       transparent 64px,
-      var(--color-notebook-margin) 64px,
-      var(--color-notebook-margin) 66.5px,
-      transparent 66.5px
+      color-mix(in srgb, var(--color-notebook-margin) 80%, transparent) 64px,
+      color-mix(in srgb, var(--color-notebook-margin) 80%, transparent) 66px,
+      transparent 66px
     ),
-    linear-gradient(to left, rgba(90, 57, 35, 0.16), transparent 30px),
-    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line));
-  background-position: 0 0, 0 0, 0 1px;
+    linear-gradient(
+      90deg,
+      transparent 70%,
+      rgba(255, 255, 255, 0.55) 84%,
+      rgba(196, 170, 130, 0) 90%,
+      rgba(150, 118, 80, 0.38) 97%,
+      rgba(90, 60, 36, 0.55) 100%
+    ),
+    linear-gradient(90deg, var(--paper-edge), transparent 6%),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line)),
+    var(--grain);
+  background-position: 0 0, 0 0, 0 0, 0 1px, 0 0;
 }
 
 .paperR {
-  border-radius: 3px 14px 14px 3px;
+  border-radius: 2px 10px 10px 2px;
   background-image:
-    linear-gradient(to right, rgba(90, 57, 35, 0.16), transparent 30px),
-    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line));
-  background-position: 0 0, 0 1px;
+    linear-gradient(
+      270deg,
+      transparent 70%,
+      rgba(255, 255, 255, 0.55) 84%,
+      rgba(196, 170, 130, 0) 90%,
+      rgba(150, 118, 80, 0.38) 97%,
+      rgba(90, 60, 36, 0.55) 100%
+    ),
+    linear-gradient(270deg, var(--paper-edge), transparent 6%),
+    repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line)),
+    var(--grain);
+  background-position: 0 0, 0 0, 0 1px, 0 0;
 }
 
-/* ---------- Spiral rings ---------- */
-
-.rings {
+/* Page numbers at the bottom corners. */
+.pageNum {
   position: absolute;
-  left: 752px;
-  top: 139px;
-  width: 48px;
-  z-index: 8;
+  bottom: 14px;
+  font: 600 15px / 1 var(--font-display);
+  color: #b79c7c;
   pointer-events: none;
 }
 
-.ring {
-  position: absolute;
-  left: 0;
-  width: 48px;
-  height: 12px;
+.pageNumL {
+  left: 92px;
 }
 
-/* The two punched holes, one on each page. */
-.ring::before {
-  content: '';
-  position: absolute;
-  inset: 1px 0;
-  border-radius: 6px;
-  background:
-    radial-gradient(circle at 5px 50%, #4a3a30 0 4.5px, transparent 5px),
-    radial-gradient(circle at calc(100% - 5px) 50%, #4a3a30 0 4.5px, transparent 5px);
-}
-
-/* The metal loop between the holes. */
-.ring::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  top: 0;
-  height: 12px;
-  border: 2px solid #55585e;
-  border-radius: 6px;
-  background: linear-gradient(to bottom, var(--color-planner-ring-light), var(--color-planner-ring) 70%, #6d7076);
+.pageNumR {
+  right: 58px;
 }
 
 /* ---------- Page flip ---------- */
@@ -388,27 +593,28 @@
   left: 200px;
   top: 0;
   width: 640px;
-  height: 106px;
-  /* A row: each tab as wide as its label, 9px apart, never squeezed. */
+  /* Clipped just under the cover's top edge (106px). */
+  height: 109px;
+  /* A row: each tab as wide as its label, 8px apart, never squeezed. */
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: 8px;
   padding-left: 16px;
   /* clip, not hidden: a focused tab or bookmark must not scroll it */
   overflow: clip;
   pointer-events: none;
 }
 
-/* Taller than it shows: the bottom 20px is tucked behind the cover. */
+/* Taller than it shows: the bottom is tucked behind the cover. */
 .tab {
   position: relative;
   flex: none;
-  margin-top: 50px;
+  margin-top: 52px;
   height: 76px;
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 0 16px 20px 12px;
+  padding: 0 18px 20px 12px;
   border: 2.5px solid var(--color-card-border);
   border-radius: 14px 14px 0 0;
   font: 600 17px/1 var(--font-display);
@@ -416,7 +622,7 @@
   color: var(--color-text);
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: inset 0 -26px 14px -14px rgba(90, 57, 35, 0.18);
+  box-shadow: inset 0 -26px 14px -12px rgba(74, 52, 38, 0.25);
   transition: transform 150ms ease;
 }
 
@@ -430,7 +636,7 @@
 
 .tabOn {
   z-index: 1;
-  margin-top: 41px;
+  margin-top: 43px;
   height: 85px;
   padding-bottom: 26px;
   font-size: 18px;
@@ -441,7 +647,7 @@
 }
 
 .tabYellow {
-  background-color: var(--color-tab-yellow);
+  background-color: #fbe08a;
 }
 
 .tabPink {
@@ -452,21 +658,51 @@
   background-color: var(--color-tab-coral);
 }
 
-.tabNew {
-  border-style: dashed;
-  border-color: color-mix(in srgb, var(--color-card-border) 70%, transparent);
-  background-color: var(--color-tab-new);
-  color: var(--color-text-subtle);
-  font-weight: 500;
-}
-
 .tabIcon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: color-mix(in srgb, white 65%, transparent);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* "+ New section": the only tab before the first section (big and dashed). */
+.tabAdd {
+  margin-top: 43px;
+  height: 85px;
+  padding-bottom: 26px;
+  border-style: dashed;
+  background: #fff8ea;
+}
+
+/* "+ New" beside the sections: smaller and quieter. */
+.tabNew {
+  margin-top: 60px;
+  height: 68px;
+  padding-bottom: 14px;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-card-border) 75%, transparent);
+  background: #fff8ea;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.tabPlus {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-button-bg);
+  color: #fff;
+}
+
+.tabNew .tabPlus {
+  width: 26px;
+  height: 26px;
+  background: #efe4d0;
+  color: var(--color-text-subtle);
 }
 
 /* ---------- Bookmarks (left, tucked under the cover) ---------- */
@@ -475,30 +711,34 @@
   position: absolute;
   left: 0;
   top: 0;
+  /* Clipped just inside the cover's left edge (151px). */
   width: 154px;
-  height: 900px;
+  height: 640px;
   /* clip, not hidden: a focused tab or bookmark must not scroll it */
   overflow: clip;
   pointer-events: none;
 }
 
+/* Cream index tabs with brown text, like the login storybook's step tabs. */
 .bookmark {
   position: absolute;
   left: 46px;
   width: 150px;
-  height: 80px;
+  height: 78px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
   padding: 0 44px 0 0;
-  border: 3px solid var(--color-bookmark-red-edge);
+  border: 2.5px solid var(--color-card-border);
   border-right: 0;
-  border-radius: 14px 0 0 14px;
-  background: var(--color-bookmark-red);
-  box-shadow: 0 5px 0 var(--color-bookmark-red-edge);
-  color: var(--color-text-on-dark);
+  border-radius: 16px 0 0 16px;
+  background: #efe4d0;
+  box-shadow:
+    0 4px 0 rgba(60, 30, 10, 0.25),
+    inset -14px 0 12px -8px rgba(74, 52, 38, 0.28);
+  color: #7a5a40;
   font: 600 15px/1.1 var(--font-display);
   cursor: pointer;
   pointer-events: auto;
@@ -511,36 +751,28 @@
 
 .bookmark:focus-visible {
   outline-offset: -7px;
-  outline-color: var(--color-text-on-dark);
 }
 
 .bookmarkGreen {
-  border-color: var(--color-bookmark-green-edge);
-  background: var(--color-bookmark-green);
-  box-shadow: 0 5px 0 var(--color-bookmark-green-edge);
-  color: var(--color-planner-ink);
+  border-color: #2f6a40;
+  background: #cfecd6;
+  color: #2a7442;
 }
 
 /* The active one: orange, sticks out further, dark text. */
 .bookmarkOn {
   left: 24px;
-  border-color: var(--color-bookmark-active-edge);
-  background: var(--color-button-bg);
-  box-shadow: 0 5px 0 var(--color-bookmark-active-edge);
-  color: var(--color-planner-ink);
+  width: 172px;
+  background: #ffd08a;
+  color: var(--color-text);
 }
 
 .bookmarkOn:hover {
   transform: none;
 }
 
-.bookmarkOn:focus-visible {
-  outline-color: var(--color-focus-ring);
-}
+/* ---------- Full screen button (top right) ---------- */
 
-/* ---------- Full screen button + Ms. Cruz chip ---------- */
-
-/* The chip's spot (right 40, top 50); the Full screen button sits just left of it. */
 .topRight {
   position: absolute;
   right: 40px;
@@ -550,7 +782,6 @@
   gap: 6px;
 }
 
-/* Same pill as the chip. */
 .fullscreen {
   height: 44px;
   display: flex;
@@ -571,48 +802,148 @@
   background: var(--color-tint-peach);
 }
 
-/* No room for the label: a round icon button (FULLSCREEN_ICON_W in TeacherPlanner.tsx). */
-.fullscreenIconOnly {
-  width: 44px;
-  padding: 0;
-  justify-content: center;
+/* ---------- The Teacher badge (bottom left, under the Lobby bookmark) ---------- */
+
+/* Above the chrome; while Log out asks, above its blur too (and lit). */
+.badgeStage,
+.badgeStageTop {
+  pointer-events: none;
 }
 
-.chip {
+.badgeStage {
+  z-index: 4;
+}
+
+.badgeStageTop {
+  z-index: 21;
+}
+
+.badgeWrap {
+  position: absolute;
+  left: 20px;
+  top: 640px;
+  width: 128px;
+  height: 230px;
+  pointer-events: auto;
+}
+
+/* The lanyard strap and its metal clip on top of the card. */
+.lanyard {
+  position: absolute;
+  left: 60px;
+  top: 0;
+  width: 8px;
+  height: 30px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #96384a, var(--color-story-cover));
+}
+
+.clip {
+  position: absolute;
+  left: 49px;
+  top: 22px;
+  width: 30px;
+  height: 16px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #e9e5df, #a9a39b);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.25),
+    inset 0 0 0 1.5px #6f6a63;
+}
+
+.badge {
+  position: absolute;
+  left: 0;
+  top: 32px;
+  width: 128px;
+  height: 192px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 9px 10px;
+  overflow: hidden;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 16px;
+  background: #fffaf0;
+  box-shadow:
+    0 6px 0 rgba(60, 30, 10, 0.28),
+    0 14px 18px rgba(40, 22, 10, 0.25);
+}
+
+/* The maroon strip at the top, with a gold line. */
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
   height: 44px;
+  background: var(--color-story-cover);
+  box-shadow: inset 0 -2px 0 var(--color-story-gold);
+}
+
+.badgeLit {
+  outline: 4px solid var(--color-button-bg);
+  outline-offset: 4px;
+}
+
+.avatar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 16px 0 5px;
-  border: 2.5px solid var(--color-card-border);
-  border-radius: var(--radius-pill);
-  background: var(--color-card-bg);
-  box-shadow: 0 4px 0 rgba(74, 52, 38, 0.2);
-  font: 600 16px/1 var(--font-display);
-}
-
-.chipAvatar {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--color-card-border);
+  justify-content: center;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border: 3px solid #fffaf0;
   border-radius: 50%;
-  background: var(--color-tint-peach) no-repeat;
-  object-fit: cover;
-  object-position: 50% 12%;
+  background: #ffd08a;
+  box-shadow: 0 0 0 2px var(--color-card-border);
+  font: 700 22px / 1 var(--font-display);
+  color: var(--color-text);
 }
 
-.logOut {
-  padding: 4px 2px;
-  border: 0;
-  background: none;
-  font: 500 15px/1 var(--font-display);
+.badgeName {
+  max-width: 100%;
+  margin-top: 7px;
+  overflow: hidden;
+  font: 600 17px / 1.1 var(--font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badgeRole {
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--color-text-subtle);
+}
+
+.badgeOut {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  height: 44px;
+  margin-top: auto;
+  border: 0;
+  border-radius: 11px;
+  background: var(--color-story-cover);
+  box-shadow: 0 4px 0 #4d141f;
+  font: 600 16px / 1 var(--font-display);
+  color: #fff6e6;
   cursor: pointer;
 }
 
-.logOut:hover {
-  color: var(--color-link);
-  text-decoration: underline;
+.badgeOut:hover {
+  background: #8a2d3d;
+}
+
+.badgeOut:active {
+  translate: 0 3px;
+  box-shadow: 0 1px 0 #4d141f;
+}
+
+.badgeOut:focus-visible {
+  outline-offset: 3px;
 }
 
 /* ---------- My Students blur ---------- */

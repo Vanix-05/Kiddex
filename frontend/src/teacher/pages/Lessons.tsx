@@ -67,7 +67,7 @@ function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
     <PageBody side="L">
       <Title>My lessons</Title>
       <Sub>
-        Math · Grade {active.grade} – {active.name}
+        {active ? `Grade ${active.grade} – ${active.name}` : 'No section yet'}
       </Sub>
 
       {lessons.length === 0 ? (
