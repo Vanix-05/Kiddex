@@ -19,10 +19,8 @@ import dock from './scene/dock.svg'
 import bush from './scene/bush.svg'
 import sign from './scene/sign.svg'
 
-// Login screen only: girl + fox in one image (371x474)
-import girlFoxLogin from './characters/girlfoxlogin.png'
-// The same picture split into layers so heads and eyes can move. Every layer
-// is 371x474 and lines up exactly with girlfoxlogin.png when stacked.
+// Login screen only: girl + fox (371x474), in layers so heads and eyes can
+// move. Every layer is 371x474 and they line up exactly when stacked.
 import gfBody from './characters/girlfox/body.png'
 import gfGirlHead from './characters/girlfox/girl-head.png'
 import gfGirlEyes from './characters/girlfox/girl-eyes.png'
@@ -77,7 +75,7 @@ import handRight from './bedroom/web/hand-right-pencil.webp'
 import handRightShadow from './bedroom/web/hand-right-pencil-shadow.webp'
 
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }
-export const characterArt = { girlFoxLogin, ollie }
+export const characterArt = { ollie }
 export const ollieLayers = { body: ollieBody, wing: ollieWing }
 /** Ollie at 845x1183 (same framing as ollie-cutout.png), for when he's drawn big. */
 export const ollieLarge = ollieLargeImg
