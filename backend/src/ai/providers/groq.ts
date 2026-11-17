@@ -1,0 +1,72 @@
+// Groq provider (groq-sdk). JSON mode, temperature 0.3, no automatic retries.
+// Made to fit Groq's per-minute token budget:
+//   - lesson text up to GROQ_MAX_LESSON_WORDS, cut further until the request estimate is ≤ 7,000 tokens
+//   - answer capped at MAX_OUTPUT_TOKENS
+//   - reasoning_effort "none": Groq's docs say qwen3 models support "none" to turn reasoning off,
+//     so no tokens are spent on thinking. A <think>...</think> part is still removed just in case.
+import Groq from "groq-sdk";
+import { env } from "../../config/env";
+import { lessonTextForAi } from "../../lessons/lessonForAi";
+import {
+  GROQ_GAP_AFTER_ANSWER_S,
+  GROQ_MAX_LESSON_WORDS,
+  GROQ_TOKENS_PER_MINUTE,
+  MAX_OUTPUT_TOKENS,
+} from "../../lessons/limits";
+import { AiError, parseAnswerJson, withTimeout } from "../aiError";
+import { estimateRequestTokens } from "../requestSize";
+import type { AiProvider, AiRequest, SentLesson } from "../types";
+
+/** Keep each request well below the per-minute budget. */
+const MAX_REQUEST_TOKENS = GROQ_TOKENS_PER_MINUTE - 1000;
+const MIN_LESSON_WORDS = 200;
+
+let client: Groq | undefined;
+
+/** The lesson text for Groq: at most GROQ_MAX_LESSON_WORDS, then cut by 15% steps until it fits. */
+function fitLesson(request: AiRequest): SentLesson {
+  let maxWords = Math.min(request.maxLessonWords, GROQ_MAX_LESSON_WORDS);
+  for (;;) {
+    const lesson = lessonTextForAi(request.lesson, maxWords);
+    const estimatedTokens = estimateRequestTokens(request.instructions, lesson.text);
+    if (estimatedTokens <= MAX_REQUEST_TOKENS || maxWords <= MIN_LESSON_WORDS) {
+      return { ...lesson, estimatedTokens };
+    }
+    maxWords = Math.max(MIN_LESSON_WORDS, Math.floor(maxWords * 0.85));
+  }
+}
+
+export const groq: AiProvider = {
+  name: "groq",
+  model: env.groqModel,
+  hasKey: Boolean(env.groqApiKey),
+  gapAfterAnswerSeconds: GROQ_GAP_AFTER_ANSWER_S,
+
+  async ask(request, timeoutMs) {
+    client ??= new Groq({ apiKey: env.groqApiKey, maxRetries: 0 });
+    const ai = client;
+
+    const lesson = fitLesson(request);
+    console.log(`[ai] groq request estimate: ${lesson.estimatedTokens} tokens`);
+
+    const completion = await withTimeout(timeoutMs, (signal) =>
+      ai.chat.completions.create(
+        {
+          model: env.groqModel,
+          temperature: 0.3,
+          response_format: { type: "json_object" },
+          reasoning_effort: "none",
+          max_completion_tokens: MAX_OUTPUT_TOKENS,
+          messages: [
+            { role: "system", content: request.instructions },
+            { role: "user", content: lesson.text },
+          ],
+        },
+        { signal, timeout: timeoutMs },
+      ),
+    );
+    const choice = completion.choices[0];
+    if (choice?.finish_reason === "length") throw new AiError("bad_answer", "answer hit the length cap");
+    return { json: parseAnswerJson(choice?.message?.content), lesson };
+  },
+};

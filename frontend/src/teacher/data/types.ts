@@ -1,6 +1,7 @@
 /**
- * The shapes of the Teacher Dashboard data. The fake data (src/mock/teacherMock.ts)
- * and, later, the real API both fill these in.
+ * The shapes of the Teacher Dashboard data. Lessons and their questions come from
+ * the backend (src/teacher/api); sections, students, To dos and stats are still
+ * kept in memory (TeacherDataProvider) until they get their own addresses.
  */
 import type { QuestionCard, TemplateId } from '../../content/questionCard'
 
@@ -105,13 +106,15 @@ export type { QuestionCard, TemplateId } from '../../content/questionCard'
 export type FileType = 'PDF' | 'PPT' | 'DOC'
 
 /**
- * making   = the AI is drafting questions
- * toCheck  = drafts waiting for the Teacher
- * ready    = all checked, not assigned yet
- * assigned = given to the class as a review pack
- * draft    = uploaded, nothing approved
+ * The screen's lesson status (the backend's status in brackets):
+ * draft    = uploaded, no questions yet (uploaded)
+ * making   = the AI is drafting questions (making)
+ * failed   = making questions didn't work (failed)
+ * toCheck  = drafts waiting for the Teacher (ready)
+ * ready    = all checked, not assigned yet (approved)
+ * assigned = given to the class as a review pack (screen only for now, kept in memory)
  */
-export type LessonStatus = 'making' | 'toCheck' | 'ready' | 'assigned' | 'draft'
+export type LessonStatus = 'making' | 'toCheck' | 'ready' | 'assigned' | 'draft' | 'failed'
 
 export interface Lesson {
   id: string
@@ -119,7 +122,7 @@ export interface Lesson {
   title: string
   fileName: string
   fileType: FileType
-  /** e.g. "12 pages" or "18 slides" */
+  /** e.g. "12 pages", "about 3 pages" (Word) or "18 slides" */
   size: string
   /** e.g. "2.1 MB" */
   fileSize?: string
@@ -132,21 +135,21 @@ export interface Lesson {
   status: LessonStatus
   /** Assigned: "due Fri" or "done". */
   assignedNote?: string
-  /** While making: when the upload started (ms), for the timer and the fake progress. */
-  makingStartedAt?: number
+  /** How many words of text the backend read. */
+  wordCount: number
+  /** The section's grade it was made for (once questions were asked for). */
+  grade?: number
+}
+
+/** A small note the screen keeps on top of a server lesson (in memory) until the backend has it. */
+export interface LessonNote {
+  /** The games switched on for the review pack (Games page). */
+  games?: TemplateId[]
+  /** Assigned to the class: "due Fri" or "done". */
+  assignedNote?: string
 }
 
 export type Level = QuestionCard['level']
-
-/**
- * FAKE: the words in the lesson a card came from, shown as "From your lesson · page N".
- * Not part of the question card; kept beside it by card id. The page is the card's sourcePage.
- */
-export interface SourceQuote {
-  quote: string
-  /** The part of the quote to highlight. */
-  highlight: string
-}
 
 /** Everything the dashboard shows. */
 export interface TeacherData {
@@ -165,13 +168,10 @@ export interface TeacherData {
   /** Ollie's note on Home. */
   ollieNote: string
   students: Student[]
-  lessons: Lesson[]
-  /** Every lesson's question cards. status 'draft' = still to check. */
-  cards: QuestionCard[]
-  /** FAKE: lesson quotes by card id (see SourceQuote). */
-  sourceQuotes: Record<string, SourceQuote>
-  /** Cards the Teacher changed (shown with a pencil until approved). */
-  editedCardIds: string[]
+  /** Screen-only notes on server lessons, by lesson id (review pack games, assigned). */
+  lessonNotes: Record<string, LessonNote>
+  /** Lessons whose Check list was read to the end once (unlocks Approve all for this session). */
+  checkSeenEnd: string[]
   /** The default review pack due date, e.g. "Fri, Nov 14" */
   nextDueLabel: string
 }

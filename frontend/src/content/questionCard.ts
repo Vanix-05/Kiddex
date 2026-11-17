@@ -24,6 +24,10 @@ export const QuestionCardSchema = z
     level: z.enum(['easy', 'medium', 'hard']),
     explanation: z.string().optional(),
     sourcePage: z.number().int().positive().optional(),
+    /** The short sentence from the lesson that proves the answer. */
+    sourceQuote: z.string().optional(),
+    /** Tells the Teacher to look closely at this card. */
+    flag: z.enum(['not_in_lesson', 'ai_unsure']).optional(),
     status: z.enum(['draft', 'approved']),
   })
   .superRefine((card, ctx) => {

@@ -1,26 +1,10 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+// Starts the KIDDEX API server. The app itself is built in src/app.ts.
+import { env } from "./config/env";
+import { app } from "./app";
 
-dotenv.config();
-
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-
-app.use(cors());
-app.use(express.json());
-
-app.get("/", (_req, res) => {
-  res.json({ message: "Welcome to the KIDDEX API!" });
-});
-
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    application: "KIDDEX",
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`KIDDEX API running at http://localhost:${PORT}`);
+app.listen(env.port, () => {
+  console.log(`KIDDEX API running at http://localhost:${env.port}`);
+  // Only say whether each key is set. Never print a key.
+  console.log(`Gemini key: ${env.geminiApiKey ? "set" : "MISSING"}`);
+  console.log(`Groq key: ${env.groqApiKey ? "set" : "MISSING"}`);
 });

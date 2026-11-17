@@ -1,19 +1,48 @@
-import { useEffect, useId, useRef, useState, type DragEvent } from 'react'
+import { useEffect, useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Clock, FileUp, Gamepad2, Lock, Package, Pencil, Sparkles, TriangleAlert, X } from 'lucide-react'
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Eye,
+  FileUp,
+  Gamepad2,
+  Image,
+  Info,
+  Lock,
+  Package,
+  Pencil,
+  RotateCcw,
+  Sparkles,
+  Table2,
+  TriangleAlert,
+  Type,
+  X,
+} from 'lucide-react'
 import { paths } from '../../routes/paths'
-import { fakeFileFacts, MAKING_MS, useLesson, useLessons, useSection, type LessonWithCounts } from '../data/useTeacherData'
+import { errorMessage } from '../api/client'
+import type { UploadAnswer, UploadPhase } from '../api/lessonsApi'
+import { FILE_TYPE, fileSizeText, unitsText } from '../data/lessonMapping'
+import { useLessonActions, useLessonLoad, useLessons, useSection, type LessonWithCounts } from '../data/useTeacherData'
 import type { FileType, TemplateId } from '../data/types'
 import { GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
 import { Btn, Chip, EmptyLine, FileBadge, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
+import { LessonTextWindow } from './LessonTextWindow'
 import styles from './Lessons.module.css'
 
 const MAX_BYTES = 10 * 1024 * 1024
+const MAX_GAMES = 2
+/** Below this many words the backend can't make questions (its minWords). */
+const ENOUGH_WORDS = 80
+/** The "almost no text" meter is full at this many words. */
+const METER_FULL_WORDS = 200
 const SUBJECTS = ['Math', 'Science', 'English', 'Filipino', 'Araling Panlipunan']
 
 /** "Word" for DOC, "PowerPoint" for PPT. */
 const TYPE_NAME: Record<FileType, string> = { PDF: 'PDF', PPT: 'PowerPoint', DOC: 'Word' }
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`
 
 // ---------- Left page: My lessons ----------
 
@@ -23,6 +52,12 @@ function StatusChip({ lesson }: { lesson: LessonWithCounts }) {
       return (
         <Chip tone="warn" icon={<Clock size={16} aria-hidden="true" />}>
           Making…
+        </Chip>
+      )
+    case 'failed':
+      return (
+        <Chip tone="bad" icon={<RotateCcw size={15} aria-hidden="true" />}>
+          Didn’t work · try again
         </Chip>
       )
     case 'toCheck':
@@ -50,7 +85,7 @@ function StatusChip({ lesson }: { lesson: LessonWithCounts }) {
 
 /** Where tapping a lesson goes (only lessons with a next step). */
 const lessonLink = (l: LessonWithCounts) =>
-  l.status === 'making'
+  l.status === 'making' || l.status === 'failed'
     ? lessonStepPath(l.id, 'making')
     : l.status === 'toCheck'
       ? lessonStepPath(l.id, 'check')
@@ -59,24 +94,30 @@ const lessonLink = (l: LessonWithCounts) =>
         : null
 
 function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
-  const { lessons } = useLessons()
+  const { lessons, loading, error } = useLessons()
   const { active } = useSection()
   const navigate = useNavigate()
 
   return (
     <PageBody side="L">
       <Title>My lessons</Title>
-      <Sub>
-        {active ? `Grade ${active.grade} – ${active.name}` : 'No section yet'}
-      </Sub>
+      <Sub>{active ? `Grade ${active.grade} – ${active.name}` : 'No section yet'}</Sub>
 
       {lessons.length === 0 ? (
-        <div className={styles.noLessons}>
-          <strong>No lessons yet</strong>
-          <span>
-            Upload your first one on the right <ArrowRight size={16} aria-hidden="true" />
-          </span>
-        </div>
+        error ? (
+          <p className={styles.listError} role="alert">
+            <TriangleAlert size={17} aria-hidden="true" /> {errorMessage(error)}
+          </p>
+        ) : loading ? (
+          <p className={styles.listLoading}>Loading your lessons…</p>
+        ) : (
+          <div className={styles.noLessons}>
+            <strong>No lessons yet</strong>
+            <span>
+              Upload your first one on the right <ArrowRight size={16} aria-hidden="true" />
+            </span>
+          </div>
+        )
       ) : (
         <ul className={styles.list}>
           {lessons.map((l) => {
@@ -150,26 +191,23 @@ function HowItWorks() {
 
 // ---------- Right page: Add a lesson ----------
 
-const typeOf = (file: File): FileType | null =>
-  /\.pdf$/i.test(file.name) ? 'PDF' : /\.pptx$/i.test(file.name) ? 'PPT' : /\.docx$/i.test(file.name) ? 'DOC' : null
+const typeOf = (name: string): FileType | null =>
+  /\.pdf$/i.test(name) ? 'PDF' : /\.pptx$/i.test(name) ? 'PPT' : /\.docx$/i.test(name) ? 'DOC' : null
 
-const sizeLabel = (bytes: number) =>
-  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
-
-/** A friendly line for a file KIDDEX can't use, or '' if it's fine. */
+/**
+ * A friendly line for a file KIDDEX can't use, or '' if it's fine.
+ * The same words as the backend's errors, so the Teacher sees one voice.
+ */
 function fileProblem(file: File): string {
-  if (!typeOf(file)) {
+  if (!typeOf(file.name)) {
     const ext = /\.([a-z0-9]+)$/i.exec(file.name)?.[1]?.toLowerCase() ?? ''
-    if (['jpg', 'jpeg', 'png', 'heic', 'gif', 'webp', 'bmp'].includes(ext)) {
-      return 'That’s a photo. KIDDEX needs typed text: please pick a PDF, PowerPoint or Word file.'
+    if (ext === 'doc' || ext === 'ppt') {
+      return 'This is an older Word or PowerPoint file. Open it and save it as .docx or .pptx, then upload again.'
     }
-    if (ext === 'ppt' || ext === 'doc') {
-      return `That’s an older .${ext} file. Please save it as .${ext}x and try again.`
-    }
-    return 'KIDDEX can read PDF, PowerPoint (.pptx) and Word (.docx) files. Please pick one of those.'
+    return 'Please upload a PDF, Word (.docx) or PowerPoint (.pptx) file.'
   }
-  if (file.size === 0) return 'That file is empty. Please pick another one.'
-  if (file.size > MAX_BYTES) return `That file is ${sizeLabel(file.size)}. Please pick one up to 10 MB.`
+  if (file.size === 0) return 'Please choose a lesson file.'
+  if (file.size > MAX_BYTES) return 'This file is bigger than 10 MB. Try a smaller file.'
   return ''
 }
 
@@ -203,26 +241,105 @@ function UploadSteps({ current }: { current: number }) {
   )
 }
 
+/** Where the upload is: nothing yet, sending, read, or the upload failed. */
+type Stage =
+  | { kind: 'empty' }
+  | { kind: 'sending'; file: File; progress: UploadPhase }
+  | { kind: 'read'; answer: UploadAnswer }
+  | { kind: 'failed'; file: File; message: string }
+
+/** "PowerPoint · 14 slides · 6.2 MB" ("Word · 84 KB": Word pages are only a guess). */
+function fileFacts(answer: UploadAnswer) {
+  const type = FILE_TYPE[answer.fileType]
+  const units = answer.unitCountIsEstimate ? '' : ` · ${unitsText(answer.unitCount, answer.unitLabel, false)}`
+  return `${TYPE_NAME[type]}${units} · ${fileSizeText(answer.sizeBytes)}`
+}
+
+/** The top of every file card: badge, name, facts and Change. */
+function FileHead({ type, name, facts, onChange, tab }: { type: FileType; name: string; facts: ReactNode; onChange: () => void; tab?: number }) {
+  return (
+    <div className={styles.fileHead}>
+      <FileBadge type={type} />
+      <span className={styles.lessonText}>
+        <span className={styles.fileName}>{name}</span>
+        <span className={styles.fileFacts}>{facts}</span>
+      </span>
+      <Btn variant="link" className={styles.change} tabIndex={tab} onClick={onChange}>
+        Change
+      </Btn>
+    </div>
+  )
+}
+
 export function UploadRight({ live }: PageProps) {
   const navigate = useNavigate()
-  const { addLesson } = useLessons()
+  const { active } = useSection()
+  const { upload, removeLesson, makeQuestions } = useLessonActions()
   const inputRef = useRef<HTMLInputElement>(null)
+  const uploadRef = useRef<AbortController | null>(null)
   const ids = useId()
-  const [file, setFile] = useState<File | null>(null)
-  const [error, setError] = useState('')
+  const [stage, setStage] = useState<Stage>({ kind: 'empty' })
+  const [pickError, setPickError] = useState('')
+  const [serverError, setServerError] = useState('')
   const [topic, setTopic] = useState('')
   const [subject, setSubject] = useState('Math')
-  const [games, setGames] = useState<TemplateId[]>(GAME_ORDER)
+  const [games, setGames] = useState<TemplateId[]>(['quiz-show'])
+  const [gameHint, setGameHint] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [showText, setShowText] = useState(false)
+  const [busy, setBusy] = useState(false)
   const tab = live ? undefined : -1
+
+  // Leaving the page stops an upload that is still running.
+  useEffect(() => () => uploadRef.current?.abort(), [])
+
+  const send = async (file: File) => {
+    uploadRef.current?.abort()
+    const controller = new AbortController()
+    uploadRef.current = controller
+    setServerError('')
+    setStage({ kind: 'sending', file, progress: { phase: 'uploading', percent: 0 } })
+    try {
+      const answer = await upload(
+        file,
+        (progress) => {
+          if (!controller.signal.aborted) setStage({ kind: 'sending', file, progress })
+        },
+        controller.signal,
+      )
+      if (controller.signal.aborted) return
+      setStage({ kind: 'read', answer })
+      setTopic(topicFromName(file.name))
+      setGames(['quiz-show'])
+      setGameHint(false)
+    } catch (err) {
+      if (controller.signal.aborted) return
+      setStage({ kind: 'failed', file, message: errorMessage(err) })
+    }
+  }
 
   const pick = (f: File | undefined) => {
     if (!f) return
     const problem = fileProblem(f)
-    setError(problem)
+    setPickError(problem)
     if (problem) return
-    setFile(f)
-    setTopic(topicFromName(f.name))
+    forgetCurrent()
+    void send(f)
+  }
+
+  /** The uploaded lesson has no questions yet: delete it on the server (best effort). */
+  const forgetCurrent = () => {
+    uploadRef.current?.abort()
+    if (stage.kind === 'read') void removeLesson(stage.answer.lessonId).catch(() => undefined)
+  }
+
+  /** Change / Choose another file: forget this one, then pick again. */
+  const change = () => {
+    forgetCurrent()
+    setStage({ kind: 'empty' })
+    setServerError('')
+    setPickError('')
+    inputRef.current?.click()
   }
 
   const dropProps = {
@@ -238,18 +355,33 @@ export function UploadRight({ live }: PageProps) {
     },
   }
 
-  /** At least one game stays on. */
-  const toggleGame = (g: TemplateId) =>
-    setGames((gs) => (gs.includes(g) ? (gs.length > 1 ? gs.filter((x) => x !== g) : gs) : GAME_ORDER.filter((x) => x === g || gs.includes(x))))
+  /** Up to 2 games; a third tap says "Unpick one first". */
+  const toggleGame = (g: TemplateId) => {
+    if (games.includes(g)) {
+      setGames(games.filter((x) => x !== g))
+      setGameHint(false)
+    } else if (games.length >= MAX_GAMES) {
+      setGameHint(true)
+    } else {
+      setGames(GAME_ORDER.filter((x) => x === g || games.includes(x)))
+      setGameHint(false)
+    }
+  }
 
-  const type = file ? typeOf(file) : null
-  const ready = !!file && !!type && topic.trim() !== '' && games.length > 0
+  const answer = stage.kind === 'read' ? stage.answer : null
+  const canMake = !!answer && answer.textLevel !== 'none' && topic.trim() !== '' && games.length > 0 && !!active && !busy
 
-  const make = () => {
-    if (!file || !type || !ready) return
-    // TODO: upload the file to the backend; it sends only the lesson text to the AI.
-    const id = addLesson({ fileName: file.name, fileType: type, fileSize: sizeLabel(file.size), topic: topic.trim(), subject, games })
-    navigate(lessonStepPath(id, 'making'))
+  const make = async () => {
+    if (!answer || !active || !canMake) return
+    setBusy(true)
+    setServerError('')
+    try {
+      await makeQuestions(answer.lessonId, { topic: topic.trim(), subject, grade: active.grade, games })
+      navigate(lessonStepPath(answer.lessonId, 'making'))
+    } catch (err) {
+      setServerError(errorMessage(err))
+      setBusy(false)
+    }
   }
 
   const fileInput = (
@@ -274,169 +406,347 @@ export function UploadRight({ live }: PageProps) {
     </p>
   )
 
+  const redNote = serverError || (stage.kind === 'failed' ? stage.message : '')
+  const errorNote = redNote ? (
+    <p className={styles.changeError} role="alert">
+      <TriangleAlert size={16} aria-hidden="true" /> {redNote}
+    </p>
+  ) : null
+
+  const textWindow =
+    showText && answer && live ? (
+      // The window puts focus back on the link or button that opened it.
+      <LessonTextWindow lessonId={answer.lessonId} onClose={() => setShowText(false)} />
+    ) : null
+
+  // ---------- Nothing picked yet ----------
+  if (stage.kind === 'empty') {
+    return (
+      <PageBody side="R">
+        <Title color="blue">Add a lesson</Title>
+        <Sub>Turn your lesson into games in 3 easy steps.</Sub>
+        <UploadSteps current={0} />
+        {fileInput}
+        <div className={dragging ? `${styles.drop} ${styles.dropOver}` : styles.drop} {...dropProps}>
+          <span className={styles.dropArt} aria-hidden="true">
+            <FileBadge type="PDF" className={styles.artPdf} />
+            <FileBadge type="PPT" className={styles.artPpt} />
+            <FileBadge type="DOC" className={styles.artDoc} />
+            <span className={styles.artIcon}>
+              <FileUp size={22} strokeWidth={2.4} />
+            </span>
+          </span>
+          <strong className={styles.dropTitle}>Drag your lesson file here</strong>
+          <span className={styles.dropOr}>or</span>
+          <Btn variant="primary" className={styles.choose} icon={<FileUp size={22} aria-hidden="true" />} tabIndex={tab} onClick={() => inputRef.current?.click()}>
+            Choose a file
+          </Btn>
+          <span className={styles.dropSlot} aria-live="polite">
+            {pickError ? (
+              <span className={styles.dropError} role="alert">
+                <TriangleAlert size={17} aria-hidden="true" />
+                {pickError}
+              </span>
+            ) : (
+              <span className={styles.dropHint}>PDF, PowerPoint or Word · up to 10 MB</span>
+            )}
+          </span>
+        </div>
+
+        <div className={styles.fit}>
+          <div className={`${styles.fitBox} ${styles.fitYes}`}>
+            <span className={styles.fitIcon} aria-hidden="true">
+              <Check size={18} strokeWidth={3.2} />
+            </span>
+            <span>
+              <strong>Works great</strong>
+              Typed handouts, worksheets, slides
+            </span>
+          </div>
+          <div className={`${styles.fitBox} ${styles.fitNo}`}>
+            <span className={styles.fitIcon} aria-hidden="true">
+              <X size={18} strokeWidth={3.2} />
+            </span>
+            <span>
+              <strong>Not yet</strong>
+              Photos or scanned pages
+            </span>
+          </div>
+        </div>
+        {privacy}
+      </PageBody>
+    )
+  }
+
+  // ---------- Uploading and reading, or the upload failed ----------
+  if (stage.kind === 'sending' || stage.kind === 'failed') {
+    const type = typeOf(stage.file.name) ?? 'PDF'
+    const progress = stage.kind === 'sending' ? stage.progress : null
+    return (
+      <PageBody side="R">
+        <Title color="blue">Add a lesson</Title>
+        <Sub>Turn your lesson into games in 3 easy steps.</Sub>
+        <UploadSteps current={0} />
+        {fileInput}
+        <div className={`${styles.fileCard} ${styles.fileCardPlain}`} {...dropProps}>
+          <FileHead type={type} name={stage.file.name} facts={`${TYPE_NAME[type]} · ${fileSizeText(stage.file.size)}`} onChange={change} tab={tab} />
+          {progress && (
+            <div className={styles.sending}>
+              <span className={styles.sendingText} aria-live="polite">
+                {progress.phase === 'uploading' ? `Uploading… ${progress.percent}%` : 'Reading the text…'}
+              </span>
+              <span
+                className={styles.sendBar}
+                role="progressbar"
+                aria-label="Upload"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progress.phase === 'uploading' ? progress.percent : undefined}
+              >
+                <span
+                  className={progress.phase === 'reading' ? `${styles.sendFill} ${styles.sendReading}` : styles.sendFill}
+                  style={progress.phase === 'uploading' ? { width: `${progress.percent}%` } : undefined}
+                />
+              </span>
+            </div>
+          )}
+        </div>
+        {errorNote}
+        <Btn variant="primary" className={styles.makeButton} disabled tabIndex={tab} icon={<Sparkles size={24} aria-hidden="true" />}>
+          Make questions
+        </Btn>
+        {privacy}
+      </PageBody>
+    )
+  }
+
+  // ---------- Read ----------
+  const read = stage.answer
+  const type = FILE_TYPE[read.fileType]
+  const unitsRead = unitsText(read.unitCount, read.unitLabel, read.unitCountIsEstimate)
+  const words = plural(read.wordCount, 'word')
+
+  // Almost no text (r2): no topic, no games, no Make questions.
+  if (read.textLevel === 'none') {
+    const fill = Math.min(1, read.wordCount / METER_FULL_WORDS)
+    const where = read.unitCountIsEstimate ? 'this file' : unitsRead
+    return (
+      <PageBody side="R">
+        <Title color="blue">Add a lesson</Title>
+        <Sub>Turn your lesson into games in 3 easy steps.</Sub>
+        <UploadSteps current={0} />
+        {fileInput}
+        <div className={`${styles.fileCard} ${styles.fileCardWarn}`} {...dropProps}>
+          <FileHead type={type} name={read.fileName} facts={fileFacts(read)} onChange={change} tab={tab} />
+          <div className={styles.fileRule} />
+          <div className={styles.noText}>
+            <span className={styles.noTextIcon} aria-hidden="true">
+              <TriangleAlert size={20} strokeWidth={2.6} />
+            </span>
+            <div className={styles.noTextBody}>
+              <p className={styles.noTextTitle}>We found almost no text</p>
+              <p className={styles.noTextLine}>
+                Only {words} in {where}. This file looks like it is mostly pictures, and we can’t read pictures yet.
+              </p>
+              <div className={styles.meter} aria-hidden="true">
+                <span className={styles.meterTrack}>
+                  <span className={styles.meterFill} style={{ width: `${Math.max(fill * 100, 3)}%` }} />
+                  <span className={styles.meterMark} style={{ left: `${(ENOUGH_WORDS / METER_FULL_WORDS) * 100}%` }} />
+                </span>
+                <span className={styles.meterWords}>{words}</span>
+                <span className={styles.meterLabel} style={{ left: `${(ENOUGH_WORDS / METER_FULL_WORDS) * 100}%` }}>
+                  enough to make questions
+                </span>
+              </div>
+              <span className="visually-hidden">
+                {`${words} found. About ${ENOUGH_WORDS} words are enough to make questions.`}
+              </span>
+            </div>
+          </div>
+        </div>
+        {errorNote}
+
+        <div className={styles.whatNow}>
+          <Heading>What you can do</Heading>
+        </div>
+        <ul className={styles.tips}>
+          <li className={styles.tip}>
+            <span className={styles.tipIcon} aria-hidden="true">
+              <Type size={20} strokeWidth={2.4} />
+            </span>
+            <span>
+              <strong>Use the typed version</strong>A Word file or PDF where you can select the words with your mouse.
+            </span>
+          </li>
+          <li className={styles.tip}>
+            <span className={styles.tipIcon} aria-hidden="true">
+              <Pencil size={18} strokeWidth={2.4} />
+            </span>
+            <span>
+              <strong>Add the words to your {read.fileType === 'pptx' ? 'slides' : 'file'}</strong>
+              {read.fileType === 'pptx'
+                ? 'Type the key points as text on each slide, then upload again.'
+                : 'Type the key points as text in your file, then upload again.'}
+            </span>
+          </li>
+        </ul>
+
+        <div className={styles.noTextActions}>
+          <Btn variant="primary" className={styles.another} icon={<FileUp size={22} aria-hidden="true" />} tabIndex={tab} onClick={change}>
+            Choose another file
+          </Btn>
+          {read.wordCount > 0 && (
+            <Btn className={styles.seeWords} icon={<Eye size={20} aria-hidden="true" />} tabIndex={tab} onClick={() => setShowText(true)}>
+              See the {words}
+            </Btn>
+          )}
+        </div>
+        <p className={styles.takes}>We need more text to make good questions.</p>
+        {textWindow}
+      </PageBody>
+    )
+  }
+
+  // Read OK (r1), or low text.
+  const extras = [
+    read.tablesRead ? { icon: <Table2 size={16} aria-hidden="true" />, text: `${plural(read.tablesRead, 'table')} read as text` } : null,
+    read.picturesSkipped ? { icon: <Image size={16} aria-hidden="true" />, text: `${plural(read.picturesSkipped, 'picture')} skipped` } : null,
+  ].filter((x) => x !== null)
+
   return (
     <PageBody side="R">
       <Title color="blue">Add a lesson</Title>
       <Sub>Turn your lesson into games in 3 easy steps.</Sub>
-      <UploadSteps current={file ? 1 : 0} />
+      <UploadSteps current={1} />
       {fileInput}
 
-      {!file || !type ? (
-        <>
-          <div className={dragging ? `${styles.drop} ${styles.dropOver}` : styles.drop} {...dropProps}>
-            <span className={styles.dropArt} aria-hidden="true">
-              <FileBadge type="PDF" className={styles.artPdf} />
-              <FileBadge type="PPT" className={styles.artPpt} />
-              <FileBadge type="DOC" className={styles.artDoc} />
-              <span className={styles.artIcon}>
-                <FileUp size={22} strokeWidth={2.4} />
-              </span>
+      <div className={`${styles.fileCard} ${styles.fileCardOk}`} {...dropProps}>
+        <FileHead type={type} name={read.fileName} facts={fileFacts(read)} onChange={change} tab={tab} />
+        <div className={styles.fileRule} />
+        <p className={styles.readLine}>
+          <span className={styles.readTick} aria-hidden="true">
+            <Check size={18} strokeWidth={3.2} />
+          </span>
+          <strong>We read {unitsRead} of text</strong>
+          <span className={styles.readWords}>· {words}</span>
+        </p>
+        <div className={styles.readExtras}>
+          {extras.map((x) => (
+            <span key={x.text} className={styles.extraChip}>
+              {x.icon}
+              {x.text}
             </span>
-            <strong className={styles.dropTitle}>Drag your lesson file here</strong>
-            <span className={styles.dropOr}>or</span>
-            <Btn variant="primary" className={styles.choose} icon={<FileUp size={22} aria-hidden="true" />} tabIndex={tab} onClick={() => inputRef.current?.click()}>
-              Choose a file
-            </Btn>
-            <span className={styles.dropSlot} aria-live="polite">
-              {error ? (
-                <span className={styles.dropError} role="alert">
-                  <TriangleAlert size={17} aria-hidden="true" />
-                  {error}
-                </span>
-              ) : (
-                <span className={styles.dropHint}>PDF, PowerPoint or Word · up to 10 MB</span>
-              )}
-            </span>
-          </div>
-
-          <div className={styles.fit}>
-            <div className={`${styles.fitBox} ${styles.fitYes}`}>
-              <span className={styles.fitIcon} aria-hidden="true">
-                <Check size={18} strokeWidth={3.2} />
-              </span>
-              <span>
-                <strong>Works great</strong>
-                Typed handouts, worksheets, slides
-              </span>
-            </div>
-            <div className={`${styles.fitBox} ${styles.fitNo}`}>
-              <span className={styles.fitIcon} aria-hidden="true">
-                <X size={18} strokeWidth={3.2} />
-              </span>
-              <span>
-                <strong>Not yet</strong>
-                Photos or scanned pages
-              </span>
-            </div>
-          </div>
-          {privacy}
-        </>
-      ) : (
-        <>
-          <div className={dragging ? `${styles.gotIt} ${styles.dropOver}` : styles.gotIt} {...dropProps}>
-            <FileBadge type={type} />
-            <span className={styles.lessonText}>
-              <span className={styles.fileName}>{file.name}</span>
-              <span className={styles.gotItLine}>
-                <Check size={17} strokeWidth={3} aria-hidden="true" /> Got it! {fakeFileFacts(type).size} · {fakeFileFacts(type).words.toLocaleString()} words
-              </span>
-            </span>
-            <Btn variant="link" className={styles.change} tabIndex={tab} onClick={() => inputRef.current?.click()}>
-              Change
-            </Btn>
-          </div>
-          {error && (
-            <p className={styles.changeError} role="alert">
-              <TriangleAlert size={16} aria-hidden="true" /> {error}
-            </p>
-          )}
-
-          <div className={styles.fields}>
-            <label className={styles.field}>
-              <span className={styles.label}>What is this lesson about?</span>
-              <input className={styles.input} value={topic} placeholder="e.g. Equivalent Fractions" tabIndex={tab} onChange={(e) => setTopic(e.target.value)} />
-            </label>
-            <label className={`${styles.field} ${styles.fieldSmall}`}>
-              <span className={styles.label}>Subject</span>
-              <select className={styles.select} value={subject} tabIndex={tab} onChange={(e) => setSubject(e.target.value)}>
-                {SUBJECTS.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className={styles.gamesBlock} role="group" aria-labelledby={`${ids}-games`}>
-            <span id={`${ids}-games`} className={styles.label}>
-              Which games? <span className={styles.labelHint}>· pick one or more</span>
-            </span>
-            <div className={styles.gamePics}>
-              {GAME_ORDER.map((g) => {
-                const on = games.includes(g)
-                const last = on && games.length === 1
-                return (
-                  <button
-                    key={g}
-                    type="button"
-                    aria-pressed={on}
-                    title={last ? 'Pick at least one game' : undefined}
-                    tabIndex={tab}
-                    className={on ? `${styles.gamePic} ${styles.gamePicOn}` : styles.gamePic}
-                    onClick={() => toggleGame(g)}
-                  >
-                    <img src={gameThumbs[g]} alt="" className={styles.gamePicImg} draggable={false} />
-                    <span className={styles.gamePicName}>{GAME_INFO[g].name}</span>
-                    {on && (
-                      <span className={styles.gamePicTick} aria-hidden="true">
-                        <Check size={16} strokeWidth={3.4} />
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <Btn variant="primary" className={styles.makeButton} disabled={!ready} tabIndex={tab} onClick={make} icon={<Sparkles size={24} aria-hidden="true" />}>
-            Make questions
-          </Btn>
-          <p className={styles.takes}>Takes about a minute. You check every question before students see it.</p>
-          {privacy}
-        </>
+          ))}
+          <button type="button" className={styles.seeText} tabIndex={tab} onClick={() => setShowText(true)}>
+            <Eye size={18} aria-hidden="true" /> See the text
+          </button>
+        </div>
+      </div>
+      {read.textLevel === 'low' && (
+        <p className={styles.lowText}>
+          <Info size={16} aria-hidden="true" /> Not much text. You may get fewer questions.
+        </p>
       )}
+      {errorNote}
+
+      <div className={styles.fields}>
+        <label className={styles.field}>
+          <span className={styles.label}>What is this lesson about?</span>
+          <input className={styles.input} value={topic} maxLength={80} placeholder="e.g. Equivalent Fractions" tabIndex={tab} onChange={(e) => setTopic(e.target.value)} />
+        </label>
+        <label className={`${styles.field} ${styles.fieldSmall}`}>
+          <span className={styles.label}>Subject</span>
+          <select className={styles.select} value={subject} tabIndex={tab} onChange={(e) => setSubject(e.target.value)}>
+            {SUBJECTS.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className={styles.gamesBlock} role="group" aria-labelledby={`${ids}-games`}>
+        <div className={styles.gamesHead}>
+          <span id={`${ids}-games`} className={styles.label}>
+            Which games? <span className={styles.labelHint}>· pick up to 2</span>
+          </span>
+          <span className={styles.gameNote} aria-live="polite">
+            {gameHint ? (
+              <span className={styles.unpickHint}>Unpick one first</span>
+            ) : (
+              <span className={styles.pickedCount}>
+                {games.length} of {MAX_GAMES} picked
+              </span>
+            )}
+          </span>
+        </div>
+        <div className={styles.gamePics}>
+          {GAME_ORDER.map((g) => {
+            const on = games.includes(g)
+            const full = !on && games.length >= MAX_GAMES
+            return (
+              <button
+                key={g}
+                type="button"
+                aria-pressed={on}
+                aria-disabled={full || undefined}
+                tabIndex={tab}
+                className={[styles.gamePic, on && styles.gamePicOn, full && styles.gamePicFull].filter(Boolean).join(' ')}
+                onClick={() => toggleGame(g)}
+              >
+                <img src={gameThumbs[g]} alt="" className={styles.gamePicImg} draggable={false} />
+                <span className={styles.gamePicName}>{GAME_INFO[g].name}</span>
+                {on && (
+                  <span className={styles.gamePicTick} aria-hidden="true">
+                    <Check size={16} strokeWidth={3.4} />
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <Btn variant="primary" className={styles.makeButton} disabled={!canMake} tabIndex={tab} onClick={make} icon={<Sparkles size={24} aria-hidden="true" />}>
+        {busy ? 'Starting…' : 'Make questions'}
+      </Btn>
+      <p className={styles.takes}>The AI writes questions only from the text we read. You check every one.</p>
+      {privacy}
+      {textWindow}
     </PageBody>
   )
 }
 
 // ---------- Right page: Making questions ----------
 
-/** FAKE timing of the steps, in ms after the upload (the whole run is MAKING_MS). */
-const READ_DONE = 800
-const WRITE_DONE = MAKING_MS - 1000
-
 /** "0:32" */
-const clock = (ms: number) => {
-  const s = Math.max(0, Math.floor(ms / 1000))
+const clock = (seconds: number) => {
+  const s = Math.max(0, Math.floor(seconds))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
 export function MakingRight({ lessonId, live }: PageProps) {
-  const lesson = useLesson(lessonId)
+  const { lesson, loading, notFound } = useLessonLoad(lessonId)
+  const { makeQuestions, removeLesson } = useLessonActions()
+  const { active } = useSection()
   const navigate = useNavigate()
   const making = lesson?.status === 'making'
+  const failed = lesson?.status === 'failed'
   const [now, setNow] = useState(() => Date.now())
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const tab = live ? undefined : -1
 
   // The elapsed timer ticks on the live page only (never on a turning copy).
   useEffect(() => {
     if (!live || !making) return
-    const t = window.setInterval(() => setNow(Date.now()), 250)
+    const t = window.setInterval(() => setNow(Date.now()), 500)
     return () => window.clearInterval(t)
   }, [live, making])
 
   // Done while the Teacher is still here: turn to Check by itself.
   const wasMaking = useRef(making)
   useEffect(() => {
-    if (live && wasMaking.current && !making && lesson) navigate(lessonStepPath(lesson.id, 'check'))
+    if (live && wasMaking.current && lesson?.status === 'toCheck') navigate(lessonStepPath(lesson.id, 'check'))
     wasMaking.current = making
   }, [live, making, lesson, navigate])
 
@@ -444,22 +754,70 @@ export function MakingRight({ lessonId, live }: PageProps) {
     return (
       <PageBody side="R">
         <Title color="blue">Making questions</Title>
-        <EmptyLine action={<Btn onClick={() => navigate(paths.teacher.lessons)}>My lessons</Btn>}>
-          This lesson isn’t here anymore.
+        {loading ? (
+          <p className={styles.listLoading}>Loading…</p>
+        ) : (
+          <EmptyLine action={<Btn tabIndex={tab} onClick={() => navigate(paths.teacher.lessons)}>My lessons</Btn>}>
+            {notFound ? 'This lesson isn’t here anymore.' : 'We can’t reach KIDDEX right now. Please check your connection and try again.'}
+          </EmptyLine>
+        )}
+      </PageBody>
+    )
+  }
+
+  if (lesson.status === 'draft') {
+    return (
+      <PageBody side="R">
+        <Title color="blue">Making questions</Title>
+        <EmptyLine action={<Btn tabIndex={tab} onClick={() => navigate(paths.teacher.lessons)}>My lessons</Btn>}>
+          Questions for this lesson haven’t been started yet.
         </EmptyLine>
       </PageBody>
     )
   }
 
-  const elapsed = now - (lesson.makingStartedAt ?? now)
+  const tryAgain = async () => {
+    setBusy(true)
+    setActionError('')
+    try {
+      await makeQuestions(lesson.id, {
+        topic: lesson.topic || lesson.title,
+        subject: lesson.subject || 'Math',
+        grade: lesson.grade ?? active?.grade ?? 4,
+        games: lesson.games,
+      })
+    } catch (err) {
+      setActionError(errorMessage(err))
+    }
+    setBusy(false)
+  }
+
+  const chooseAnother = async () => {
+    setBusy(true)
+    setActionError('')
+    try {
+      await removeLesson(lesson.id)
+      navigate(paths.teacher.lessons)
+    } catch (err) {
+      setActionError(errorMessage(err))
+      setBusy(false)
+    }
+  }
+
+  // Seconds from the server, ticking on between its answers.
+  const seconds = lesson.makingSeconds === null ? 0 : lesson.makingSeconds + Math.max(0, now - lesson.fetchedAt) / 1000
   // Which step is happening (0–4); 5 = all done.
-  const step = !making ? 5 : elapsed < READ_DONE ? 1 : elapsed < WRITE_DONE ? 2 : 3
-  const facts = fakeFileFacts(lesson.fileType)
+  const step = making ? (lesson.makingStep === 'checking' ? 3 : 2) : failed ? 2 : 5
+  const waiting = making && lesson.makingStep === 'waiting'
   const steps = [
-    { title: 'File uploaded', detail: `${TYPE_NAME[lesson.fileType]} · ${lesson.fileSize ?? lesson.size}` },
-    { title: 'Read the lesson text', detail: `${lesson.size} · ${facts.words.toLocaleString()} words` },
-    { title: 'AI is writing questions', detail: 'This usually takes under a minute', ai: true },
-    { title: 'Checking every question', detail: 'A broken question gets written again by itself' },
+    { title: 'File uploaded', detail: `${TYPE_NAME[lesson.fileType]}${lesson.fileSize ? ` · ${lesson.fileSize}` : ''}` },
+    { title: 'Read the lesson text', detail: `${lesson.size} · ${plural(lesson.wordCount, 'word')}` },
+    {
+      title: 'AI is writing questions',
+      detail: waiting ? 'The AI is busy. We’re still trying, please wait.' : 'This usually takes under a minute',
+      ai: true,
+    },
+    { title: 'Checking every question', detail: 'Each question is checked against your lesson text' },
     { title: 'Ready for you to check', detail: 'It will show up in your To do list' },
   ]
 
@@ -472,12 +830,13 @@ export function MakingRight({ lessonId, live }: PageProps) {
 
       <ol className={styles.steps}>
         {steps.map((s, i) => {
-          const state = i < step ? 'done' : i === step ? 'now' : 'next'
+          const state = i < step ? 'done' : i === step ? (failed ? 'failed' : 'now') : 'next'
           return (
             <li key={s.title} className={`${styles.step} ${styles[state]}`}>
               <span className={styles.stepDot} aria-hidden="true">
                 {state === 'done' && <Check size={20} strokeWidth={3} />}
                 {state === 'now' && <Sparkles size={18} strokeWidth={2.4} />}
+                {state === 'failed' && <X size={18} strokeWidth={3} />}
               </span>
               <div className={styles.stepBody}>
                 <p className={styles.stepTitle}>
@@ -491,12 +850,29 @@ export function MakingRight({ lessonId, live }: PageProps) {
                     <span className={styles.elapsed}>
                       <Clock size={16} strokeWidth={2.4} aria-hidden="true" />
                       <span className="visually-hidden">Time so far: </span>
-                      {clock(elapsed)}
+                      {clock(seconds)}
                     </span>
                   )}
-                  <span className="visually-hidden">{state === 'done' ? ' (done)' : state === 'now' ? ' (now)' : ''}</span>
+                  <span className="visually-hidden">
+                    {state === 'done' ? ' (done)' : state === 'now' ? ' (now)' : state === 'failed' ? ' (didn’t work)' : ''}
+                  </span>
                 </p>
-                <p className={styles.stepDetail}>{s.detail}</p>
+                {state === 'failed' ? (
+                  <div className={styles.failedBox} role="alert">
+                    <p className={styles.failedText}>{lesson.error?.message ?? 'Something went wrong. Please try again.'}</p>
+                    <div className={styles.failedActions}>
+                      <Btn variant="primary" disabled={busy} tabIndex={tab} icon={<RotateCcw size={18} aria-hidden="true" />} onClick={tryAgain}>
+                        Try again
+                      </Btn>
+                      <Btn disabled={busy} tabIndex={tab} icon={<FileUp size={18} aria-hidden="true" />} onClick={chooseAnother}>
+                        Choose another file
+                      </Btn>
+                    </div>
+                    {actionError && <p className={styles.failedError}>{actionError}</p>}
+                  </div>
+                ) : (
+                  <p className={s.ai && waiting ? `${styles.stepDetail} ${styles.stepWaiting}` : styles.stepDetail}>{s.detail}</p>
+                )}
                 {s.ai && state === 'now' && (
                   <span className={styles.progress} aria-hidden="true">
                     <span className={styles.progressFill} />
@@ -508,18 +884,19 @@ export function MakingRight({ lessonId, live }: PageProps) {
         })}
       </ol>
       <p className="visually-hidden" aria-live={live ? 'polite' : undefined}>
-        {making ? '' : 'Your questions are ready to check.'}
+        {waiting ? 'The AI is busy. We’re still trying.' : making || failed ? '' : 'Your questions are ready to check.'}
       </p>
 
-      {making ? (
+      {making && (
         <div className={styles.noWait}>
           <p>You don’t have to wait here. You can keep working and come back later.</p>
-          <Btn tabIndex={live ? undefined : -1} onClick={() => navigate(paths.teacher.home)}>
+          <Btn tabIndex={tab} onClick={() => navigate(paths.teacher.home)}>
             Back to Home
           </Btn>
         </div>
-      ) : (
-        <Btn variant="primary" className={styles.goCheck} onClick={() => navigate(lessonStepPath(lesson.id, 'check'))}>
+      )}
+      {!making && !failed && (
+        <Btn variant="primary" className={styles.goCheck} tabIndex={tab} onClick={() => navigate(lessonStepPath(lesson.id, 'check'))}>
           Check the questions <ArrowRight size={18} aria-hidden="true" />
         </Btn>
       )}

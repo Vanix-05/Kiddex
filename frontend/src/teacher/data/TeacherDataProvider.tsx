@@ -13,7 +13,7 @@ function nextFriday(today: Date) {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-/** A brand-new Teacher: no sections, students, lessons or numbers yet. */
+/** A brand-new Teacher: no sections, students or numbers yet. Lessons come from the backend. */
 function emptyData(): TeacherData {
   const today = new Date()
   return {
@@ -29,18 +29,16 @@ function emptyData(): TeacherData {
     week: [],
     ollieNote: 'Your class’s progress will show here after the first game.',
     students: [],
-    lessons: [],
-    cards: [],
-    sourceQuotes: {},
-    editedCardIds: [],
+    lessonNotes: {},
+    checkSeenEnd: [],
     nextDueLabel: nextFriday(today),
   }
 }
 
 /**
- * Holds the Teacher Dashboard's data. It starts empty; what the Teacher adds
- * (sections, students, lessons, approvals) lives in memory until a refresh.
- * TODO: the backend keeps it once it exists (replace the hooks in useTeacherData.ts).
+ * Holds the Teacher Dashboard's in-memory data. It starts empty; what the Teacher adds
+ * (sections, students, To dos) lives in memory until a refresh. Lessons and their
+ * questions come from the backend (React Query, see useTeacherData.ts).
  */
 export function TeacherDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState(emptyData)

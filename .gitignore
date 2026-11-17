@@ -1,2 +1,8 @@
 *-trace-test.html
 node_modules
+.env
+.env.*
+!.env.example
+dist
+backend/uploads
+backend/results

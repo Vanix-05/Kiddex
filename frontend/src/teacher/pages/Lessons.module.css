@@ -79,6 +79,22 @@ button.lessonButton:hover .lessonTitle {
   color: var(--color-text-subtle);
 }
 
+.listLoading {
+  margin-top: 18px;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.listError {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--color-danger-text);
+}
+
 .noLessons {
   display: flex;
   flex-direction: column;
@@ -444,45 +460,322 @@ button.lessonButton:hover .lessonTitle {
 }
 
 /* File picked: "Got it!" */
-.gotIt {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: 80px;
-  margin-top: 16px;
-  padding: 0 18px;
-  border: 2.5px solid var(--color-ok-line);
+.changeError {
+  margin: 8px 0 -6px;
+}
+
+/* ---------- The file card (r1 read OK, r2 almost no text, uploading) ---------- */
+
+.fileCard {
+  margin-top: 14px;
+  padding: 14px 18px;
+  border: 2.5px solid var(--color-neutral-line);
   border-radius: 16px;
+  background: var(--color-input-bg);
+}
+
+.fileCardOk {
+  border-color: var(--color-ok-line);
   background: color-mix(in srgb, var(--color-ok-bg) 70%, transparent);
 }
 
-.fileName {
-  font-size: 18px;
+.fileCardWarn {
+  border-color: var(--color-warn-line);
+  background: color-mix(in srgb, var(--color-warn-bg) 55%, var(--color-input-bg));
 }
 
-.gotItLine {
-  display: inline-flex;
+.fileCardPlain {
+  border-style: dashed;
+}
+
+.fileHead {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font: 600 16px/1.2 var(--font-display);
+  gap: 16px;
+}
+
+.fileFacts {
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+/* The dashed line under the file name. */
+.fileRule {
+  margin: 10px 0;
+  border-top: 2px dashed color-mix(in srgb, var(--color-card-border) 30%, transparent);
+}
+
+/* Uploading… 64% / Reading the text… */
+.sending {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.sendingText {
+  font: 600 15px/1.2 var(--font-display);
+  color: var(--color-warn-text);
+}
+
+.sendBar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-track);
+  overflow: hidden;
+}
+
+.sendFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-button-bg);
+  transition: width 200ms ease-out;
+}
+
+/* Reading: we can't know how long it takes, so the bar just moves. */
+.sendReading {
+  width: 40%;
+  animation: sweep 1400ms ease-in-out infinite alternate;
+}
+
+.readLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font: 600 19px/1.2 var(--font-display);
   color: var(--color-ok-text);
 }
 
-.change {
+.readTick {
   flex: none;
-  font-size: 16px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
 }
 
-.changeError {
-  margin: 6px 0 -6px;
+.readWords {
+  font: 500 16px/1.2 var(--font-body);
+  color: var(--color-text-subtle);
 }
+
+.readExtras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 6px;
+}
+
+.extraChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 9px;
+  border: 2px dashed var(--color-neutral-line);
+  border-radius: 10px;
+  background: var(--color-input-bg);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-text-muted);
+}
+
+.seeText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.seeText:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Low text: one soft line under the card. */
+.lowText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 -6px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+/* ---------- Almost no text (r2) ---------- */
+
+.noText {
+  display: flex;
+  gap: 12px;
+}
+
+.noTextIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-button-bg);
+  color: var(--color-text-on-dark);
+}
+
+.noTextBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.noTextTitle {
+  margin: 2px 0 4px;
+  font: 600 20px/1.2 var(--font-display);
+  color: var(--color-warn-text);
+}
+
+.noTextLine {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--color-text);
+}
+
+/* The words meter: fill = words / 200, the mark = the 80-word "enough" line. */
+.meter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding-bottom: 24px;
+}
+
+.meterTrack {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-track);
+}
+
+.meterFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-button-bg);
+}
+
+.meterMark {
+  position: absolute;
+  top: -7px;
+  bottom: -7px;
+  width: 2.5px;
+  margin-left: -1px;
+  background: var(--color-planner-ink);
+}
+
+.meterWords {
+  flex: none;
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+/* Placed under the mark (its left is set on the element). The meter's right part
+   holds the word count, so the label sits within the track's width. */
+.meterLabel {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font: 600 15px/1 var(--font-display);
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+/* "What you can do" under the card. */
+.whatNow {
+  margin-top: 16px;
+}
+
+.tips {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--color-text-subtle);
+}
+
+.tip strong {
+  display: block;
+  font: 600 17px/1.25 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.tipIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-warn-bg);
+  color: var(--color-link);
+}
+
+.noTextActions {
+  display: flex;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.another {
+  flex: 1.4;
+  height: 58px;
+  border-radius: 16px;
+  font-size: 20px;
+}
+
+.seeWords {
+  flex: 1;
+  height: 58px;
+  border-radius: 16px;
+  font-size: 18px;
+}
+
 
 .fields {
   display: flex;
   gap: 16px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .field {
@@ -535,8 +828,43 @@ button.lessonButton:hover .lessonTitle {
 .gamesBlock {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.gamesHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gameNote {
+  display: inline-flex;
+}
+
+/* "2 of 2 picked" */
+.pickedCount {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border: 2px solid var(--color-ok-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-ok-bg);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-ok-text);
+}
+
+.unpickHint {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-warn-bg);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-warn-text);
 }
 
 /* The 3 game picture cards. */
@@ -552,8 +880,8 @@ button.lessonButton:hover .lessonTitle {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  height: 120px;
-  padding: 8px 8px 0;
+  height: 108px;
+  padding: 7px 8px 0;
   border: 2.5px solid var(--color-neutral-line);
   border-radius: 14px;
   background: var(--color-input-bg);
@@ -565,9 +893,16 @@ button.lessonButton:hover .lessonTitle {
   background: color-mix(in srgb, var(--color-ok-bg) 45%, var(--color-input-bg));
 }
 
+/* Two games picked: the third dims (a tap says "Unpick one first"). */
+.gamePicFull {
+  border-style: dashed;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .gamePicImg {
   width: 100%;
-  height: 72px;
+  height: 62px;
   border: 2px solid var(--color-card-border);
   border-radius: 8px;
   object-fit: cover;
@@ -604,15 +939,16 @@ button.lessonButton:hover .lessonTitle {
 }
 
 .makeButton {
+  flex: none;
   width: 100%;
-  height: 62px;
-  margin-top: 20px;
+  height: 56px;
+  margin-top: 14px;
   border-radius: 16px;
   font-size: 22px;
 }
 
 .takes {
-  margin: 14px 0 0;
+  margin: 10px 0 0;
   font-size: 15px;
   text-align: center;
   color: var(--color-text-subtle);
@@ -690,6 +1026,55 @@ button.lessonButton:hover .lessonTitle {
 
 .next .stepTitle {
   color: var(--color-text-subtle);
+}
+
+/* The AI step when making questions did not work: soft red, with what to do next. */
+.failed .stepDot {
+  border-color: var(--color-danger-text);
+  background: var(--color-danger-text);
+  color: var(--color-text-on-dark);
+}
+
+.failed .stepTitle {
+  color: var(--color-danger-text);
+}
+
+.failedBox {
+  margin: 8px 0 12px;
+  padding: 12px 14px;
+  border: 2px solid color-mix(in srgb, var(--color-danger-text) 35%, var(--color-card-bg));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-danger-text) 7%, var(--color-card-bg));
+}
+
+.failedText {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.failedActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.failedActions button {
+  height: 44px;
+  font-size: 16px;
+}
+
+.failedError {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--color-danger-text);
+}
+
+/* "The AI is busy. We are still trying" is not an error: just warmer. */
+.stepWaiting {
+  color: var(--color-warn-text);
 }
 
 .stepDetail {
@@ -784,6 +1169,15 @@ button.lessonButton:hover .lessonTitle {
 
 @media (prefers-reduced-motion: reduce) {
   .progressFill {
+    width: 100%;
+    animation: none;
+  }
+
+  .sendFill {
+    transition: none;
+  }
+
+  .sendReading {
     width: 100%;
     animation: none;
   }

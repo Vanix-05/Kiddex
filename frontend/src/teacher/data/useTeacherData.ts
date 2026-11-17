@@ -1,15 +1,30 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { availableTemplates, MIN_CARDS, TEMPLATE_FOR_TYPE } from '../../content/questionCard'
-import { fakeDraftsFor } from '../../mock/teacherMock'
+import { ApiError } from '../api/client'
+import {
+  lessonKeys,
+  lessonsApi,
+  type GenerateInput,
+  type MakingStep,
+  type NewQuestion,
+  type QuestionEdit,
+  type ServerLesson,
+  type ServerQuestion,
+  type TextLevel,
+  type UploadPhase,
+} from '../api/lessonsApi'
+import { toScreenLesson } from './lessonMapping'
 import { useTeacherStore } from './teacherDataContext'
-import type { FileType, Lesson, QuestionCard, Section, TeacherData, TemplateId, TodoItem } from './types'
+import type { Lesson, LessonNote, QuestionCard, Section, TeacherData, TemplateId, TodoItem } from './types'
 
 /**
  * The only way Teacher screens read and change data.
  *
- * Today they read data kept in memory (TeacherDataProvider): it starts empty
- * and a refresh clears it. When the backend exists, replace the insides of
- * these hooks with API calls; the screens don't need to change.
+ * Lessons and their questions come from the backend (React Query). Sections,
+ * students, To dos and stats are still kept in memory (TeacherDataProvider):
+ * they start empty and a refresh clears them. The screens don't need to change
+ * when those get their own addresses too.
  */
 
 /** "4 – Sampaguita" */
@@ -96,6 +111,148 @@ export function useClassSummary() {
   }
 }
 
+// ---------- Lessons (from the backend) ----------
+
+/** How often to ask again while the AI is making questions. */
+const LIST_POLL_MS = 3000
+const LESSON_POLL_MS = 2000
+
+export interface LessonWithCounts extends Lesson {
+  /** Questions still to check (drafts). */
+  toCheck: number
+  approved: number
+}
+
+/** One lesson with what the Making and Check pages need. */
+export interface LessonDetail extends LessonWithCounts {
+  textLevel: TextLevel
+  makingStep: MakingStep | null
+  /** Seconds since making started, as the server said at `fetchedAt` (ms). */
+  makingSeconds: number | null
+  fetchedAt: number
+  /** Why making questions didn't work, in the server's friendly words. */
+  error: { code: string; message: string } | null
+  questions: ServerQuestion[]
+}
+
+/** Marks every To do that points at this lesson as done. */
+const finishTodos = (todos: TodoItem[], kind: 'check' | 'games', lessonId: string) =>
+  todos.map((t) =>
+    !t.done && t.target.kind === kind && t.target.lessonId === lessonId ? { ...t, done: true, doneAt: nowLabel() } : t,
+  )
+
+/** Changes the screen-only note of one lesson. */
+const withNote = (d: TeacherData, id: string, change: Partial<LessonNote>): TeacherData => ({
+  ...d,
+  lessonNotes: { ...d.lessonNotes, [id]: { ...d.lessonNotes[id], ...change } },
+})
+
+/** My lessons, newest first. While any is being made, asks again every 3 seconds. */
+export function useLessons() {
+  const { data, update } = useTeacherStore()
+  const query = useQuery({
+    queryKey: lessonKeys.list,
+    queryFn: lessonsApi.list,
+    refetchInterval: (q) => (q.state.data?.some((l) => l.status === 'making') ? LIST_POLL_MS : false),
+  })
+  const { lessonNotes } = data
+  const lessons = useMemo(
+    () =>
+      (query.data ?? []).map(
+        (item): LessonWithCounts => ({
+          ...toScreenLesson(item, lessonNotes[item.id]),
+          toCheck: item.counts.toCheck,
+          approved: item.counts.approved,
+        }),
+      ),
+    [query.data, lessonNotes],
+  )
+
+  /** Assign stays on the screen for now (the backend has no assign yet). */
+  const assignLesson = useCallback(
+    (id: string, dueLabel: string) =>
+      update((d) => ({ ...withNote(d, id, { assignedNote: `due ${dueLabel.split(',')[0]}` }), todos: finishTodos(d.todos, 'games', id) })),
+    [update],
+  )
+
+  /** The games switched on for the review pack (screen only for now). */
+  const setPackGames = useCallback((id: string, games: TemplateId[]) => update((d) => withNote(d, id, { games })), [update])
+
+  return { lessons, loading: query.isPending, error: query.error, assignLesson, setPackGames }
+}
+
+/** One lesson (with its questions). While it is being made, asks again every 2 seconds. */
+export function useLessonLoad(id: string | undefined) {
+  const { data } = useTeacherStore()
+  const query = useQuery({
+    queryKey: lessonKeys.one(id ?? ''),
+    queryFn: () => lessonsApi.get(id!),
+    enabled: !!id,
+    refetchInterval: (q) => (q.state.data?.status === 'making' ? LESSON_POLL_MS : false),
+  })
+  const note = id ? data.lessonNotes[id] : undefined
+  const server = query.data
+  const fetchedAt = query.dataUpdatedAt
+  const lesson = useMemo((): LessonDetail | undefined => {
+    if (!server) return undefined
+    return {
+      ...toScreenLesson(server, note),
+      toCheck: server.counts.toCheck,
+      approved: server.counts.approved,
+      textLevel: server.textLevel,
+      makingStep: server.makingStep,
+      makingSeconds: server.seconds,
+      fetchedAt,
+      error: server.error,
+      questions: [...server.questions].sort((a, b) => a.position - b.position),
+    }
+  }, [server, note, fetchedAt])
+  const notFound = query.error instanceof ApiError && query.error.status === 404
+  return { lesson, loading: query.isPending && !!id, notFound, error: query.error }
+}
+
+export function useLesson(id: string | undefined) {
+  return useLessonLoad(id).lesson
+}
+
+/** Upload, delete and "Make questions" for the Lessons pages. Each keeps the cached lessons fresh. */
+export function useLessonActions() {
+  const queryClient = useQueryClient()
+
+  const upload = useCallback(
+    async (file: File, onProgress: (p: UploadPhase) => void, signal?: AbortSignal) => {
+      const answer = await lessonsApi.upload(file, onProgress, signal)
+      void queryClient.invalidateQueries({ queryKey: lessonKeys.list })
+      return answer
+    },
+    [queryClient],
+  )
+
+  const removeLesson = useCallback(
+    async (id: string) => {
+      await lessonsApi.remove(id)
+      queryClient.removeQueries({ queryKey: lessonKeys.one(id) })
+      void queryClient.invalidateQueries({ queryKey: lessonKeys.list })
+    },
+    [queryClient],
+  )
+
+  const makeQuestions = useCallback(
+    async (id: string, input: GenerateInput) => {
+      await lessonsApi.generate(id, input)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: lessonKeys.one(id) }),
+        queryClient.invalidateQueries({ queryKey: lessonKeys.list }),
+      ])
+    },
+    [queryClient],
+  )
+
+  return { upload, removeLesson, makeQuestions }
+}
+
+// ---------- To do ----------
+
 /** A To do as Home shows it: always with a title. */
 export type ShownTodo = TodoItem & { title: string }
 
@@ -104,17 +261,25 @@ const checkTitle = (n: number) => `Check ${n} AI-drafted question${n === 1 ? '' 
 
 export function useTodos() {
   const { data, update } = useTeacherStore()
-  // "Check" items count the lesson's draft cards now, and leave the list at 0.
-  const todos = useMemo(
-    () =>
-      data.todos.flatMap((t): ShownTodo[] => {
-        if (t.target.kind !== 'check') return [{ ...t, title: t.title ?? '' }]
-        const { lessonId } = t.target
-        const left = data.cards.filter((c) => c.lessonId === lessonId && c.status === 'draft').length
-        return left > 0 ? [{ ...t, title: checkTitle(left) }] : []
-      }),
-    [data.todos, data.cards],
-  )
+  const { lessons } = useLessons()
+  const todos = useMemo(() => {
+    // One "Check" item per lesson with drafts, from the backend's counts.
+    const checks = lessons
+      .filter((l) => l.toCheck > 0 && (l.status === 'toCheck' || l.status === 'ready'))
+      .map(
+        (l): ShownTodo => ({
+          id: `check-${l.id}`,
+          title: checkTitle(l.toCheck),
+          detail: `${l.title} · hidden until approved`,
+          action: 'Review',
+          primary: true,
+          target: { kind: 'check', lessonId: l.id },
+          done: false,
+        }),
+      )
+    const others = data.todos.filter((t) => t.target.kind !== 'check').map((t): ShownTodo => ({ ...t, title: t.title ?? '' }))
+    return [...checks, ...others]
+  }, [lessons, data.todos])
   const toggle = useCallback(
     (id: string) =>
       update((d) => ({
@@ -126,223 +291,135 @@ export function useTodos() {
   return { todos, upcoming: data.upcoming, toggle }
 }
 
-export interface LessonWithCounts extends Lesson {
-  toCheck: number
-  approved: number
-}
+// ---------- Question cards ----------
 
-const withCounts = (data: TeacherData) => (l: Lesson): LessonWithCounts => {
-  const mine = data.cards.filter((c) => c.lessonId === l.id)
-  return {
-    ...l,
-    toCheck: mine.filter((c) => c.status === 'draft').length,
-    approved: mine.filter((c) => c.status === 'approved').length,
-  }
-}
-
-export interface NewLesson {
-  fileName: string
-  fileType: FileType
-  fileSize: string
-  topic: string
-  subject: string
-  games: TemplateId[]
-}
-
-/** FAKE: the "AI" takes about this long to draft a lesson's questions. */
-export const MAKING_MS = 6000
-
-/** FAKE: what "reading" an uploaded file finds. TODO: the backend reads the real file. */
-export const fakeFileFacts = (type: FileType) => ({ size: type === 'PPT' ? '12 slides' : '3 pages', words: 1240 })
-
-/** Marks every To do that points at this lesson as done. */
-const finishTodos = (todos: TodoItem[], kind: 'check' | 'games', lessonId: string) =>
-  todos.map((t) =>
-    !t.done && t.target.kind === kind && t.target.lessonId === lessonId ? { ...t, done: true, doneAt: nowLabel() } : t,
-  )
-
-/** Drafting finished: the lesson gets its question cards and a To do. */
-const finishMaking = (d: TeacherData, id: string): TeacherData => {
-  const lesson = d.lessons.find((l) => l.id === id)
-  if (!lesson || lesson.status !== 'making') return d
-  // TODO: the cards come from the backend (AI) once it exists.
-  const { cards, quotes } = fakeDraftsFor(lesson, activeSection(d)?.grade ?? 4)
-  // No title: useTodos counts the draft cards left.
-  const todo: TodoItem = {
-    id: `t-${id}`,
-    detail: `${lesson.title} · hidden until approved`,
-    action: 'Review',
-    primary: true,
-    target: { kind: 'check', lessonId: id },
-    done: false,
-  }
-  return {
-    ...d,
-    lessons: d.lessons.map((l) => (l.id === id ? { ...l, status: 'toCheck' } : l)),
-    cards: [...d.cards, ...cards],
-    sourceQuotes: { ...d.sourceQuotes, ...quotes },
-    todos: [todo, ...d.todos],
-  }
-}
+/** Positions 1, 2, 3… after a card is added or removed (Quiz Show, Match Up, Fill the Blank). */
+const CARD_GAME_ORDER: TemplateId[] = ['quiz-show', 'match-up', 'fill-blank']
+const renumberCards = (cards: ServerQuestion[]) =>
+  [...cards]
+    .sort(
+      (a, b) =>
+        CARD_GAME_ORDER.indexOf(TEMPLATE_FOR_TYPE[a.type]) - CARD_GAME_ORDER.indexOf(TEMPLATE_FOR_TYPE[b.type]) ||
+        a.position - b.position,
+    )
+    .map((c, i) => (c.position === i + 1 ? c : { ...c, position: i + 1 }))
 
 /**
- * FAKE "AI": finishes every lesson that's being made, MAKING_MS after its upload,
- * whichever page the Teacher is on. Mounted once, in the planner.
+ * A lesson's question cards (from the backend, in position order) and the
+ * Check page's changes. Every change shows right away (optimistic) and is
+ * saved on its own; if the server says no, the card goes back and the
+ * function throws an ApiError with the server's friendly message.
  */
-export function useFakeMaking() {
-  const { data, update } = useTeacherStore()
-  const making = data.lessons.filter((l) => l.status === 'making')
-  const key = making.map((l) => `${l.id}@${l.makingStartedAt}`).join()
-  useEffect(() => {
-    if (!key) return
-    const timers = key.split(',').map((entry) => {
-      const [id, at] = entry.split('@')
-      const wait = Math.max(0, Number(at) + MAKING_MS - Date.now())
-      return window.setTimeout(() => update((d) => finishMaking(d, id)), wait)
-    })
-    return () => timers.forEach((t) => window.clearTimeout(t))
-  }, [key, update])
-}
-
-export function useLessons() {
-  const { data, update } = useTeacherStore()
-  const lessons = useMemo(() => data.lessons.map(withCounts(data)), [data])
-
-  /** Adds an uploaded lesson (status "making"). Returns its id. */
-  const addLesson = useCallback(
-    (input: NewLesson) => {
-      const id = `l${Date.now().toString(36)}`
-      const lesson: Lesson = {
-        id,
-        title: input.fileName.replace(/\.(pdf|pptx|docx)$/i, ''),
-        fileName: input.fileName,
-        fileType: input.fileType,
-        size: fakeFileFacts(input.fileType).size,
-        fileSize: input.fileSize,
-        uploaded: 'just now',
-        topic: input.topic,
-        subject: input.subject,
-        games: input.games,
-        status: 'making',
-        makingStartedAt: Date.now(),
-      }
-      update((d) => ({ ...d, lessons: [lesson, ...d.lessons] }))
-      return id
-    },
-    [update],
-  )
-
-  const assignLesson = useCallback(
-    (id: string, dueLabel: string) =>
-      update((d) => ({
-        ...d,
-        lessons: d.lessons.map((l) =>
-          l.id === id ? { ...l, status: 'assigned', assignedNote: `due ${dueLabel.split(',')[0]}` } : l,
-        ),
-        todos: finishTodos(d.todos, 'games', id),
-      })),
-    [update],
-  )
-
-  /** The games switched on for the review pack. */
-  const setPackGames = useCallback(
-    (id: string, games: TemplateId[]) => update((d) => ({ ...d, lessons: d.lessons.map((l) => (l.id === id ? { ...l, games } : l)) })),
-    [update],
-  )
-
-  return { lessons, addLesson, assignLesson, setPackGames }
-}
-
-export function useLesson(id: string | undefined) {
-  const { data } = useTeacherStore()
-  const lesson = data.lessons.find((l) => l.id === id)
-  return lesson ? withCounts(data)(lesson) : undefined
-}
-
-/** After a card changes: a lesson with nothing left to check is Ready. */
-const settle = (d: TeacherData, lessonId: string): TeacherData => {
-  const left = d.cards.some((c) => c.lessonId === lessonId && c.status === 'draft')
-  if (left) return d
-  return {
-    ...d,
-    lessons: d.lessons.map((l) => (l.id === lessonId && l.status === 'toCheck' ? { ...l, status: 'ready' } : l)),
-    todos: finishTodos(d.todos, 'check', lessonId),
-  }
-}
-
-/** A lesson's question cards, and the Check page's changes to them. */
 export function useCards(lessonId: string | undefined) {
-  const { data, update } = useTeacherStore()
-  const cards = useMemo(() => data.cards.filter((c) => c.lessonId === lessonId), [data.cards, lessonId])
-  const { sourceQuotes, editedCardIds } = data
+  const queryClient = useQueryClient()
+  const { lesson } = useLessonLoad(lessonId)
+  const cards = useMemo(() => lesson?.questions ?? [], [lesson])
 
-  /** FAKE: the lesson quote for a card (not a card field). */
-  const quoteFor = useCallback((id: string) => sourceQuotes[id], [sourceQuotes])
-  const isEdited = useCallback((id: string) => editedCardIds.includes(id), [editedCardIds])
-
-  /** An edit on the Check page (shown with a pencil until approved). */
-  const editCard = useCallback(
-    (id: string, patch: Partial<QuestionCard>) =>
-      update((d) => ({
-        ...d,
-        cards: d.cards.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-        editedCardIds: d.editedCardIds.includes(id) ? d.editedCardIds : [...d.editedCardIds, id],
-      })),
-    [update],
+  /** Changes the cached lesson's questions; returns a function that puts them back. */
+  const change = useCallback(
+    async (update: (questions: ServerQuestion[]) => ServerQuestion[]) => {
+      if (!lessonId) return () => undefined
+      const key = lessonKeys.one(lessonId)
+      await queryClient.cancelQueries({ queryKey: key })
+      const before = queryClient.getQueryData<ServerLesson>(key)
+      if (before) queryClient.setQueryData<ServerLesson>(key, { ...before, questions: update(before.questions) })
+      return () => {
+        if (before) queryClient.setQueryData(key, before)
+      }
+    },
+    [queryClient, lessonId],
   )
 
-  /** The caller checks the card with QuestionCardSchema first. */
-  const approveCard = useCallback(
-    (id: string) =>
-      update((d) => {
-        const next = {
-          ...d,
-          cards: d.cards.map((c) => (c.id === id ? { ...c, status: 'approved' as const } : c)),
-          editedCardIds: d.editedCardIds.filter((x) => x !== id),
-        }
-        return lessonId ? settle(next, lessonId) : next
-      }),
-    [update, lessonId],
+  /** After a save: fresh lesson (its status may change) and fresh list counts. */
+  const refresh = useCallback(() => {
+    if (!lessonId) return
+    void queryClient.invalidateQueries({ queryKey: lessonKeys.one(lessonId) })
+    void queryClient.invalidateQueries({ queryKey: lessonKeys.list })
+  }, [queryClient, lessonId])
+
+  /** Runs a save with an optimistic change; undoes it and rethrows if the server says no. */
+  const save = useCallback(
+    async <T,>(update: (questions: ServerQuestion[]) => ServerQuestion[], call: () => Promise<T>): Promise<T> => {
+      const undo = await change(update)
+      try {
+        const result = await call()
+        refresh()
+        return result
+      } catch (err) {
+        undo()
+        throw err
+      }
+    },
+    [change, refresh],
+  )
+
+  /** Saves an edit. A marked card counts as checked; an approved card goes back to check. */
+  const editCard = useCallback(
+    (id: string, edit: QuestionEdit) =>
+      save(
+        (qs) =>
+          qs.map((q) =>
+            q.id === id
+              ? { ...q, ...edit, explanation: edit.explanation, status: 'draft' as const, flagChecked: q.flag ? true : q.flagChecked }
+              : q,
+          ),
+        () => lessonsApi.editQuestion(id, edit),
+      ),
+    [save],
+  )
+
+  /** "Yes, keep it" for a marked card. */
+  const keepCard = useCallback(
+    (id: string) => save((qs) => qs.map((q) => (q.id === id ? { ...q, flagChecked: true } : q)), () => lessonsApi.keepQuestion(id)),
+    [save],
   )
 
   const deleteCard = useCallback(
-    (id: string) =>
-      update((d) => {
-        const next = { ...d, cards: d.cards.filter((c) => c.id !== id), editedCardIds: d.editedCardIds.filter((x) => x !== id) }
-        return lessonId ? settle(next, lessonId) : next
-      }),
-    [update, lessonId],
+    (id: string) => save((qs) => renumberCards(qs.filter((q) => q.id !== id)), () => lessonsApi.removeQuestion(id)),
+    [save],
   )
 
-  /** "+ Add my own question": an empty Quiz Show card, no right answer yet. Returns its id. */
-  const addCard = useCallback(() => {
-    if (!lessonId) return undefined
-    const id = `${lessonId}-own${Date.now().toString(36)}`
-    update((d) => {
-      const lesson = d.lessons.find((l) => l.id === lessonId)
-      const card: QuestionCard = {
-        id,
+  /** The Teacher's own question, at the end of its game group. Returns the saved question. */
+  const addCard = useCallback(
+    (question: NewQuestion) => {
+      if (!lessonId || !lesson) return Promise.reject(new ApiError('LESSON_NOT_FOUND', 'We could not find this lesson.'))
+      const temp: ServerQuestion = {
+        ...question,
+        id: `new-${Date.now().toString(36)}`,
         lessonId,
-        type: 'multiple_choice',
-        prompt: '',
-        choices: ['', '', '', ''],
-        answer: '',
-        subject: lesson?.subject ?? 'Math',
-        topic: lesson?.topic ?? '',
-        grade: activeSection(d)?.grade ?? 4,
-        level: 'easy',
+        subject: lesson.subject,
+        topic: lesson.topic,
+        grade: lesson.grade ?? 4,
         status: 'draft',
+        position: Number.MAX_SAFE_INTEGER,
+        flagChecked: false,
+        madeBy: 'teacher',
       }
-      return {
-        ...d,
-        cards: [...d.cards, card],
-        lessons: d.lessons.map((l) => (l.id === lessonId && l.status === 'ready' ? { ...l, status: 'toCheck' } : l)),
-      }
-    })
-    return id
-  }, [update, lessonId])
+      return save((qs) => renumberCards([...qs, temp]), () => lessonsApi.addQuestion(lessonId, question))
+    },
+    [save, lessonId, lesson],
+  )
 
-  return { cards, quoteFor, isEdited, editCard, approveCard, deleteCard, addCard }
+  /** Approves every card and the lesson. Throws MARKED_NOT_CHECKED / NO_QUESTIONS from the server. */
+  const approveAll = useCallback(async () => {
+    if (!lessonId) return
+    const approved = await lessonsApi.approveAll(lessonId)
+    queryClient.setQueryData(lessonKeys.one(lessonId), approved)
+    void queryClient.invalidateQueries({ queryKey: lessonKeys.list })
+  }, [queryClient, lessonId])
+
+  return { cards, editCard, keepCard, deleteCard, addCard, approveAll, refresh }
+}
+
+/** Whether the Teacher read this lesson's Check list to the end once (this session). */
+export function useCheckSeenEnd(lessonId: string | undefined) {
+  const { data, update } = useTeacherStore()
+  const seen = !!lessonId && data.checkSeenEnd.includes(lessonId)
+  const markSeen = useCallback(() => {
+    if (!lessonId) return
+    update((d) => (d.checkSeenEnd.includes(lessonId) ? d : { ...d, checkSeenEnd: [...d.checkSeenEnd, lessonId] }))
+  }, [update, lessonId])
+  return { seen, markSeen }
 }
 
 /** Per game: approved cards, cards still to check, and whether it has enough to play (MIN_CARDS). */
@@ -364,12 +441,6 @@ export function useLessonGames(lessonId: string | undefined) {
       toCheckTotal: cards.filter((c) => c.status === 'draft').length,
     }
   }, [cards])
-}
-
-/** The topics a question can belong to (Check page dropdown). */
-export function useTopics() {
-  const { data } = useTeacherStore()
-  return useMemo(() => [...new Set(data.lessons.map((l) => l.topic).concat(data.weakTopics.map((t) => t.topic)))], [data])
 }
 
 export function useReviewPackDefaults() {

@@ -93,6 +93,13 @@
   color: var(--color-text-subtle);
 }
 
+/* Something didn't work (e.g. "Didn't work · try again"). */
+.bad {
+  border-color: color-mix(in srgb, var(--color-danger-text) 45%, var(--color-card-bg));
+  background: color-mix(in srgb, var(--color-danger-text) 10%, var(--color-card-bg));
+  color: var(--color-danger-text);
+}
+
 .ai {
   height: 24px;
   padding: 0 8px;

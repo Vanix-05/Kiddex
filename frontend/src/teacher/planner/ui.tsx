@@ -29,7 +29,7 @@ export function Heading({ children, after }: { children: ReactNode; after?: Reac
   )
 }
 
-export type Tone = 'warn' | 'ok' | 'info' | 'neutral' | 'ai' | 'code'
+export type Tone = 'warn' | 'ok' | 'info' | 'neutral' | 'ai' | 'code' | 'bad'
 
 export function Chip({ tone, icon, children, className }: { tone: Tone; icon?: ReactNode; children: ReactNode; className?: string }) {
   return (

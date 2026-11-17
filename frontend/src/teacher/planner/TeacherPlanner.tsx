@@ -6,8 +6,10 @@ import { SceneBackground } from '../../components/SceneBackground/SceneBackgroun
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import { enterFullscreen, exitFullscreen, useIsFullscreen } from '../fullscreen'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { teacherQueryClient } from '../api/queryClient'
 import { TeacherDataProvider } from '../data/TeacherDataProvider'
-import { sectionLabel, useFakeMaking, useSection, useTeacher } from '../data/useTeacherData'
+import { sectionLabel, useSection, useTeacher } from '../data/useTeacherData'
 import type { SectionIcon } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
 import { AddStudentDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
@@ -101,17 +103,12 @@ type Popup = 'newSection' | 'addStudent' | 'logOut' | null
 /** The Teacher Dashboard: an open hardcover planner on the island scene. */
 export function TeacherPlanner() {
   return (
-    <TeacherDataProvider>
-      <FakeMaking />
-      <Planner />
-    </TeacherDataProvider>
+    <QueryClientProvider client={teacherQueryClient}>
+      <TeacherDataProvider>
+        <Planner />
+      </TeacherDataProvider>
+    </QueryClientProvider>
   )
-}
-
-/** FAKE "AI": finishes lessons being made, even after the Teacher leaves the Making page. */
-function FakeMaking() {
-  useFakeMaking()
-  return null
 }
 
 function Planner() {

@@ -1,364 +1,702 @@
-/* Check the questions (04). Stage px. */
+/* "Check the questions" (c1–c4). Sizes in stage px (1440x900). Text is 15px or more,
+   except the small grey info lines. Touch targets are at least 44px. */
+
+/* ---------- Left page ---------- */
+
+.leftPage {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
 .back {
   align-self: flex-start;
-  margin: -6px 0 2px;
-  font-size: 15px;
-}
-
-.from {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 4px 0 0;
-  font-size: 16px;
-  color: var(--color-text-subtle);
-}
-
-.progressRow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 10px;
+  min-height: 44px;
+  margin: -12px 0 -8px;
+  padding: 0;
+  border: 0;
+  background: none;
   font: 600 16px/1 var(--font-display);
-  color: var(--color-planner-ink);
-  white-space: nowrap;
+  color: var(--color-link);
+  cursor: pointer;
 }
 
-.progress {
-  position: relative;
-  flex: 1;
-  height: 14px;
-  border-radius: var(--radius-pill);
-  background: var(--color-bar-track);
-  overflow: hidden;
+.back:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
-.progressFill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: var(--radius-pill);
-  background: var(--color-ok-fill);
-  transition: width 250ms ease;
-}
-
-.pills {
+.lookTitle {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
+  margin: 24px 0 0;
+  font: 600 18px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
 }
 
-/* ---------- List ---------- */
+.leftBadge,
+.doneBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-text-on-dark);
+}
 
-.list {
-  margin: 6px -12px 0 -12px;
-  padding: 0;
-  list-style: none;
+.leftBadge {
+  background: var(--color-button-bg);
+}
+
+.doneBadge {
+  background: var(--color-ok-fill);
+}
+
+.nothingMarked {
+  margin: 10px 0 0;
+  max-width: 420px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--color-text-subtle);
+}
+
+.markedList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 340px;
+  margin: 12px 0 0;
+  padding: 2px 4px 2px 0;
   overflow-y: auto;
+  list-style: none;
   scrollbar-width: thin;
 }
 
-.list li {
-  margin: 0 12px;
-}
-
-.list li + li {
-  border-top: 2px dashed var(--color-neutral-line);
-}
-
-.row {
+.markedRow {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  height: 48px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 10px;
-  background: none;
-  font: 500 16px/1 var(--font-body);
-  color: var(--color-text);
+  min-height: 60px;
+  padding: 8px 14px;
+  border: 2px solid var(--color-warn-line);
+  border-radius: 14px;
+  background: var(--color-input-bg);
   text-align: left;
   cursor: pointer;
 }
 
-.row:hover {
-  background: color-mix(in srgb, var(--color-title-pill-bg) 30%, transparent);
+.markedRow:hover {
+  border-color: var(--color-button-bg);
 }
 
-/* The question in the editor: highlighted, a little wider than the list. */
-.rowOn,
-.rowOn:hover {
-  margin: 0 -12px;
-  width: calc(100% + 24px);
-  padding: 0 16px;
-  background: color-mix(in srgb, var(--color-title-pill-bg) 70%, transparent);
-  font-weight: 600;
+.markedRowDone {
+  border-color: var(--color-neutral-line);
+  background: color-mix(in srgb, var(--color-ok-bg) 35%, var(--color-input-bg));
+}
+
+.markedNum {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--color-button-bg);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-text-on-dark);
+}
+
+.markedNumDone {
+  background: var(--color-ok-fill);
+}
+
+.markedText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.markedText strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 600 16px/1.25 var(--font-display);
   color: var(--color-planner-ink);
+}
+
+.markedText span {
+  font-size: 15px;
+  color: var(--color-warn-text);
+}
+
+.markedRowDone .markedText strong {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.markedRowDone .markedText span {
+  color: var(--color-ok-text);
+}
+
+.markedGo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-link);
+}
+
+.markedTick {
+  flex: none;
+  color: var(--color-ok-text);
+}
+
+/* ---------- Right page: the list ---------- */
+
+.rightPage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.listWrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Only the list scrolls; soft fades at the top and bottom edges. */
+.list {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 10px 12px 18px 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-line) transparent;
+  overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+}
+
+.pageNote {
+  margin-top: 24px;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.approvedNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 2px solid var(--color-ok-line);
+  border-radius: 12px;
+  background: var(--color-ok-bg);
+  font: 600 15px/1.35 var(--font-display);
+  color: var(--color-ok-text);
+}
+
+.group + .group {
+  margin-top: 18px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+/* A thin line after the heading. */
+.groupHead::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  margin-left: 4px;
+  background: var(--color-neutral-line);
+}
+
+.groupThumb {
+  width: 44px;
+  height: 30px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.groupName {
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.groupCount {
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cardSlot {
+  border-radius: 16px;
+}
+
+/* "Go →": a short soft highlight on the card (not with reduced motion). */
+.cardSlot[data-flash] > article {
+  animation: flash 1600ms ease-out;
+}
+
+@keyframes flash {
+  0%,
+  35% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-button-bg) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+/* ---------- A question card ---------- */
+
+.card {
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+}
+
+.cardMarked {
+  border: 2.5px solid var(--color-button-bg);
+}
+
+.cardMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 8px 12px 14px;
+}
+
+.cardPair .cardMain {
+  align-items: center;
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .num {
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   background: var(--color-neutral-bg);
   font: 600 15px/1 var(--font-display);
+  color: var(--color-planner-ink);
 }
 
-.text {
+.numMarked {
+  background: var(--color-button-bg);
+  color: var(--color-text-on-dark);
+}
+
+.numChecked {
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
+}
+
+.cardBody {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  padding-top: 3px;
 }
 
-.gameTag {
-  flex: none;
-  padding: 4px 8px;
-  border: 1.5px solid var(--color-neutral-line);
-  border-radius: 7px;
-  background: var(--color-input-bg);
-  font: 600 15px/1 var(--font-display);
-  color: var(--color-text-subtle);
+.qText {
+  margin: 0;
+  font: 600 17px/1.35 var(--font-display);
+  color: var(--color-planner-ink);
 }
 
-/* Game colors: Quiz orange, Match blue, Blank green. */
-.tone_warn {
-  border-color: var(--color-warn-line);
-  background: var(--color-warn-bg);
-  color: var(--color-warn-text);
+/* The ___ in a Fill the Blank sentence. */
+.gap {
+  display: inline-block;
+  width: 3.2em;
+  margin: 0 4px;
+  border-bottom: 2.5px solid var(--color-planner-ink);
+  vertical-align: -2px;
 }
 
-.tone_info {
-  border-color: var(--color-info-line);
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.tone_ok {
-  border-color: var(--color-ok-line);
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 3px 11px;
+  border-radius: 9px;
+  background: var(--color-neutral-bg);
+  font: 600 15px/1.2 var(--font-display);
+  color: var(--color-text-muted);
+}
+
+.choiceRight {
   background: var(--color-ok-bg);
   color: var(--color-ok-text);
 }
 
-/* The big game tag at the top-right of the editor. */
-.gameChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 32px;
-  padding: 0 14px;
-  border: 2px solid;
-  border-radius: var(--radius-pill);
-  font: 600 16px/1 var(--font-display);
-  white-space: nowrap;
-}
-
-/* "Only Match Up ×" next to the pills. */
-.onlyGame {
-  display: inline-flex;
-  align-items: center;
+.why {
+  display: flex;
+  align-items: flex-start;
   gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border: 2px solid;
-  border-radius: var(--radius-pill);
-  font: 600 15px/1 var(--font-display);
-  cursor: pointer;
-}
-
-.noneShown {
-  padding: 14px 4px;
+  margin: 8px 0 0;
   font-size: 15px;
+  line-height: 1.4;
   color: var(--color-text-subtle);
 }
 
-.dot {
+.why svg {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid var(--color-button-bg);
-  border-radius: 50%;
-  color: var(--color-text-on-dark);
-}
-
-.dotOk {
-  border-color: var(--color-ok-fill);
-  background: var(--color-ok-fill);
-}
-
-.dotEdited {
-  border-color: var(--color-returning-button);
-  background: var(--color-returning-button);
-}
-
-.listFoot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-}
-
-.more {
-  font-size: 15px;
-  color: var(--color-text-subtle);
-}
-
-/* ---------- Editor ---------- */
-
-.head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
   margin-top: 2px;
 }
 
-.qTitle {
+.meta {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.metaMark {
+  font-weight: 600;
+  color: var(--color-warn-text);
+}
+
+/* Match Up: one line, "2/4 🔗 1/2", then the level on the right. */
+.pairBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.pairLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  font: 600 30px/1.1 var(--font-display);
+  font: 600 17px/1.3 var(--font-display);
   color: var(--color-planner-ink);
 }
 
-.headGame {
-  margin-left: auto;
+.pairLink {
+  color: var(--color-text-subtle);
 }
 
-.label {
+.pairBody .meta {
+  margin: 0;
+}
+
+.icons {
+  flex: none;
+  display: flex;
+}
+
+.iconBtn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: var(--color-neutral-bg);
+  color: var(--color-planner-ink);
+}
+
+/* "⚠ Is this answer right?  Yes, keep it  Fix it" and "Delete this question?" */
+.markRow,
+.confirmRow,
+.askRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 2px 14px 12px 56px;
+}
+
+.markAsk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font: 600 16px/1.2 var(--font-display);
+  color: var(--color-warn-text);
+}
+
+.confirmRow {
+  padding-top: 10px;
+  border-top: 2px dashed var(--color-neutral-line);
+  font: 600 16px/1.2 var(--font-display);
+  color: var(--color-danger-text);
+}
+
+.confirmRow > span {
+  margin-right: auto;
+}
+
+.keepBtn,
+.fixBtn,
+.deleteBtn,
+.saveSmall {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 2px solid var(--color-planner-ink);
+  border-radius: 12px;
+  background: var(--color-input-bg);
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.keepBtn {
+  border-color: var(--color-ok-fill);
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--color-ok-fill) 60%, #000);
+}
+
+.deleteBtn {
+  border-color: var(--color-danger-text);
+  background: var(--color-danger-text);
+  color: var(--color-text-on-dark);
+}
+
+.saveSmall {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  color: var(--color-text-on-dark);
+}
+
+/* ---------- Editing a card (c2) ---------- */
+
+.editor {
+  padding: 14px 16px 16px;
+  border: 2.5px solid var(--color-planner-ink);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-title-pill-bg) 55%, transparent);
+}
+
+.editorHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.editorTitle {
+  margin: 0;
+  font: 600 17px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.fLabel {
   display: block;
-  margin: 16px 0 7px;
-  font: 600 15px/1 var(--font-display);
+  margin: 10px 0 6px;
+  font: 600 15px/1.2 var(--font-display);
   color: var(--color-planner-ink);
 }
 
-.labelHint {
+.fHint {
   font-family: var(--font-body);
   font-weight: 400;
   color: var(--color-text-subtle);
 }
 
-.question {
+.fInput,
+.fArea {
   width: 100%;
-  height: 76px;
-  padding: 10px 16px;
-  border: 2.5px solid var(--color-card-border);
-  border-radius: 14px;
-  background: var(--color-input-bg);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-title-pill-bg) 60%, transparent);
-  font: 500 18px/1.4 var(--font-body);
-  color: var(--color-text);
-  resize: none;
-}
-
-.choices {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.choice {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 46px;
-  padding: 0 12px;
-  border: 2px solid var(--color-neutral-line);
+  padding: 10px 12px;
+  border: 2px solid var(--color-card-border);
   border-radius: 12px;
   background: var(--color-input-bg);
+  font: 500 16px/1.35 var(--font-body);
+  color: var(--color-text);
+}
+
+.fInput {
+  min-height: 46px;
+}
+
+.fArea {
+  resize: vertical;
+}
+
+.fInput[aria-invalid='true'],
+.fArea[aria-invalid='true'] {
+  border-color: var(--color-danger-text);
+}
+
+.promptRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.addBlank {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px dashed var(--color-card-border);
+  border-radius: 12px;
+  background: none;
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-planner-ink);
   cursor: pointer;
 }
 
-.choiceRight {
+.fieldProblem {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--color-danger-text);
+}
+
+.choiceBoxes {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.choiceBoxes3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.choiceBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 10px 0 2px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 12px;
+  background: var(--color-input-bg);
+}
+
+.choiceBoxRight {
   border-color: var(--color-ok-fill);
   background: var(--color-ok-bg);
 }
 
-.radio {
+/* The round mark: a 44px target around a 26px circle. */
+.pick {
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 2.5px solid var(--color-neutral-line);
-  border-radius: 50%;
-  background: var(--color-input-bg);
-  color: var(--color-text-on-dark);
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
   cursor: pointer;
 }
 
-.choiceRight .radio {
+.pick::before {
+  content: '';
+  grid-area: 1 / 1;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+}
+
+.pick[aria-pressed='true']::before {
   border-color: var(--color-ok-fill);
   background: var(--color-ok-fill);
+}
+
+.pick svg {
+  grid-area: 1 / 1;
+  position: relative;
+  color: var(--color-text-on-dark);
 }
 
 .choiceInput {
   flex: 1;
   min-width: 0;
-  height: 34px;
-  padding: 0 4px;
+  height: 40px;
   border: 0;
-  border-radius: 6px;
-  background: none;
-  font: 500 17px/1 var(--font-body);
+  background: transparent;
+  font: 500 16px/1 var(--font-body);
   color: var(--color-text);
 }
 
-.choiceInput:focus-visible {
-  outline-offset: 0;
-}
-
 .rightTag {
+  flex: none;
   font: 600 15px/1 var(--font-display);
   color: var(--color-ok-text);
 }
 
-.meta {
+.whyLevel {
   display: flex;
-  gap: 18px;
+  align-items: flex-end;
+  gap: 12px;
 }
 
-.metaField {
-  display: flex;
-  flex-direction: column;
-}
-
-.metaField:first-child {
+.whyField {
   flex: 1;
-}
-
-.select {
-  height: 46px;
-  padding: 0 12px;
-  border: 2px solid var(--color-neutral-line);
-  border-radius: 12px;
-  background: var(--color-input-bg);
-  font: 500 17px/1 var(--font-body);
-  color: var(--color-text);
-  cursor: pointer;
+  min-width: 0;
 }
 
 .levels {
   display: flex;
-  height: 46px;
-  overflow: hidden;
   border: 2px solid var(--color-neutral-line);
   border-radius: 12px;
+  overflow: hidden;
 }
 
 .level {
-  width: 78px;
+  min-width: 70px;
+  min-height: 44px;
+  padding: 0 10px;
   border: 0;
   background: var(--color-input-bg);
-  font: 600 16px/1 var(--font-display);
-  color: var(--color-text-muted);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-text-subtle);
   cursor: pointer;
 }
 
@@ -371,297 +709,289 @@
   color: var(--color-planner-ink);
 }
 
-.level:focus-visible {
-  outline-offset: -4px;
-}
-
-/* The taped quote from the lesson. */
-.source {
-  position: relative;
-  margin: 16px 0 0;
-  padding: 14px 18px 14px;
-  background: white;
-  box-shadow: 0 4px 12px rgba(90, 57, 35, 0.14);
-}
-
-.sourceTape {
-  position: absolute;
-  top: -8px;
-  left: -10px;
-  width: 64px;
-  height: 22px;
-  background: color-mix(in srgb, var(--color-tape-blue) 85%, transparent);
-  transform: rotate(-8deg);
-}
-
-.sourceTitle {
+.editActions {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 600 15px/1 var(--font-display);
-  color: var(--color-text-muted);
-}
-
-.quote {
-  margin: 8px 0 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--color-text);
-}
-
-.mark {
-  padding: 0 3px;
-  background: var(--color-sticky-yellow);
-  color: inherit;
-}
-
-.own {
-  margin: 18px 0 0;
-  font-size: 15px;
-  color: var(--color-text-subtle);
-}
-
-/* "Why it's right" */
-.why {
-  width: 100%;
-  height: 60px;
-  padding: 7px 16px;
-  border: 2px solid var(--color-neutral-line);
-  border-radius: 12px;
-  background: var(--color-input-bg);
-  font: 400 16px/1.35 var(--font-body);
-  color: var(--color-text);
-  resize: none;
-}
-
-.why::placeholder {
-  color: var(--color-input-placeholder);
-}
-
-/* Fill the Blank: the sentence with its ___ highlighted. */
-.sentence {
-  position: relative;
-}
-
-.sentenceBack {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  padding: 10px 16px;
-  border: 2.5px solid transparent;
-  font: 500 18px/1.4 var(--font-body);
-  color: transparent;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  pointer-events: none;
-}
-
-.blank {
-  border-bottom: 3px solid var(--color-button-bg);
-  border-radius: 4px 4px 0 0;
-  background: var(--color-warn-bg);
-  color: transparent;
-}
-
-.sentenceInput {
-  position: relative;
-  display: block;
-  background: transparent;
-}
-
-/* The box's paper color, drawn under the highlight (the text box itself is see-through). */
-.sentence::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  background: var(--color-input-bg);
-}
-
-.sentenceBack,
-.sentenceInput {
-  z-index: 1;
-}
-
-/* Match Up: left ↔ right. */
-.pair {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.pairSide {
-  flex: 1;
-  min-width: 0;
-  height: 56px;
-  padding: 0 14px;
-  border: 2.5px solid var(--color-card-border);
-  border-radius: 14px;
-  background: var(--color-input-bg);
-  font: 600 22px/1 var(--font-display);
-  color: var(--color-planner-ink);
-  text-align: center;
-}
-
-.pairLeft {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-title-pill-bg) 60%, transparent);
-}
-
-.pairSide::placeholder {
-  color: var(--color-input-placeholder);
-}
-
-.pairLink {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--color-info-line);
-  border-radius: 50%;
-  background: var(--color-info-bg);
-  color: var(--color-info-text);
-}
-
-.pairs {
-  max-height: 156px;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  border: 2px solid var(--color-neutral-line);
-  border-radius: 12px;
-  background: var(--color-input-bg);
-  list-style: none;
-  scrollbar-width: thin;
-}
-
-.pairs li + li {
-  border-top: 2px dashed var(--color-neutral-line);
-}
-
-.pairRow {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  width: 100%;
-  height: 37px;
-  padding: 0 14px;
-  border: 0;
-  background: none;
-  font: 600 16px/1 var(--font-display);
+  margin-top: 14px;
+}
+
+.cancelBtn {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 2px solid var(--color-planner-ink);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  font: 600 17px/1 var(--font-display);
   color: var(--color-planner-ink);
-  text-align: left;
   cursor: pointer;
 }
 
-.pairRow:hover {
-  background: color-mix(in srgb, var(--color-title-pill-bg) 25%, transparent);
-}
-
-.pairRowOn,
-.pairRowOn:hover {
-  background: color-mix(in srgb, var(--color-title-pill-bg) 70%, transparent);
-}
-
-.pairL {
-  width: 74px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pairArrow {
-  flex: none;
-  color: var(--color-info-text);
-}
-
-.pairR {
+.saveBtn {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-family: var(--font-body);
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: 2px solid var(--color-button-border);
+  border-radius: 14px;
+  background: var(--color-button-bg);
+  box-shadow: 0 3px 0 var(--color-button-border);
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-text-on-dark);
+  cursor: pointer;
 }
 
-.pairOk,
-.pairNow,
-.pairTodo {
-  flex: none;
-  font: 600 14px/1 var(--font-display);
+.saveBtn:hover {
+  background: var(--color-button-bg-hover);
 }
 
-.pairOk {
-  color: var(--color-ok-text);
-}
-
-.pairNow {
+.askRow {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-warn-bg);
+  font: 600 16px/1.2 var(--font-display);
   color: var(--color-warn-text);
 }
 
-.pairTodo {
-  color: var(--color-text-subtle);
+.askRow > span {
+  margin-right: auto;
 }
 
-.pairCount {
+/* ---------- Add my own question ---------- */
+
+.addOwn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 10px 0 0;
-  font: 600 15px/1 var(--font-display);
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 16px;
+  border: 2.5px dashed var(--color-warn-line);
+  border-radius: 16px;
+  background: none;
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-link);
+  cursor: pointer;
+}
+
+.addOwn:hover {
+  background: color-mix(in srgb, var(--color-warn-bg) 40%, transparent);
+}
+
+.chooseGame {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 8px 8px 8px 16px;
+  border: 2.5px dashed var(--color-warn-line);
+  border-radius: 16px;
+}
+
+.chooseLabel {
+  margin-right: 4px;
+  font: 600 16px/1 var(--font-display);
   color: var(--color-planner-ink);
 }
 
-.squares {
+.gameChip {
   display: inline-flex;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px 0 6px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 12px;
+  background: var(--color-input-bg);
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  cursor: pointer;
 }
 
-.sq {
-  width: 15px;
-  height: 15px;
-  border: 2px solid var(--color-ok-fill);
-  border-radius: 4px;
-  background: var(--color-bar-green);
+.gameChip:hover {
+  border-color: var(--color-button-bg);
 }
 
-.sqEmpty {
-  border: 2px dashed var(--color-neutral-line);
-  background: none;
+.gameChipThumb {
+  width: 38px;
+  height: 26px;
+  border: 1.5px solid var(--color-card-border);
+  border-radius: 5px;
+  object-fit: cover;
 }
 
-/* The friendly line when Approve finds a problem. */
-.problem {
+.endMarker {
+  height: 1px;
+}
+
+/* ---------- Toasts ---------- */
+
+.toasts {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: 90%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--color-planner-ink);
+  box-shadow: 0 6px 16px rgba(40, 20, 10, 0.25);
+  font: 600 15px/1.3 var(--font-display);
+  text-align: center;
+  color: var(--color-text-on-dark);
+  animation: toastIn 200ms ease-out;
+}
+
+.toastBad {
+  background: var(--color-danger-text);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ---------- The bottom bar (c1 locked, c3 marked, c4 ready) ---------- */
+
+.bar {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin: 12px 0 -6px;
-  font: 600 16px/1.2 var(--font-display);
-  color: var(--color-danger-text);
-}
-
-.problem:empty {
-  margin: 0;
-}
-
-.actions {
-  display: flex;
   gap: 14px;
-  margin-top: 20px;
+  min-height: 76px;
+  padding: 10px 12px 10px 14px;
+  border: 2.5px solid var(--color-neutral-line);
+  border-radius: 18px;
+  background: var(--color-neutral-bg);
 }
 
-.actions > button {
+.barIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
   height: 46px;
-  font-size: 17px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-neutral-line) 55%, var(--color-input-bg));
+  color: var(--color-text-subtle);
 }
 
-.approve {
+.barText {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.barText strong {
+  font: 600 18px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.barText span {
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--color-text-subtle);
+}
+
+.barLocked,
+.barGo,
+.barApprove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font: 600 19px/1 var(--font-display);
+}
+
+.barLocked {
+  border: 2px solid var(--color-neutral-line);
+  background: var(--color-neutral-bg);
+  color: var(--color-text-subtle);
+  cursor: not-allowed;
+}
+
+.barMarked {
+  border-color: var(--color-warn-line);
+  background: color-mix(in srgb, var(--color-warn-bg) 60%, var(--color-input-bg));
+}
+
+.barMarked .barIcon {
+  background: var(--color-warn-bg);
+  color: var(--color-link);
+}
+
+.barGo {
+  border: 2.5px solid var(--color-planner-ink);
+  background: var(--color-input-bg);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.barReady {
+  border-color: var(--color-ok-line);
+  background: var(--color-ok-bg);
+}
+
+.barReady .barIcon {
+  background: var(--color-ok-fill);
+  color: var(--color-text-on-dark);
+}
+
+.barApprove {
+  border: 2px solid var(--color-ok-fill);
+  background: var(--color-ok-fill);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color-ok-fill) 60%, #000);
+  color: var(--color-text-on-dark);
+  cursor: pointer;
+}
+
+.barApprove:disabled {
+  cursor: default;
+  box-shadow: none;
+  opacity: 0.9;
+}
+
+/* "All approved!": a small sparkle, then the Games page. */
+.barDone .barIcon {
+  animation: sparkle 700ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes sparkle {
+  from {
+    transform: scale(0.4) rotate(-30deg);
+  }
+  to {
+    transform: scale(1) rotate(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .progressFill {
-    transition: none;
+  .cardSlot[data-flash] > article,
+  .barDone .barIcon,
+  .toast {
+    animation: none;
   }
 }
