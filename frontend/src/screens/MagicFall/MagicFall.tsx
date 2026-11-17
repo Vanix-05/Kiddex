@@ -13,6 +13,12 @@ const FALLBACK_MS = 10_000
 const NO_VIDEO_SECONDS = 2
 /** The cross-fade from the start frame to the video's first frame. */
 const VIDEO_FADE = 0.5
+/**
+ * The video's opacity once faded in: 0.999, not 1. A fully opaque full-screen video becomes a
+ * hardware overlay on Windows, and setting that up stops the graphics for about 0.2 s on a weak
+ * laptop (HD 510), right as the fade ends. 0.999 looks the same. (As the pull-in's wide shot.)
+ */
+const VIDEO_SHOWN = 0.999
 /** The buddy starts as a pencil sketch and fills with color over this long. */
 const SKETCH_SECONDS = 1.5
 /** Over the last 2 s the buddy eases down and to the right, toward where the pier will be. */
@@ -151,8 +157,8 @@ export function MagicFall({ buddy, buddyColor, video, onLeave, onGone, freezeAt 
     leaveNow.current = leave
 
     const apply = () => {
-      // The video fades in over the start frame once it is really playing.
-      if (player) player.style.opacity = (videoFrom === null ? 0 : seg(t, videoFrom, videoFrom + VIDEO_FADE)).toFixed(3)
+      // The video fades in over the start frame once it is really playing (up to VIDEO_SHOWN, not 1).
+      if (player) player.style.opacity = (videoFrom === null ? 0 : VIDEO_SHOWN * seg(t, videoFrom, videoFrom + VIDEO_FADE)).toFixed(3)
 
       // Sketch to color.
       const color = seg(t, SKETCH_SECONDS - 0.8, SKETCH_SECONDS)

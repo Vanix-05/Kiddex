@@ -22,6 +22,7 @@ import { useIntroClip } from './intro/useIntroClip'
 import { magicFall } from '../MagicFall/magicFallStore'
 import { magicVideo } from '../MagicFall/magicVideo'
 import { pullInGate } from './pullIn/pullInGate'
+import { preloadPullInVideo, whenPullInVideo } from './pullIn/pullInVideo'
 import { usePullInClip } from './pullIn/usePullInClip'
 import { PerchedOllie } from './PerchedOllie'
 import { PetSpread } from './PetSpread'
@@ -71,7 +72,8 @@ const noAnswers = (): (number | null)[] => quizQuestions.map(() => null)
  * Choose saves the picks, then "the buddy pulls you in" plays here in the
  * bedroom (pullIn/): the buddy's arms reach out of the page and pull the
  * Student into it. The magic fall (screens/MagicFall) and the Customize
- * Bridge follow.
+ * Bridge follow. Its wide shot (the kid pulled into the book) is the boy's or
+ * the girl's video, from the gender picked here and saved by finishSetup.
  *
  * The book is 1216 x 748 at (96, 130) on a 1440 x 900 stage (Bedroom's book view).
  */
@@ -90,7 +92,7 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
 
   // (Dev: `pullIn` opens the book on Pick your buddy, just after Choose.)
   const [page, setPage] = useState(() => (pullIn ? PET_PAGE : clip === 'playing' ? INTRO_PAGE : GENDER_PAGE))
-  const [avatar, setAvatar] = useState<Avatar | null>(pullIn ? 'girl' : null)
+  const [avatar, setAvatar] = useState<Avatar | null>(pullIn ? pullIn.gender : null)
   // The card picked on each question (an index into its answers), kept when going Back.
   const [answers, setAnswers] = useState<(number | null)[]>(noAnswers)
   const [matchedBuddy, setMatchedBuddy] = useState<BuddyId | null>(pullIn?.buddy ?? null)
@@ -100,6 +102,10 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   const [chosen, setChosen] = useState(!!pullIn)
   // After Choose and "A perfect team!": the buddy pulls the Student into the page.
   const [pulling, setPulling] = useState(!!pullIn)
+  // The pull-in's wide shot for the Student's gender: its address, set once from Choose on (the
+  // clip's <video> is made with it and never gets a new src). null: none yet, or none at all.
+  const [wideVideo, setWideVideo] = useState<string | null>(null)
+  const keepWideVideo = useCallback((url: string | null) => setWideVideo((current) => current ?? url), [])
   // The glowing page covers the right page: what is under it stops animating.
   const [covered, setCovered] = useState(false)
   // The magic fall has taken over the screen: this book has nothing left to draw.
@@ -120,6 +126,17 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
     // While the reveal shows (and from question 5, just before it): Pick your buddy's meadow and pencil buddies.
     if (page >= LAST_QUESTION_PAGE) preloadPetPage()
   }, [page])
+
+  // As soon as Boy or Girl is picked, that one's wide shot starts downloading quietly (ready long before Choose).
+  useEffect(() => {
+    if (avatar) preloadPullInVideo(avatar)
+  }, [avatar])
+  // (Dev pull-in: the wide shot for the asked gender, unless ?wide=0.)
+  useEffect(() => {
+    if (pullIn?.wide) void whenPullInVideo(pullIn.gender).then(keepWideVideo)
+    // Once, when the dev page opens the book.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ---------- Timers ----------
   const timers = useRef<number[]>([])
@@ -247,6 +264,9 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
     const nickname = (names[selectedId] ?? '').trim()
     if (busy || !avatar || !isBuddyReady(selectedId)) return
     setChosen(true)
+    // The wide shot for the gender being saved: normally downloaded long ago (at Boy or Girl);
+    // if not, it is waited for, and the clip plays the old rush if it isn't there by the cut.
+    void whenPullInVideo(avatar).then(keepWideVideo)
     later(CHOSEN_MS, () => {
       // Saved now, so the picks are kept even if the clip is skipped or the tab is closed.
       // The gate keeps this book on screen meanwhile (SetupFrame would send a Student with a buddy away).
@@ -280,6 +300,8 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
     active: pulling,
     buddy: selectedId,
     buddyColor: pullIn ? pullIn.buddyColor : look.buddyColor,
+    wideVideo,
+    zoom: pullIn?.zoom,
     freezeAt: pullIn?.freezeAt,
     onEnd: endPullIn,
     onCovered: useCallback(() => setCovered(true), []),
@@ -441,6 +463,12 @@ interface SetupBookProps {
   pullIn?: {
     buddy: BuddyId
     buddyColor?: string
+    /** Which wide shot plays (boy or girl). */
+    gender: Avatar
+    /** false: no wide shot, the old rush (the fallback). */
+    wide: boolean
+    /** The start frame's size over the wide shot's last frame. */
+    zoom?: number
     /** Hold this moment (seconds). */
     freezeAt?: number
     onEnd: (next: 'fall' | 'customize') => void

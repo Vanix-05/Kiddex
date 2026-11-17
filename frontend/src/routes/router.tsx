@@ -101,7 +101,8 @@ export const router = createBrowserRouter([
           path: '/dev/intro',
           lazy: () => import('../screens/DevIntro/DevIntroScreen').then((m) => ({ Component: m.DevIntroScreen })),
         },
-        // "The buddy pulls you in" and the magic fall, on a loop: ?buddy=fox, ?t=4, ?video=0, ?part=fall.
+        // "The buddy pulls you in" and the magic fall, on a loop: ?buddy=fox, ?t=4, ?video=0, ?part=fall,
+        // ?gender=girl (the wide shot), ?wide=0 (the old rush instead), ?zoom=1.335 (the end fade).
         {
           path: '/dev/pullin',
           lazy: () => import('../screens/DevPullIn/DevPullInScreen').then((m) => ({ Component: m.DevPullInScreen })),

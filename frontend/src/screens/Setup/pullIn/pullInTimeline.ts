@@ -2,6 +2,9 @@ import {
   BOOK,
   BOOK_SCALE,
   BOOK_VIEW,
+  HAND_LEFT_H,
+  HAND_W,
+  handPivot,
   STAGE_H,
   STAGE_W,
   type BedroomFrame,
@@ -23,6 +26,17 @@ import { bedroomLayout } from '../../../assets/art'
  *   3.8 - 4.4   the kid's hands flinch back
  *   4.4 - 5.5   a pause; the right hand reaches forward; the paws close
  *               around it; the left hand slides away
+ *   5.0 - 5.5   the gold hand-off: the paws glow gold, and thin gold lines
+ *               loop around the paws and the kid's wrist (the same lines are
+ *               on the kid's wrists when the wide shot starts)
+ *   5.5 - 5.9   the first tug
+ *   5.9         HARD CUT on the second tug, to the wide shot: the kid at the
+ *               desk pulled into the book (pull-in-boy/girl.mp4, 4.58 s). It
+ *               ends on the glowing page; over its last 0.5 s it cross-fades
+ *               into the start frame (see WIDE).
+ *
+ * The old ending is kept as the fallback, when the video is missing or won't
+ * start (and for ?wide=0 on /dev/pullin):
  *   5.5 - 6.2   two tugs, the second stronger
  *   6.2 - 8.6   the rush into the glowing page, speeding up
  *   8.6 - 9     the page fills the screen: it is the start frame
@@ -32,11 +46,50 @@ export const BEAT = {
   arms: 2,
   flinch: 3.8,
   reach: 4.4,
+  gold: 5,
   tug: 5.5,
+  cut: 5.9,
   rush: 6.2,
   land: 8.6,
   end: 9,
 } as const
+
+/**
+ * The wide shot's ending (times in the video's own seconds, from its end).
+ * Its last frame is the start frame seen closer: 1.335x, moved a little up and
+ * left (measured by matching the pencil lines of both, the same for boy and
+ * girl). The video holds still over its last second, so the start frame
+ * fades in already lined up with it (no double star or sun), and only once it
+ * covers the video does it settle back to its own size, where the magic fall
+ * starts.
+ */
+export const WIDE = {
+  /** The start frame's size over the video's last frame. */
+  zoom: 1.335,
+  /** ...and how far it is moved then (stage pixels, at that zoom). */
+  shiftX: -13,
+  shiftY: -10,
+  /** The fade: from this long before the video's end... */
+  fadeFrom: 0.5,
+  /** ...until this long before it (fully covered). */
+  fadeTo: 0.2,
+  /** Then it settles to its own size, ending this long after the video's end: the clip is over. */
+  settleEnd: 0.4,
+  /** The video must be playing this soon after the cut, or the old rush plays instead. */
+  startWithin: 1.5,
+} as const
+
+/** The start frame over the wide video at video time vt (duration d): its opacity and transform (zoomed, then its own size). */
+export function wideEndAt(vt: number, d: number, zoom: number = WIDE.zoom) {
+  const opacity = ease(seg(vt, d - WIDE.fadeFrom, d - WIDE.fadeTo))
+  const settle = ease(seg(vt, d - WIDE.fadeTo, d + WIDE.settleEnd))
+  const k = 1 - settle
+  return {
+    opacity,
+    transform: `translate(${(WIDE.shiftX * k).toFixed(2)}px, ${(WIDE.shiftY * k).toFixed(2)}px) scale(${(1 + (zoom - 1) * k).toFixed(4)})`,
+    over: vt >= d + WIDE.settleEnd,
+  }
+}
 
 /** Reduce motion: fade to the start frame (0.5 s), hold it (0.5 s). */
 export const CALM = { fade: 0.5, end: 1 } as const
@@ -145,7 +198,7 @@ function leftHandAt(t: number): HandPose | null {
   return lerpHand(here, LEFT_AWAY, ease(seg(t, BEAT.reach + 0.5, BEAT.tug)))
 }
 
-function rightHandAt(t: number): HandPose {
+export function rightHandAt(t: number): HandPose {
   const rest = lerpHand(RIGHT_AWAY, RIGHT_REST, ease(seg(t, 0.2, 1)))
   const flinch = flinchAt(t)
   const here = { ...rest, x: rest.x + 0.3 * flinch, y: rest.y + flinch, rot: (rest.rot ?? 0) + 0.08 * flinch }
@@ -202,6 +255,83 @@ export function armsAt(t: number) {
     color: seg(t, 2.9, 3.7),
     /** The paws' soft shadow on the hand while they hold it. */
     shadow: close * (1 - seg(t, BEAT.land - 0.4, BEAT.land)),
+  }
+}
+
+// ---------- The gold hand-off ----------
+
+/** Where the closed paws are, below the arms' shoulders (book pixels; measured on /dev/pullin). */
+const PAW_DROP = 190
+
+/**
+ * A point of the open right hand's picture (u, v: shares of the unmirrored
+ * left-hand picture, from its top-left corner), in the book's pixels.
+ */
+export function handPointInBook(pose: HandPose, u: number, v: number) {
+  const pivot = handPivot(HAND_LEFT_H)
+  const size = pose.scale ?? 1
+  // Mirrored (it is the left hand's picture), then turned around the pivot.
+  const px = -size * (u * HAND_W - pivot.x)
+  const py = size * (v * HAND_LEFT_H - pivot.y)
+  const a = ((pose.rot ?? 0) * Math.PI) / 180
+  const wx = pose.x + pivot.x + px * Math.cos(a) - py * Math.sin(a)
+  const wy = pose.y + pivot.y + px * Math.sin(a) + py * Math.cos(a)
+  return { x: (wx - BOOK.x) / BOOK_SCALE, y: (wy - BOOK.y) / BOOK_SCALE }
+}
+
+/** One gold loop: its middle (book pixels), its turn (degrees), how far it has drawn on (0..1), how bright. */
+export interface GoldLoop {
+  x: number
+  y: number
+  rot: number
+  drawn: number
+  opacity: number
+}
+
+/** The gold loops' shapes (book pixels): around the paws, the kid's wrist, and the hand between them. */
+export const GOLD_LOOPS = [
+  { rx: 96, ry: 30, start: BEAT.gold },
+  { rx: 78, ry: 24, start: BEAT.gold + 0.1 },
+  { rx: 88, ry: 27, start: BEAT.gold + 0.2 },
+] as const
+/** Each loop draws on over this long. */
+export const GOLD_DRAW = 0.4
+
+/**
+ * The gold hand-off at time t: the glow behind the paws, the loops around the
+ * paws and the wrist, and how strong the sparkles are. In the fallback rush it
+ * all fades out as the rush starts.
+ */
+export function goldAt(t: number) {
+  const away = 1 - seg(t, BEAT.rush, BEAT.rush + 0.5)
+  const hand = rightHandAt(t)
+  const wrist = handPointInBook(hand, 0.55, 0.57)
+  const knuckles = handPointInBook(hand, 0.55, 0.42)
+  const handRot = hand.rot ?? 0
+  const paws = { x: GLOW_BOOK.x, y: GLOW_BOOK.y - 8 - 18 * tugAt(t) + PAW_DROP }
+  // Slow spin: each loop sways a few degrees.
+  const sway = (i: number) => 6 * Math.sin((t - BEAT.gold) * 1.7 + i * 2.1)
+  const places = [
+    { x: paws.x, y: paws.y, rot: 0.4 * handRot },
+    { x: wrist.x, y: wrist.y, rot: handRot },
+    { x: (knuckles.x + paws.x) / 2, y: (knuckles.y + paws.y) / 2, rot: 0.7 * handRot },
+  ]
+  const loops: GoldLoop[] = places.map((p, i) => ({
+    x: p.x,
+    y: p.y,
+    rot: p.rot + sway(i),
+    drawn: seg(t, GOLD_LOOPS[i].start, GOLD_LOOPS[i].start + GOLD_DRAW),
+    opacity: away,
+  }))
+  return {
+    /** The pre-made gold glow behind the paws (0..0.8). */
+    glow: 0.8 * ease(seg(t, BEAT.gold, BEAT.tug)) * away,
+    paws,
+    loops,
+    /** How strong the sparkles drifting up from the loops are. */
+    sparkles: seg(t, BEAT.gold + 0.15, BEAT.gold + 0.5) * away,
+    /** Where the bright part of each loop is (radians): it goes round, as if the loop spins. */
+    spin: (t - BEAT.gold) * 4.2,
   }
 }
 

@@ -69,9 +69,11 @@ import bedroomDesk from './bedroom/web/desk.webp'
 import bedroomDeskSoft from './bedroom/web/desk-soft.webp'
 import startFrame from './bedroom/web/start-frame.webp'
 import startFrameOnPage from './bedroom/web/start-frame-on-page.webp'
-import handLeft from './bedroom/web/hand-left.webp'
+// The hands: the slightly lighter, warmer copies (scripts/make-light-hands.mjs), closer to
+// the kid's skin in the pull-in wide shot. Used everywhere: intro, pull-in, magic fall.
+import handLeft from './bedroom/web/hand-left-light.webp'
 import handLeftShadow from './bedroom/web/hand-left-shadow.webp'
-import handRight from './bedroom/web/hand-right-pencil.webp'
+import handRight from './bedroom/web/hand-right-pencil-light.webp'
 import handRightShadow from './bedroom/web/hand-right-pencil-shadow.webp'
 
 export const sceneArt = { sun, cloud, island, sailboat, ground, dock, bush, sign }

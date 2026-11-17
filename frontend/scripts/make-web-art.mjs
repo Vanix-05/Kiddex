@@ -26,7 +26,9 @@
 //                           the last frame of the pull-in, the first of the magic video
 //   start-frame-on-page.webp  the same, half size with soft clear edges: as it lies on the book's page
 //   hand-*.webp             the hands, 1024 wide, tinted cooler and darker to
-//                           match the night
+//                           match the night. The app uses the lighter, warmer
+//                           hand-*-light.webp copies: after this, run
+//                           `node scripts/make-light-hands.mjs` to remake them.
 //   hand-*-shadow.webp      a soft dark shape of each hand, for its shadow
 //
 // Storybook (src/assets/storybook/*, the setup storybook's Boy or Girl, quiz

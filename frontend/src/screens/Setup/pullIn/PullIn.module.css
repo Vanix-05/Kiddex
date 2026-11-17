@@ -71,36 +71,89 @@
   will-change: transform, opacity;
 }
 
-/* The arm at its full size (about 1.6x the kid's hand), drawn once: growing is a transform. */
-.armArt {
+/*
+ * The arm (BuddyArms.tsx), drawn once: growing is a transform. Short, thick
+ * buddy arms: 273px long (35% shorter than the 420px they were) and 80px wide
+ * (about 40% thicker). It hangs from the shoulder point, its top end inside
+ * the glow's bright middle.
+ */
+.armTube {
   position: absolute;
-  left: 0;
-  /* The shoulder end starts inside the glow, so its cut edge never shows. */
+  left: -40px;
   top: 8px;
-  height: 420px;
-  /* Straightened (--straighten, measured by BuddyArms.tsx), and a little wider
-     than drawn: coming toward you, an arm looks thicker. */
-  transform: translateX(-50%) rotate(var(--straighten, 0deg)) scaleX(1.3);
-  transform-origin: 50% -8px;
-}
-
-.armPicture {
-  display: block;
-  width: auto;
-  height: 100%;
+  width: 80px;
+  height: 273px;
   overflow: visible;
   will-change: opacity;
 }
 
-/* The pencil-sketch copy, on top of the colored one: grey lines on nothing. */
-.armSketch {
+.armFur {
+  fill: var(--arm-fur, #f9ece5);
+}
+
+.armLight {
+  fill: #fff;
+  opacity: 0.32;
+}
+
+.armShade {
+  fill: var(--arm-line, #7b5062);
+  opacity: 0.18;
+}
+
+.armOutline {
+  fill: none;
+  stroke: var(--arm-line, #7b5062);
+  stroke-width: 4.5;
+  stroke-linejoin: round;
+}
+
+/* The paw on the arm's end, a little wider than it: big and clear, in the buddy's paw color. */
+.paw {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: -66px;
+  top: 208px;
+  width: 132px;
+  height: 106px;
+  overflow: visible;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  will-change: opacity;
+}
+
+.pawFill {
+  fill: var(--arm-paw, #a0746d);
+  stroke: var(--arm-line, #7b5062);
+  stroke-width: 4.5;
+}
+
+.pawToes {
+  fill: none;
+  stroke: var(--arm-line, #7b5062);
+  stroke-width: 3.5;
+}
+
+/* The pencil-sketch copies, on top of the colored ones: grey lines on nothing. */
+.armSketch {
   fill: none;
   stroke: var(--color-pencil-lead);
-  stroke-width: 13;
+  stroke-width: 3;
   stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* The sketch's second, fainter pencil line (a little off the first). */
+.sketchAgain {
+  opacity: 0.5;
+}
+
+/* The buddy's traced arm (measured for its colors only): never seen. */
+.armMeasure {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
 }
 
 /* The paws' soft shadow on the kid's hand while they hold it. */
@@ -125,6 +178,57 @@
   background: radial-gradient(ellipse 50% 50% at 50% 50%, var(--color-sticker-fill) 0%, var(--color-magic-glow) 32%, var(--color-magic-glow-soft) 72%);
   opacity: 0;
   will-change: transform, opacity;
+}
+
+/* ---------- The gold hand-off (book pixels) ---------- */
+
+/* A soft gold glow behind the paws: a pre-made gradient, only its opacity moves. */
+.goldGlow {
+  position: absolute;
+  left: -170px;
+  top: -130px;
+  width: 340px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 236, 170, 0.95) 0%, rgba(255, 205, 90, 0.6) 35%, rgba(255, 190, 60, 0) 72%);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* One gold loop (its own small picture, placed and turned by transform from its middle). */
+.goldLoop {
+  position: absolute;
+  left: -120px;
+  top: -60px;
+  width: 240px;
+  height: 120px;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0;
+  transform-origin: 120px 60px;
+  will-change: transform, opacity;
+}
+
+/* A short piece of a loop: drawing on is these pieces appearing one after another (opacity only). */
+.goldPiece {
+  opacity: 0;
+}
+
+/* The soft outer glow of a line: wide, faint strokes drawn once (no blur filter). */
+.goldHalo {
+  stroke: rgba(255, 196, 70, 0.22);
+  stroke-width: 12;
+}
+
+.goldHaloInner {
+  stroke: rgba(255, 214, 110, 0.45);
+  stroke-width: 6;
+}
+
+.goldCore {
+  stroke: #ffe6a0;
+  stroke-width: 2.6;
 }
 
 /* ---------- Over everything (the 1440 x 900 stage) ---------- */
@@ -155,5 +259,22 @@
   max-width: none;
   height: 900px;
   opacity: 0;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+}
+
+/* The wide shot: covers the stage like the start frame. Hidden (but there, paused on its first
+   frame) until the cut; then shown on the same frame as everything else is hidden. */
+.wide {
+  position: absolute;
+  left: -80px;
+  top: 0;
+  width: 1600px;
+  max-width: none;
+  height: 900px;
+  object-fit: cover;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
   will-change: opacity;
 }

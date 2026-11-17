@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { isAvatar, type Avatar } from '../../setup/avatar'
 import { isBuddyId, type BuddyId } from '../../setup/quizData'
 import { MagicFall } from '../MagicFall/MagicFall'
 import { magicVideo } from '../MagicFall/magicVideo'
@@ -15,6 +16,9 @@ const LOOP_PAUSE_MS = 1500
  *   ?t=4         hold second 4 (of the clip, or of the fall with part=fall)
  *   ?video=0     as if the magic video file wasn't there
  *   ?part=fall   only the magic fall, with the buddy on top
+ *   ?gender=girl the girl's wide shot (default boy)
+ *   ?wide=0      no wide shot: the old rush into the page (the fallback)
+ *   ?zoom=1.335  the start frame's size over the wide shot's last frame, for the end fade
  */
 export function DevPullInScreen() {
   const [params] = useSearchParams()
@@ -25,6 +29,11 @@ export function DevPullInScreen() {
   const freezeAt = frozen !== null && Number.isFinite(Number(frozen)) ? Number(frozen) : undefined
   const video = params.get('video') === '0' ? null : magicVideo
   const onlyFall = params.get('part') === 'fall'
+  const askedGender = params.get('gender')
+  const gender: Avatar = isAvatar(askedGender) ? askedGender : 'boy'
+  const wide = params.get('wide') !== '0'
+  const askedZoom = Number(params.get('zoom'))
+  const zoom = params.get('zoom') !== null && Number.isFinite(askedZoom) && askedZoom > 0 ? askedZoom : undefined
 
   const [run, setRun] = useState(0)
   const [part, setPart] = useState<'clip' | 'fall' | 'after'>(onlyFall ? 'fall' : 'clip')
@@ -52,7 +61,7 @@ export function DevPullInScreen() {
       ) : (
         <SetupBook
           key={run}
-          pullIn={{ buddy, buddyColor, freezeAt, onEnd: (next) => setPart(next === 'fall' ? 'fall' : 'after') }}
+          pullIn={{ buddy, buddyColor, gender, wide, zoom, freezeAt, onEnd: (next) => setPart(next === 'fall' ? 'fall' : 'after') }}
         />
       )}
       {part === 'fall' && (
