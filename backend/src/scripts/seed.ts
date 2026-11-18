@@ -6,7 +6,7 @@ import "../config/env"; // loads backend/.env
 import { prisma } from "../db/prisma";
 import { dbProblem } from "../db/dbProblem";
 import { cleanEmail, hashPassword, passwordProblem } from "../auth/passwords";
-import { stop } from "./teacherArgs";
+import { stop } from "./accountArgs";
 
 function setting(name: string): string | undefined {
   const value = process.env[name]?.trim();

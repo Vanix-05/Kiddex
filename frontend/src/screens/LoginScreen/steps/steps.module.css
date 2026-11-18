@@ -40,6 +40,15 @@
   text-align: center;
 }
 
+/* Teacher Login: "Waking up KIDDEX…" under the button while a sleeping backend wakes. */
+.waking {
+  width: 100%;
+  margin: calc(var(--gap) * -0.4) 0 0;
+  color: var(--color-text-subtle);
+  font-size: clamp(0.8rem, 1.7vh, 0.95rem);
+  text-align: center;
+}
+
 /* ---------- Links ---------- */
 
 .linkRow {

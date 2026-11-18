@@ -42,9 +42,26 @@ const schema = z.object({
       .min(32, "must be at least 32 characters. Make a new one with: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\""),
   ),
   PORT: wholeNumber(3000),
+  // One or more website addresses that may call this API, separated by commas,
+  // e.g. https://kiddex.vercel.app,http://localhost:5173. Each becomes its origin
+  // (scheme + host + port), which is what a browser sends.
   FRONTEND_URL: z.preprocess(
     blankToUndefined,
-    z.url({ error: "must be a full web address, like http://localhost:5173" }).default("http://localhost:5173"),
+    z
+      .string()
+      .default("http://localhost:5173")
+      .transform((text) => text.split(",").map((address) => address.trim()).filter(Boolean))
+      .pipe(
+        z
+          .array(
+            z.url({
+              protocol: /^https?$/,
+              error: "must be full web addresses separated by commas, like https://kiddex.vercel.app,http://localhost:5173",
+            }),
+          )
+          .min(1, "must list at least one web address, like http://localhost:5173")
+          .transform((addresses) => [...new Set(addresses.map((address) => new URL(address).origin))]),
+      ),
   ),
   GEMINI_API_KEY: optionalText,
   GEMINI_MODEL: textWithDefault("gemini-3.5-flash"),
@@ -88,7 +105,10 @@ export const env = {
   /** Never print or log this: anyone with it can make Teacher logins. */
   jwtSecret: parsed.data.JWT_SECRET,
   port: parsed.data.PORT,
-  frontendUrl: parsed.data.FRONTEND_URL.replace(/\/+$/, ""),
+  /** The website origins allowed to call this API (CORS), e.g. ["https://kiddex.vercel.app"]. */
+  frontendOrigins: parsed.data.FRONTEND_URL,
+  /** True on the real server (Render sets NODE_ENV=production). */
+  isProduction: parsed.data.NODE_ENV === "production",
   geminiApiKey: parsed.data.GEMINI_API_KEY,
   geminiModel: parsed.data.GEMINI_MODEL,
   groqApiKey: parsed.data.GROQ_API_KEY,

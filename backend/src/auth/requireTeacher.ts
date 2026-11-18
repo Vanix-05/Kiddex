@@ -1,18 +1,14 @@
 // Lets a request through only with a valid Teacher login token
 // (`Authorization: Bearer <token>`), and puts the Teacher on `req.teacher`.
-// Any problem (no token, wrong or expired token, Teacher deleted, password reset
-// since the token was made) answers 401 LOGIN_NEEDED.
+// Any problem (no token, wrong or expired token, an admin token, Teacher deleted,
+// password reset since the token was made, account turned off) answers 401 LOGIN_NEEDED.
 import type { RequestHandler } from "express";
-import { prisma } from "../db/prisma";
-import { AppError } from "../middleware/AppError";
-import { fromDb } from "./authErrors";
-import { readTeacherToken } from "./tokens";
+import type { AccountInfo } from "./accounts";
+import { signedInAccount } from "./accountLogin";
 
-export interface SignedInTeacher {
-  id: string;
-  name: string;
-  email: string;
-}
+export { loginNeeded } from "./accountLogin";
+
+export type SignedInTeacher = AccountInfo;
 
 declare global {
   namespace Express {
@@ -23,28 +19,11 @@ declare global {
   }
 }
 
-export const loginNeeded = () => new AppError(401, "LOGIN_NEEDED", "Please log in again.");
-
 export const requireTeacher: RequestHandler = async (req, _res, next) => {
-  const header = req.get("authorization") ?? "";
-  const match = /^Bearer\s+(\S+)$/i.exec(header);
-  const content = match ? readTeacherToken(match[1]!) : null;
-  if (!content) return next(loginNeeded());
-
-  let teacher;
   try {
-    teacher = await fromDb(() =>
-      prisma.teacher.findUnique({
-        where: { id: content.teacherId },
-        select: { id: true, name: true, email: true, tokenVersion: true },
-      }),
-    );
+    req.teacher = await signedInAccount("teacher", req);
+    next();
   } catch (err) {
-    return next(err); // 503 DB_UNAVAILABLE
+    next(err); // 401 LOGIN_NEEDED or 503 DB_UNAVAILABLE
   }
-  // Teacher deleted, or the password was reset after this token was made.
-  if (!teacher || teacher.tokenVersion !== content.tokenVersion) return next(loginNeeded());
-
-  req.teacher = { id: teacher.id, name: teacher.name, email: teacher.email };
-  next();
 };

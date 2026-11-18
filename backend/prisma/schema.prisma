@@ -20,9 +20,24 @@ model Teacher {
   failedLogins Int       @default(0) // for the "too many wrong tries" rule
   lockedUntil  DateTime? // same
   lastLoginAt  DateTime?
+  active       Boolean   @default(true) // false = turned off by an admin: can't log in, lessons kept
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lessons      Lesson[]
+}
+
+// Runs the Admin page (Teacher accounts only). Not a Teacher: no lessons.
+model Admin {
+  id           String    @id @default(cuid())
+  email        String    @unique // always saved trimmed + lowercase
+  name         String
+  passwordHash String // bcrypt hash, never the password
+  tokenVersion Int       @default(0) // goes up when the password is reset, so old logins stop working
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 // ---------- Lessons and their questions ----------

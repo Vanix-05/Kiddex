@@ -30,4 +30,9 @@ export const paths = {
     progress: '/teacher/progress',
     lobby: '/teacher/lobby',
   },
+  /** The Admin page (Teacher accounts). No link to it anywhere in the app: the admin types the address. */
+  admin: {
+    login: '/admin/login',
+    home: '/admin',
+  },
 } as const

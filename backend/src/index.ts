@@ -18,11 +18,17 @@ async function failCutOffLessons(): Promise<void> {
   }
 }
 
-app.listen(env.port, () => {
-  console.log(`KIDDEX API running at http://localhost:${env.port}`);
+// All addresses (0.0.0.0), on the port Render gives in PORT (3000 on this computer).
+app.listen(env.port, "0.0.0.0", () => {
+  console.log(
+    env.isProduction
+      ? `KIDDEX API running on port ${env.port} (production)`
+      : `KIDDEX API running at http://localhost:${env.port}`,
+  );
   // Only say whether each key is set. Never print a key.
   console.log(`Gemini key: ${env.geminiApiKey ? "set" : "MISSING"}`);
   console.log(`Groq key: ${env.groqApiKey ? "set" : "MISSING"}`);
+  console.log(`Websites allowed (FRONTEND_URL): ${env.frontendOrigins.join(", ")}`);
 
   void failCutOffLessons();
   setInterval(() => void failCutOffLessons(), STALE_CHECK_MS).unref();

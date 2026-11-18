@@ -1,0 +1,514 @@
+/*
+ * The Admin page (/admin, /admin/login): plain cream page, one centered column
+ * (max 560px, 16px sides on phones), Fredoka, the theme colors. Works upright
+ * and sideways on phones and on laptops. Every tap target is at least 44px.
+ */
+
+/* The whole page is cream on /admin (also behind an overscroll). */
+:global(html[data-area='admin']) body {
+  background: var(--color-card-bg);
+}
+
+.page {
+  min-height: 100svh;
+  background: var(--color-card-bg);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  overflow-x: hidden;
+}
+
+.column {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 8px 16px 40px;
+}
+
+/* ---------- Buttons ---------- */
+
+/* The big orange Button (Log In, + Add Teacher), a little smaller than on the login cards. */
+button.bigButton {
+  min-width: 0;
+  min-height: 52px;
+  font-size: 1.25rem;
+}
+
+.buttonInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton,
+.secondaryButton,
+.dangerSolidButton,
+.ghostButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 2.5px solid var(--color-button-border);
+  background: var(--color-button-bg);
+  box-shadow: 0 3px 0 var(--color-button-border);
+  color: var(--color-button-text);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-button-bg-hover);
+}
+
+.secondaryButton {
+  border: 2px solid var(--color-input-border);
+  background: var(--color-input-bg);
+  color: var(--color-text);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  border-color: var(--color-card-border);
+}
+
+/* "Turn off" on a card: outlined in the danger color. */
+.dangerButton {
+  border-color: var(--color-danger-text);
+  color: var(--color-danger-text);
+}
+
+.dangerButton:hover:not(:disabled) {
+  border-color: var(--color-danger-text);
+  background: var(--color-tint-pink);
+}
+
+/* "Turn off" in the confirm popup. */
+.dangerSolidButton {
+  border: 2.5px solid var(--color-danger-text);
+  background: var(--color-danger-text);
+  color: var(--color-text-on-dark);
+}
+
+.ghostButton {
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.ghostButton:hover {
+  border-color: var(--color-input-border);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerSolidButton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ---------- Admin Login ---------- */
+
+.loginColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 16px 40px;
+}
+
+.loginLogo {
+  --logo-scale: 0.6;
+  align-self: center;
+}
+
+.loginCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 20px;
+  border: var(--size-card-border) solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-input-bg);
+  box-shadow: 0 6px 0 rgba(107, 74, 51, 0.12);
+}
+
+.loginTitle {
+  padding: 4px 28px;
+  border-radius: var(--radius-pill);
+  background: var(--color-title-pill-bg);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.loginSubtitle {
+  margin-bottom: 10px;
+  color: var(--color-text-subtle);
+  font-size: 1.1rem;
+}
+
+.notice {
+  width: 100%;
+  margin-bottom: 4px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.waking {
+  width: 100%;
+  color: var(--color-text-subtle);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ---------- Forms ---------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldError,
+.formError {
+  color: var(--color-danger-text);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.fieldError {
+  padding-left: 6px;
+}
+
+.formError {
+  text-align: center;
+}
+
+/* ---------- Teachers ---------- */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px 16px 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topLogo {
+  --logo-scale: 0.42;
+  flex-shrink: 0;
+}
+
+.brandWord {
+  padding: 2px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-title-pill-bg);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.pageTitle {
+  margin: 12px 0 14px;
+  font-size: 1.9rem;
+  font-weight: 600;
+}
+
+.count {
+  color: var(--color-text-subtle);
+  font-weight: 500;
+}
+
+.pageError {
+  margin-top: 14px;
+  color: var(--color-danger-text);
+  font-weight: 500;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid var(--color-input-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+}
+
+/* A turned-off account looks a bit faded (its buttons stay clear). */
+.cardOff {
+  background: var(--color-card-bg);
+}
+
+.cardOff .cardInfo {
+  opacity: 0.65;
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.teacherName {
+  min-width: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.badgeOn,
+.badgeOff {
+  flex-shrink: 0;
+  padding: 2px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.badgeOn {
+  background: var(--color-admin-active-bg);
+  color: var(--color-admin-active-text);
+}
+
+.badgeOff {
+  background: var(--color-admin-off-bg);
+  color: var(--color-admin-off-text);
+}
+
+.teacherEmail {
+  color: var(--color-text-subtle);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.teacherFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+.cardActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* A little tighter, so "Reset password" fits on one line on phones. */
+.cardActions .secondaryButton {
+  padding: 0 8px;
+  font-size: 1rem;
+}
+
+.listMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+/* Loading: plain placeholder cards (no animation). */
+.skeletonCard {
+  gap: 10px;
+}
+
+.skeletonLine {
+  display: block;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-admin-skeleton);
+}
+
+.skeletonButtons {
+  display: block;
+  height: 44px;
+  margin-top: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-admin-skeleton);
+}
+
+/* ---------- Popups ---------- */
+
+/* The dialog fills the screen and dims it; the panel sits at the bottom (phones) or in the middle (wide). */
+.dialog {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--color-admin-scrim);
+  color: var(--color-text);
+  font-family: var(--font-display);
+}
+
+.dialog:not([open]) {
+  display: none;
+}
+
+.dialog::backdrop {
+  background: transparent;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92svh;
+  overflow-y: auto;
+  padding: 22px 16px calc(18px + env(safe-area-inset-bottom));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-card-bg);
+  box-shadow: 0 -6px 24px rgba(74, 52, 38, 0.2);
+  animation: slideUp 220ms ease-out;
+}
+
+@media (min-width: 640px) {
+  .dialog {
+    align-items: center;
+    padding: 16px;
+  }
+
+  .panel {
+    max-width: 460px;
+    padding: 24px;
+    border: var(--size-card-border) solid var(--color-card-border);
+    border-radius: var(--radius-lg);
+    animation-name: popIn;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+.dialogTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.dialogText {
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+}
+
+.dialogButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Temporary password ---------- */
+
+.passwordEmail {
+  color: var(--color-text-subtle);
+  font-family: var(--font-body);
+  overflow-wrap: anywhere;
+}
+
+.passwordBox {
+  display: grid;
+  place-items: center;
+  padding: 18px 10px;
+  border: 2.5px dashed var(--color-button-border);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+}
+
+.password {
+  font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'Menlo', monospace;
+  font-size: clamp(1.5rem, 7.5vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  overflow-wrap: anywhere;
+  text-align: center;
+  user-select: all;
+}

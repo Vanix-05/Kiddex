@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { paths } from './paths'
+import { syncPageArea } from './pageArea'
 import { RequireRole } from './RequireRole'
 import { LoginScreen } from '../screens/LoginScreen/LoginScreen'
 import { WelcomeStep } from '../screens/LoginScreen/steps/WelcomeStep'
@@ -78,6 +79,17 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // The Admin page (Teacher accounts only). Its own download, so Students and
+  // Teachers never load it; nothing in the app links to it.
+  {
+    path: paths.admin.login,
+    lazy: () => import('../admin/AdminLoginPage').then((m) => ({ Component: m.AdminLoginPage })),
+  },
+  {
+    path: paths.admin.home,
+    lazy: () => import('../admin/AdminTeachersPage').then((m) => ({ Component: m.AdminTeachersPage })),
+  },
+
   // Dev only: every traced companion, to check the rig (not in production builds).
   ...(import.meta.env.DEV
     ? [
@@ -128,3 +140,8 @@ export const router = createBrowserRouter([
 
   { path: '*', element: <Navigate to={paths.welcome} replace /> },
 ])
+
+// data-area="admin" on <html> while an /admin page is open (see pageArea.ts):
+// set from the address right away, and again on every page change.
+syncPageArea(router.state.location.pathname)
+router.subscribe((state) => syncPageArea(state.location.pathname))

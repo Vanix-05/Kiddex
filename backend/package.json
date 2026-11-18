@@ -19,12 +19,17 @@
     "db:check": "tsx src/scripts/dbCheck.ts",
     "add-teacher": "tsx src/scripts/addTeacher.ts",
     "reset-teacher-password": "tsx src/scripts/resetTeacherPassword.ts",
+    "add-admin": "tsx src/scripts/addAdmin.ts",
+    "reset-admin-password": "tsx src/scripts/resetAdminPassword.ts",
     "postinstall": "npm run db:generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@google/genai": "^3.4.0",
     "@prisma/adapter-pg": "^7.10.1",

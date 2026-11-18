@@ -8,6 +8,9 @@ import { LoginCard } from '../LoginCard'
 import { BackLink, FormError } from './shared'
 import styles from './steps.module.css'
 
+/** Show "Waking up KIDDEX…" when logging in takes longer than this. */
+const WAKING_AFTER_MS = 5000
+
 /**
  * Teacher Login (/teacher/login): email + password, checked by the backend.
  * Teacher accounts are made by an admin (no Register page); an admin also resets
@@ -21,17 +24,23 @@ export function TeacherLoginStep() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // The free backend sleeps when not used: if logging in takes a while, say why.
+  const [waking, setWaking] = useState(false)
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
     setSubmitting(true)
+    const wakingTimer = window.setTimeout(() => setWaking(true), WAKING_AFTER_MS)
     try {
       await logInTeacher(email, password)
       navigate(paths.teacher.home)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       setSubmitting(false)
+    } finally {
+      window.clearTimeout(wakingTimer)
+      setWaking(false)
     }
   }
 
@@ -72,6 +81,11 @@ export function TeacherLoginStep() {
         <Button type="submit" withArrow fullWidth disabled={submitting}>
           {submitting ? 'Logging in…' : 'Log In'}
         </Button>
+        {waking && (
+          <p className={styles.waking} role="status">
+            Waking up KIDDEX… this can take up to a minute.
+          </p>
+        )}
       </form>
       <p className={styles.hint}>Forgot your password? Ask your school’s KIDDEX admin.</p>
 

@@ -24,6 +24,11 @@
   }
 }
 
+/* The Admin page works upright: never show it there (routes/pageArea.ts). */
+:global(html[data-area='admin']) .overlay {
+  display: none;
+}
+
 .card {
   position: relative;
   width: min(340px, 100%);

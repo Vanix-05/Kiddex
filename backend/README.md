@@ -19,6 +19,7 @@ npm install
    - Groq key: https://console.groq.com/keys
 3. Never commit `.env`. It is already in `.gitignore`.
 4. Optional: `AI_ORDER=gemini,groq` sets which AI is tried first (see "How questions are made").
+5. `FRONTEND_URL` is the website address (or several, separated by commas, no slash at the end) allowed to call this API from a browser, e.g. `https://kiddex.vercel.app,http://localhost:5173`. Any other website is blocked (CORS).
 
 The server still starts without AI keys; the AI features just won't work yet. It does NOT start without the two database addresses and `JWT_SECRET`.
 
@@ -72,16 +73,62 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run db:check` | Prints `Database: OK. Teachers: N. Lessons: N. Questions: N.` or a short reason it failed. |
 | `npm run add-teacher -- --name "Ms. Santos" --email "santos@school.ph"` | Admin: makes a Teacher account and prints a temporary password once. |
 | `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. |
+| `npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"` | Makes an admin account for the Admin page and prints a temporary password once. |
+| `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
 
 ## Check that it runs
 
 - http://localhost:3000/api/health shows `status: "ok"`, whether each AI key is set, and `db: true` when the database answers.
 - `npm run db:check` shows whether the database is reachable and how many Teachers, lessons and questions there are.
+- http://localhost:3000/api/ping answers `{ "ok": true }` without touching the database.
+
+## Deploy on Render
+
+The backend runs as a free **Web Service** on Render (region **Singapore**, close to the Neon database).
+
+1. New → Web Service → connect the GitHub repository.
+2. **Root Directory:** `backend`
+3. **Runtime:** Node (the version comes from `"engines": { "node": ">=22" }` in `package.json`).
+4. **Build Command** (exactly):
+
+   ```
+   npm ci --include=dev && npm run build && npm run db:deploy
+   ```
+
+   `--include=dev` is needed because TypeScript and Prisma are dev dependencies and Render sets `NODE_ENV=production`. `npm run build` makes the Prisma client and the JavaScript in `dist/`; `npm run db:deploy` applies any new database migrations (it never makes new ones).
+5. **Start Command:** `npm start`
+6. **Health Check Path** (under Advanced): `/api/ping`
+7. **Environment** → add these settings (copy the values from your `.env`, never paste them anywhere else):
+
+   | Setting | Value |
+   | --- | --- |
+   | `NODE_ENV` | `production` |
+   | `DATABASE_URL` | Neon address, pooling ON (has `-pooler`) |
+   | `DIRECT_URL` | Neon address, pooling OFF |
+   | `JWT_SECRET` | the same long random text as in `.env` (or a new one: then everyone logs in again) |
+   | `FRONTEND_URL` | the Vercel address, e.g. `https://kiddex.vercel.app` (add `,http://localhost:5173` to also allow your laptop) |
+   | `GROQ_API_KEY` | your Groq key |
+   | `GROQ_MODEL` | as in `.env` |
+   | `GEMINI_API_KEY` | your Gemini key |
+   | `GEMINI_MODEL` | as in `.env` |
+   | `AI_ORDER` | as in `.env`, e.g. `gemini,groq` |
+   | `AI_TIMEOUT_MS` | as in `.env`, e.g. `60000` |
+
+   Do **not** add `PORT` (Render sets it), `DEV_MARK_EVERY` (test only, and ignored in production anyway) or the `SEED_TEACHER_*` settings: Teachers are made from your laptop (`npm run db:seed`, `npm run add-teacher`), which uses the same Neon database.
+8. After the first deploy, open `https://<your-service>.onrender.com/api/health`: it should show `db: true`.
+
+Good to know:
+
+- **The free server sleeps** after about 15 minutes without visits. The next visit wakes it, which can take up to about a minute (the Teacher Login shows "Waking up KIDDEX…"). A free uptime/ping service calling `/api/ping` every 10 minutes keeps it awake; `/api/ping` never touches the database.
+- A lesson that was being made when the server went to sleep becomes `failed` with `SERVER_RESTARTED`; the Teacher can try again.
+- In production (`NODE_ENV=production`) error answers never contain stack traces (the details only go to the Render log), `DEV_MARK_EVERY` is ignored, and the start log does not show `localhost`.
+- `npm run make-questions`, `npm run test-checks`, `npm run check-keys` and the `db:*` / Teacher scripts are for your laptop; the server never runs them.
+- After changing the Vercel address, update `FRONTEND_URL` on Render and choose "Save and deploy" so the server restarts with it.
 
 ## Teacher accounts (admins only)
 
-Admins add Teachers and reset passwords from the command line (no admin screens yet). Both commands work in Windows cmd and PowerShell; the `--` passes the options on to the script.
+Admins add Teachers, reset passwords and turn accounts off or on from the **Admin page** (`/admin` on the website, see "Admin page" below), or from the command line with these scripts. The commands work in Windows cmd and PowerShell; the `--` passes the options on to the script.
 
 **Add a Teacher**
 
@@ -101,6 +148,32 @@ It prints a new temporary password once, signs the Teacher out everywhere (`toke
 
 Emails are always saved trimmed and lowercase. Passwords are stored only as bcrypt hashes (bcryptjs, cost 12; `src/auth/passwords.ts`). Teacher passwords must be at least 8 characters.
 
+## Admin page
+
+The Admin page (`/admin` on the website) manages **Teacher accounts only** (nothing about Students or lessons). Admins are their own accounts in the `Admin` table: an admin is not a Teacher and has no lessons. Admin accounts are made only from your laptop:
+
+```
+npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"
+npm run reset-admin-password -- --email "carlo@kiddex.test"
+```
+
+Same style as the Teacher scripts: a duplicate email is refused, the temporary password is printed **once**, and a reset also signs the admin out everywhere and clears the lock. Your laptop and the live site use the same Neon database, so a new admin can log in on the live site right away.
+
+| Address | What it does |
+| --- | --- |
+| `POST /api/admin/login` | Body `{ "email", "password" }`. Right: `{ token, admin: { id, name, email } }`. Exactly the same rules as the Teacher login (one `WRONG_LOGIN` answer, 5 wrong tries lock it for 5 minutes, at most 20 tries per 15 minutes per computer with its own counter, `503 DB_UNAVAILABLE`). |
+| `GET /api/admin/me` | Needs an admin token. Answers `{ admin: { id, name, email } }`. |
+| `GET /api/admin/teachers` | All Teachers, newest first: `id, name, email, active, lastLoginAt, createdAt, lessonCount`. Never the password hash. |
+| `POST /api/admin/teachers` | Body `{ "name", "email" }` (name 2–60 characters). Makes the account with a temporary password and answers `201` `{ teacher, temporaryPassword }`. This is the only time the password is sent. Duplicate email: `409 EMAIL_TAKEN`. |
+| `POST /api/admin/teachers/:id/reset-password` | Like `npm run reset-teacher-password`: a new temporary password, the Teacher is signed out everywhere, the lock is cleared. Answers `{ teacher, temporaryPassword }`. |
+| `PATCH /api/admin/teachers/:id` | Body `{ "active": true }` or `{ "active": false }`. Turning **off** also signs the Teacher out everywhere; their lessons are kept. Answers `{ teacher }`. |
+
+- Every `/api/admin/teachers...` address needs an **admin** token (`Authorization: Bearer <token>`); `401 LOGIN_NEEDED` otherwise. An admin token has `role: "admin"` and also lasts 8 hours. A Teacher token never works on the admin addresses, and an admin token never works on the Teacher ones.
+- An unknown Teacher id: `404 TEACHER_NOT_FOUND`.
+- There is **no delete address**, on purpose: it can't be undone. Turn the account off instead.
+- A temporary password is only ever in the answer: it is never logged (the server log only has the error code and the address).
+- **A turned-off Teacher** can't log in: the right password answers `403 ACCOUNT_OFF` "This account is turned off. Please ask your school's KIDDEX admin." (a wrong password still gets `WRONG_LOGIN`, so it never tells whether an account exists), and any token they still have answers `401 LOGIN_NEEDED`. `npm run add-teacher` and `npm run reset-teacher-password` keep working for them.
+
 ## Teacher login
 
 | Address | What it does |
@@ -113,7 +186,9 @@ Emails are always saved trimmed and lowercase. Passwords are stored only as bcry
 - **Wrong email or password:** always the same answer, `401 WRONG_LOGIN` "Wrong email or password.", never which part was wrong. An unknown email still runs one bcrypt check, so it takes about as long.
 - **Too many wrong tries:** each wrong password counts. At **5** in a row the account is locked for **5 minutes** (and the count starts again); while locked even the right password answers `429 TOO_MANY_TRIES`. A right login clears the count. An admin can clear a lock at once with `npm run reset-teacher-password`.
 - **Per computer:** the login address allows at most **20 tries per 15 minutes** from one IP address (any result), then `429 TOO_MANY_TRIES`. This count lives in memory and starts again when the server restarts. `trust proxy` is set to 1 because the real server (Render) sits behind one proxy.
-- **Every `/api/lessons...` and `/api/questions...` address needs the token.** No token, a wrong or expired token, a deleted Teacher or a reset password: `401 LOGIN_NEEDED` "Please log in again.". Only `/`, `/api/health` and the login address are open.
+- **Turned off by an admin:** the right password answers `403 ACCOUNT_OFF` "This account is turned off. Please ask your school's KIDDEX admin." The password is checked first, so a wrong one still gets `WRONG_LOGIN`.
+- **Every `/api/lessons...` and `/api/questions...` address needs the token.** No token, a wrong or expired token, an admin token, a deleted Teacher, a reset password or a turned-off account: `401 LOGIN_NEEDED` "Please log in again.". Only `/`, `/api/ping`, `/api/health` and the two login addresses (Teacher and admin) are open.
+- The login rules are shared with the admin login (`src/auth/accountLogin.ts`).
 - **Database not reachable:** `503 DB_UNAVAILABLE` "We can't reach KIDDEX right now. Please try again in a minute." (after one more try a second later, for a database that is waking up).
 
 Try it (PowerShell or cmd):
@@ -127,6 +202,7 @@ curl -H "Authorization: Bearer <token>" http://localhost:3000/api/auth/me
 
 | Address | What it does |
 | --- | --- |
+| `GET /api/ping` | Open (no login). Answers `{ "ok": true }` without touching the database: for a wake-up ping service. |
 | `GET /api/health` | Open (no login). Server status, whether each AI key is set, and `db: true/false` (a tiny database check, at most 3 seconds; still `200` when the database is down). |
 
 Every address below needs a Teacher login token (`Authorization: Bearer <token>`, see "Teacher login"), and only shows that Teacher's own lessons and questions.
@@ -189,6 +265,6 @@ curl -H "Authorization: Bearer <token>" http://localhost:3000/api/lessons/<lesso
 
 Try it: `curl -H "Authorization: Bearer <token>" -F "file=@C:\path\to\lesson.pdf" http://localhost:3000/api/lessons/extract`
 
-Errors always look like `{ "error": { "code": "...", "message": "..." } }`. Login codes: `LOGIN_NEEDED`, `WRONG_LOGIN`, `TOO_MANY_TRIES`, `DB_UNAVAILABLE`. Lesson codes: `NO_FILE`, `ONE_FILE_ONLY`, `FILE_TOO_BIG`, `OLD_FORMAT`, `WRONG_TYPE`, `PDF_LOCKED`, `CANT_READ`. Lesson and question codes: `LESSON_NOT_FOUND`, `QUESTION_NOT_FOUND`, `ALREADY_MAKING`, `ALREADY_HAS_QUESTIONS`, `MARKED_NOT_CHECKED`, `NO_QUESTIONS`, `BAD_REQUEST`, `TOO_MANY_GAMES`, `NOT_ENOUGH_TEXT`, `AI_BUSY`. A failed lesson shows `AI_BUSY`, `NO_GOOD_QUESTIONS`, `SERVER_RESTARTED` or `DB_UNAVAILABLE` in its `error`.
+Errors always look like `{ "error": { "code": "...", "message": "..." } }`. Login codes: `LOGIN_NEEDED`, `WRONG_LOGIN`, `TOO_MANY_TRIES`, `ACCOUNT_OFF`, `DB_UNAVAILABLE`. Admin page codes: `EMAIL_TAKEN`, `TEACHER_NOT_FOUND`, `BAD_REQUEST`. Lesson codes: `NO_FILE`, `ONE_FILE_ONLY`, `FILE_TOO_BIG`, `OLD_FORMAT`, `WRONG_TYPE`, `PDF_LOCKED`, `CANT_READ`. Lesson and question codes: `LESSON_NOT_FOUND`, `QUESTION_NOT_FOUND`, `ALREADY_MAKING`, `ALREADY_HAS_QUESTIONS`, `MARKED_NOT_CHECKED`, `NO_QUESTIONS`, `BAD_REQUEST`, `TOO_MANY_GAMES`, `NOT_ENOUGH_TEXT`, `AI_BUSY`. A failed lesson shows `AI_BUSY`, `NO_GOOD_QUESTIONS`, `SERVER_RESTARTED` or `DB_UNAVAILABLE` in its `error`.
 
 The limits (file size, word levels) are in `src/lessons/limits.ts`.

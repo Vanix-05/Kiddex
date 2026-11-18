@@ -266,6 +266,14 @@ export const theme = {
     pairPurple: '#E5DFFA',
     pairPurpleYarn: '#8073D9',
     yarnPicked: '#EE9A45', // the yarn hanging from a picked card
+
+    // Admin page (/admin): cream page (cardBg), cards (inputBg), text and buttons reuse the tokens above.
+    adminActiveBg: '#D6EEDC', // "Active" badge
+    adminActiveText: '#2B6E41', // 5.4:1 on adminActiveBg
+    adminOffBg: '#ECE3D6', // "Off" badge
+    adminOffText: '#5C4636', // 7.0:1 on adminOffBg
+    adminScrim: 'rgba(74, 52, 38, 0.45)', // behind a popup
+    adminSkeleton: '#EFE4D3', // loading placeholder bars
   },
 
   fonts: {

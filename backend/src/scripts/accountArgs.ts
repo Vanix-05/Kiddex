@@ -1,8 +1,8 @@
-// Reads --name / --email options for the admin scripts.
+// Reads --name / --email options for the account scripts (Teachers and admins).
 // Works with `npm run add-teacher -- --name "Ms. Santos" --email "santos@school.ph"` (also on Windows cmd).
 import { parseArgs } from "node:util";
 
-export function readTeacherArgs(): { name?: string; email?: string } {
+export function readAccountArgs(): { name?: string; email?: string } {
   try {
     const { values } = parseArgs({
       options: { name: { type: "string" }, email: { type: "string" } },

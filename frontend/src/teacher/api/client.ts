@@ -69,25 +69,46 @@ interface ApiOptions {
   /** Sent as JSON. */
   body?: unknown
   signal?: AbortSignal
+  /** Give up after this long (then: the "can't reach KIDDEX" error). Default: wait as long as the browser does. */
+  timeoutMs?: number
+  /**
+   * Another login's token to send instead of the Teacher's (the Admin page passes
+   * its own; null = send none). When set, the Teacher "login ended" handling is
+   * skipped: the caller handles its own 401.
+   */
+  authToken?: string | null
 }
 
 /** Calls the backend and returns its JSON answer. Throws an ApiError on any failure. */
-export async function api<T>(path: string, { method = 'GET', body, signal }: ApiOptions = {}): Promise<T> {
-  const sentToken = getToken()
+export async function api<T>(
+  path: string,
+  { method = 'GET', body, signal, timeoutMs, authToken }: ApiOptions = {},
+): Promise<T> {
+  const ownToken = authToken !== undefined
+  const sentToken = ownToken ? authToken : getToken()
   const headers: Record<string, string> = sentToken ? { Authorization: `Bearer ${sentToken}` } : {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
+
+  // Our own time limit, separate from the caller's signal (works on older phones too).
+  const limit = new AbortController()
+  const stopOnCaller = () => limit.abort()
+  signal?.addEventListener('abort', stopOnCaller, { once: true })
+  const timer = timeoutMs ? setTimeout(() => limit.abort(), timeoutMs) : undefined
 
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
-      signal,
+      signal: signal || timeoutMs ? limit.signal : undefined,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch (err) {
     if (signal?.aborted) throw err
     throw networkError()
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', stopOnCaller)
   }
 
   // 204 No Content (deletes).
@@ -103,7 +124,7 @@ export async function api<T>(path: string, { method = 'GET', body, signal }: Api
     // The Vite proxy answers 500/502/504 without our JSON when the backend is down.
     if (json === null && response.status >= 500) throw networkError()
     const error = errorFromBody(response.status, json)
-    checkLoginEnded(error, sentToken)
+    if (!ownToken) checkLoginEnded(error, sentToken)
     throw error
   }
   return json as T

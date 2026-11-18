@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import { env } from "./config/env";
 import { requireTeacher } from "./auth/requireTeacher";
+import { adminRouter } from "./routes/admin";
 import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
 import { lessonsRouter } from "./routes/lessons";
@@ -16,13 +17,26 @@ export const app = express();
 // req.ip is the visitor's address (the login limit per computer needs it).
 app.set("trust proxy", 1);
 
-// Only the KIDDEX frontend may call this API from a browser.
-app.use(cors({ origin: env.frontendUrl }));
+// No "X-Powered-By: Express" header.
+app.disable("x-powered-by");
+
+// Only the KIDDEX website addresses in FRONTEND_URL may call this API from a
+// browser. Any other site gets no CORS headers, so the browser blocks it.
+app.use(
+  cors({
+    origin: env.frontendOrigins,
+    allowedHeaders: ["Authorization", "Content-Type"],
+    // How long a browser may remember the preflight answer (10 minutes).
+    maxAge: 600,
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 
-// Open: "/", /api/health and the login address.
+// Open: "/", /api/ping, /api/health and the two login addresses.
 app.use(healthRouter);
 app.use(authRouter);
+// The Admin page (Teacher accounts). Everything but its login needs requireAdmin.
+app.use(adminRouter);
 
 // Everything about lessons and questions needs a logged-in Teacher. This runs
 // before the routes, so a file upload without a login is never read.

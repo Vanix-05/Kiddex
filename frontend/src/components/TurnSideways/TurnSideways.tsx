@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { characterArt } from '../../assets/art'
 import { TOUCH_UPRIGHT_QUERY, useMediaQuery } from '../../hooks/usePhoneSideways'
+import { useIsAdminArea } from '../../routes/pageArea'
 import styles from './TurnSideways.module.css'
 
 /**
@@ -9,9 +10,15 @@ import styles from './TurnSideways.module.css'
  * screen while a touch screen is held upright. CSS alone decides when it shows
  * (so it appears instantly); the hook only makes the page behind it inert.
  * There is no "Play anyway": a website can't turn the screen itself.
+ *
+ * Not on the Admin page (/admin): it works upright too. There, <html> has
+ * data-area="admin" (routes/pageArea.ts): CSS hides the card and the page
+ * behind is not made inert.
  */
 export function TurnSideways() {
-  const upright = useMediaQuery(TOUCH_UPRIGHT_QUERY)
+  const touchUpright = useMediaQuery(TOUCH_UPRIGHT_QUERY)
+  const adminArea = useIsAdminArea()
+  const upright = touchUpright && !adminArea
   const ref = useRef<HTMLDivElement>(null)
 
   // While it shows, nothing behind it gets taps or keyboard focus. Portals
