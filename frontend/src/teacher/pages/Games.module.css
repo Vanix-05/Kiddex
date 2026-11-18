@@ -438,3 +438,38 @@
     animation: none;
   }
 }
+
+/* Phone held sideways: fields and buttons at least 44px on screen (67 design
+   px). The game cards keep their laptop width and sit side by side when the
+   page is wide enough. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  }
+
+  .input,
+  .select {
+    height: 67px;
+  }
+
+  /* Its select fills the box inside the border. */
+  .dateBox {
+    height: 72px;
+  }
+
+  .give {
+    min-height: 67px;
+  }
+
+  /* The on/off switch keeps its look, with a 44px tap area around it (above its neighbours). */
+  .switch {
+    z-index: 1;
+  }
+
+  .switch::after {
+    content: '';
+    position: absolute;
+    inset: -19px -9px;
+  }
+}

@@ -6,6 +6,7 @@ import { sectionLabel, useLesson, useLessonGames, useLessons, useReviewPackDefau
 import type { TemplateId } from '../data/types'
 import { GAME_ICON, GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
+import { SHOW_PAGE_2 } from '../planner/phonePages'
 import { Btn, EmptyLine, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Games.module.css'
 
@@ -100,7 +101,8 @@ export function GamesLeft({ lessonId, live }: PageProps) {
                       className={styles.checkMore}
                       icon={<Pencil size={16} aria-hidden="true" />}
                       tabIndex={tab}
-                      onClick={() => navigate(`${lessonStepPath(lesson.id, 'check')}?game=${g}`)}
+                      // The questions are on the Check spread's page 2 (a phone turns there).
+                      onClick={() => navigate(`${lessonStepPath(lesson.id, 'check')}?game=${g}`, { state: SHOW_PAGE_2 })}
                     >
                       Check {GAME_INFO[g].units}
                     </Btn>

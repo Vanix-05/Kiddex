@@ -425,9 +425,9 @@ export function MainLobby({
             </Hud>
           )}
 
-          {/* Phones and tablets: the walking joystick, bottom left. Hidden while a
-              card is open, and in the Teacher's view-only Lobby. */}
-          {IS_TOUCH && !viewer && !card && <Joystick onMove={moveStick} />}
+          {/* Phones and tablets: the walking joystick, bottom left (in the
+              Teacher's view-only Lobby it moves Ollie). Hidden while a card is open. */}
+          {IS_TOUCH && !card && <Joystick onMove={moveStick} />}
 
           {fps && <output ref={(el) => game.setFpsElement(el)} className={styles.fps} />}
 

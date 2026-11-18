@@ -536,3 +536,29 @@
     animation: none;
   }
 }
+
+/* Phone held sideways: like on a laptop, the window lies over the book (the
+   bookmarks and tabs stay in reach), sized to the phone's book (--cl, --ct,
+   --cw, --ch in planner.module.css). Its content scrolls inside; ✕ and the
+   buttons are at least 44px (67 design px). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .wrap {
+    left: calc(var(--cl) + 4px);
+    top: calc(var(--ct) - 20px);
+    width: calc(var(--cw) - 4px);
+    height: calc(var(--ch) + 16px);
+  }
+
+  .close {
+    left: auto;
+    right: -4px;
+    top: 18px;
+    width: 67px;
+    height: 67px;
+  }
+
+  /* The box and the field inside it are both 44px or more. */
+  .search {
+    height: 71px;
+  }
+}

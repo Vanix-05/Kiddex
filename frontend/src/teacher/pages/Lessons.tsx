@@ -27,6 +27,7 @@ import { useLessonActions, useLessonLoad, useLessons, useSection, type LessonWit
 import type { FileType, TemplateId } from '../data/types'
 import { GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
+import { SHOW_PAGE_2, usePhonePages } from '../planner/phonePages'
 import { Btn, Chip, EmptyLine, FileBadge, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import { LessonTextWindow } from './LessonTextWindow'
 import styles from './Lessons.module.css'
@@ -138,7 +139,12 @@ function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
             return (
               <li key={l.id} className={l.status === 'making' ? `${styles.lesson} ${styles.lessonNew}` : styles.lesson}>
                 {to ? (
-                  <button type="button" className={styles.lessonButton} onClick={() => navigate(to)}>
+                  // A lesson being made: its details are on the Making spread's page 2 (a phone turns there).
+                  <button
+                    type="button"
+                    className={styles.lessonButton}
+                    onClick={() => navigate(to, l.status === 'making' || l.status === 'failed' ? { state: SHOW_PAGE_2 } : undefined)}
+                  >
                     {inner}
                   </button>
                 ) : (
@@ -273,6 +279,7 @@ function FileHead({ type, name, facts, onChange, tab }: { type: FileType; name: 
 
 export function UploadRight({ live }: PageProps) {
   const navigate = useNavigate()
+  const { phone } = usePhonePages()
   const { active } = useSection()
   const { upload, removeLesson, makeQuestions } = useLessonActions()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -343,6 +350,8 @@ export function UploadRight({ live }: PageProps) {
   }
 
   const dropProps = {
+    // Phone: a tap anywhere on the drop zone opens the file picker (there is no dragging there).
+    onClick: phone ? () => inputRef.current?.click() : undefined,
     onDragOver: (e: DragEvent) => {
       e.preventDefault()
       setDragging(true)
@@ -438,7 +447,17 @@ export function UploadRight({ live }: PageProps) {
           </span>
           <strong className={styles.dropTitle}>Drag your lesson file here</strong>
           <span className={styles.dropOr}>or</span>
-          <Btn variant="primary" className={styles.choose} icon={<FileUp size={22} aria-hidden="true" />} tabIndex={tab} onClick={() => inputRef.current?.click()}>
+          <Btn
+            variant="primary"
+            className={styles.choose}
+            icon={<FileUp size={22} aria-hidden="true" />}
+            tabIndex={tab}
+            onClick={(e) => {
+              // Phone: the drop zone around it opens the picker too; open it once.
+              e.stopPropagation()
+              inputRef.current?.click()
+            }}
+          >
             Choose a file
           </Btn>
           <span className={styles.dropSlot} aria-live="polite">

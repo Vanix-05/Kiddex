@@ -995,3 +995,182 @@
     animation: none;
   }
 }
+
+/* ---------- Phone held sideways ----------
+   The whole page scrolls inside the paper (planner.module.css), so the list
+   no longer scrolls by itself; the Approve all bar comes at the end of the
+   list (Check.tsx). Cards are compact: the question, then the choices with
+   "Easy · page 1" on the right, then the tip on one line. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .leftPage,
+  .rightPage {
+    display: block;
+  }
+
+  .listWrap {
+    position: static;
+  }
+
+  .list {
+    position: static;
+    overflow: visible;
+    padding: 0 0 4px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  /* The marked list on page 1 grows with the page too. */
+  .markedList {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* The bar, at the end of the list. */
+  .list .bar {
+    margin-top: 14px;
+  }
+
+  /* Toasts stay at the bottom of the paper on show, inside the book. */
+  .toasts {
+    position: sticky;
+    left: auto;
+    bottom: 14px;
+    height: 0;
+    margin: 0 auto;
+    justify-content: flex-end;
+    transform: none;
+  }
+
+  /* ----- Compact question cards ----- */
+
+  /* A little less space above the list, so 3 full questions show on small phones too. */
+  .rightPage {
+    margin-top: -8px;
+  }
+
+  .groupHead {
+    margin-bottom: 6px;
+  }
+
+  .cards {
+    gap: 5px;
+  }
+
+  .cardMain {
+    align-items: center;
+    gap: 10px;
+    padding: 2px 2px 2px 12px;
+  }
+
+  .cardPair .cardMain {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .cardBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'q q'
+      'c m'
+      'w w';
+    align-items: center;
+    column-gap: 14px;
+    padding: 2px 0;
+  }
+
+  .qText {
+    grid-area: q;
+  }
+
+  .cardBody .choices {
+    grid-area: c;
+    margin-top: 4px;
+  }
+
+  .choice {
+    min-height: 26px;
+    padding: 1px 10px;
+  }
+
+  .cardBody .meta {
+    grid-area: m;
+    margin-top: 4px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* The tip on one line; the editor shows all of it. */
+  .cardBody .why {
+    grid-area: w;
+    display: block;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cardBody .why svg {
+    display: inline;
+    margin: 0 5px 0 0;
+    vertical-align: -3px;
+  }
+
+  .cardBody .why span {
+    display: inline;
+  }
+
+  .markRow,
+  .confirmRow,
+  .askRow {
+    padding: 0 10px 4px 54px;
+  }
+}
+
+/* Phone held sideways: every button at least 44px on screen (67 design px). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .back {
+    min-height: 67px;
+    margin: -16px 0 -10px;
+  }
+
+  .markedRow {
+    min-height: 67px;
+  }
+
+  /* The pencil and the bin have no box: a bigger target, same look. */
+  .iconBtn {
+    width: 67px;
+    height: 67px;
+  }
+
+  .keepBtn,
+  .fixBtn,
+  .deleteBtn,
+  .saveSmall,
+  .addBlank,
+  .level,
+  .cancelBtn,
+  .saveBtn,
+  .addOwn,
+  .gameChip,
+  .barApprove,
+  .barLocked,
+  .barGo {
+    min-height: 67px;
+  }
+
+  .fInput {
+    min-height: 67px;
+  }
+
+  /* The editor's round "right answer" mark: a 67px target around the same circle. */
+  .pick {
+    width: 67px;
+    height: 67px;
+  }
+
+  .choiceInput {
+    height: 64px;
+  }
+}

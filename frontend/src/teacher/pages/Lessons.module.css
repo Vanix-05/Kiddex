@@ -1182,3 +1182,15 @@ button.lessonButton:hover .lessonTitle {
     animation: none;
   }
 }
+
+/* Phone held sideways: fields and buttons at least 44px on screen (67 design px). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .input,
+  .select {
+    height: 67px;
+  }
+
+  .seeText {
+    min-height: 67px;
+  }
+}

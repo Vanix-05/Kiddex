@@ -1,6 +1,22 @@
-import { startTransition, useEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
+import { startTransition, useEffect, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, ChartNoAxesColumn, Flower, Flower2, House, LogOut, Maximize, Plus, Rose, TreePalm, Users, type LucideIcon } from 'lucide-react'
+import {
+  BookOpen,
+  ChartNoAxesColumn,
+  ChevronLeft,
+  ChevronRight,
+  Flower,
+  Flower2,
+  House,
+  LogOut,
+  Maximize,
+  Plus,
+  Rose,
+  TreePalm,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
+import { usePhoneSideways } from '../../hooks/usePhoneSideways'
 import { KiddexLogo } from '../../components/KiddexLogo/KiddexLogo'
 import { SceneBackground } from '../../components/SceneBackground/SceneBackground'
 import { paths } from '../../routes/paths'
@@ -16,6 +32,7 @@ import { AddStudentDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
 import { LazyTeacherLobbyScreen } from '../../screens/Lobby/LazyLobby'
 import { isLobbyPath, isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
 import { PlannerActionsContext, usePlannerActions } from './plannerActions'
+import { PhonePagesContext, wantsPage2, type PageSide } from './phonePages'
 import { SPREADS } from './spreads'
 import styles from './planner.module.css'
 
@@ -76,16 +93,41 @@ function fitPlanner(): Fit {
   return { scale, left, top, logo }
 }
 
-function usePlannerFit() {
+/**
+ * A phone held sideways: one planner scale for every page, so text is the
+ * same size everywhere (question text 17 design px is about 11px on screen;
+ * a 44px tap target is 67 design px). The stage is the screen's own size in
+ * design px (--sw x --sh), and the book, bookmarks, tabs and badge are laid
+ * out in it (planner.module.css, sideways-phone part). A smaller screen gets a
+ * narrower book with the same text size, never a smaller scale.
+ */
+const PHONE_SCALE = 0.66
+/** Phone bookmarks: a column down the left edge, each 68 design px (45px) tall. */
+const PHONE_MARK_TOP = 78
+const PHONE_MARK_STEP = 70
+
+function usePlannerFit(phone: boolean) {
   const [fit, setFit] = useState(fitPlanner)
+  const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   useEffect(() => {
-    const onResize = () => setFit(fitPlanner())
+    const onResize = () => {
+      setFit(fitPlanner())
+      setSize({ w: window.innerWidth, h: window.innerHeight })
+    }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+  if (phone) {
+    return {
+      style: { transform: `scale(${PHONE_SCALE})` },
+      logo: null,
+      vars: { '--sw': `${size.w / PHONE_SCALE}px`, '--sh': `${size.h / PHONE_SCALE}px` } as CSSProperties,
+    }
+  }
   return {
     style: { transform: `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})` },
     logo: fit.logo,
+    vars: undefined,
   }
 }
 
@@ -95,7 +137,13 @@ interface Flip {
   dir: 'fwd' | 'bwd'
   /** Reduce motion: a quick crossfade instead of a turn. */
   fade: boolean
+  /** Phone: the page turning away and the page it turns to (one page shows at a time). */
+  fromSide: PageSide
+  toSide: PageSide
 }
+
+/** A sideways swipe at least this long (screen px), and mostly sideways, turns the page on a phone. */
+const SWIPE_MIN = 60
 
 type WindowState = 'hidden' | 'open' | 'closing'
 type Popup = 'newSection' | 'addStudent' | 'logOut' | null
@@ -130,6 +178,9 @@ function Planner() {
   const [win, setWin] = useState<WindowState>(onStudents ? 'open' : 'hidden')
   const [winQuery, setWinQuery] = useState(onStudents ? location.search : '')
   const [popup, setPopup] = useState<Popup>(null)
+  // Phone: the page of the spread on show (page 1 = 'L', page 2 = 'R').
+  const phone = usePhoneSideways()
+  const [side, setSide] = useState<PageSide>('L')
 
   // React to URL changes while rendering (no extra paint with the old page).
   const [seenUrl, setSeenUrl] = useState(url)
@@ -143,23 +194,75 @@ function Planner() {
       if (win !== 'hidden') setWin('hidden')
     } else {
       if (win === 'open') setWin('closing')
+      // Phone: a new spread opens on page 1, unless the tap was about page 2 (SHOW_PAGE_2).
+      const toSide: PageSide = phone && wantsPage2(location.state) ? 'R' : 'L'
       if (pathOf(url) !== pathOf(bookUrl)) {
         // Starting a new turn while one plays finishes the old one at once.
-        setFlip({ from: bookUrl, dir: pageOrder(url) >= pageOrder(bookUrl) ? 'fwd' : 'bwd', fade: reducedMotion() })
+        setFlip({ from: bookUrl, dir: pageOrder(url) >= pageOrder(bookUrl) ? 'fwd' : 'bwd', fade: reducedMotion(), fromSide: side, toSide })
+        setSide(toSide)
+      } else if (toSide !== side && toSide === 'R') {
+        // Same spread, a tap on page 1 about page 2 (e.g. Check's "Go"): turn to it.
+        setFlip({ from: bookUrl, dir: 'fwd', fade: reducedMotion(), fromSide: side, toSide })
+        setSide(toSide)
       }
       setBookUrl(url)
     }
   }
 
+  /** Phone: turn to the other page of the spread (‹ › or a swipe). */
+  const turnPage = (to: PageSide) => {
+    if (!phone || to === side) return
+    setFlip({ from: bookUrl, dir: to === 'R' ? 'fwd' : 'bwd', fade: reducedMotion(), fromSide: side, toSide: to })
+    setSide(to)
+  }
+
+  // Phone: a sideways swipe on the paper turns the page; an up-down one only scrolls.
+  const swipe = useRef<{ id: number; x: number; y: number } | null>(null)
+  const swiped = useRef(false)
+  const swipeHandlers = phone
+    ? {
+        onPointerDown: (e: ReactPointerEvent) => {
+          swiped.current = false
+          swipe.current = e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null
+        },
+        onPointerUp: (e: ReactPointerEvent) => {
+          const s = swipe.current
+          swipe.current = null
+          if (!s || s.id !== e.pointerId) return
+          const dx = e.clientX - s.x
+          const dy = e.clientY - s.y
+          if (Math.abs(dx) < SWIPE_MIN || Math.abs(dx) < 1.5 * Math.abs(dy)) return
+          swiped.current = true
+          turnPage(dx < 0 ? 'R' : 'L')
+        },
+        onPointerCancel: () => {
+          swipe.current = null
+        },
+        // A swipe that ends on a button doesn't also press it.
+        onClickCapture: (e: ReactMouseEvent) => {
+          if (!swiped.current) return
+          swiped.current = false
+          e.preventDefault()
+          e.stopPropagation()
+        },
+      }
+    : undefined
+
   // After a page change, keyboard focus goes to the new page if it was lost.
   const leftRef = useRef<HTMLDivElement>(null)
+  const rightRef = useRef<HTMLDivElement>(null)
   const bookPath = pathOf(bookUrl)
   useEffect(() => {
     const active = document.activeElement
     if (!active || active === document.body) leftRef.current?.focus({ preventScroll: true })
+    // Phone: a new spread starts at the top of each page (the paper scrolls there).
+    if (leftRef.current) leftRef.current.scrollTop = 0
+    if (rightRef.current) rightRef.current.scrollTop = 0
   }, [bookPath])
 
-  const { style: fitStyle, logo } = usePlannerFit()
+  const { style: fitStyle, logo, vars: phoneVars } = usePlannerFit(phone)
+  /** Phone: the page not on show stays mounted (its state and scroll), hidden and out of reach. */
+  const offPage = (s: PageSide) => (phone && s !== side ? { inert: true, style: { visibility: 'hidden' } as CSSProperties } : {})
   const fullscreen = useIsFullscreen()
   const page = resolvePage(bookUrl).key
   const activeMark: BookmarkKey = win === 'open' ? 'students' : bookmarkFor(page)
@@ -191,6 +294,7 @@ function Planner() {
 
   return (
     <PlannerActionsContext.Provider value={actions}>
+      <PhonePagesContext.Provider value={phone ? { phone, side } : NOT_PHONE}>
       {onLobby && section && (
         <LazyTeacherLobbyScreen
           teacherName={teacher.name}
@@ -201,7 +305,7 @@ function Planner() {
       <div
         className={styles.root}
         // Under the full-screen Lobby the planner keeps its state but isn't drawn.
-        style={{ '--flip-ms': `${FLIP_MS}ms`, display: onLobby ? 'none' : undefined } as CSSProperties}
+        style={{ '--flip-ms': `${FLIP_MS}ms`, display: onLobby ? 'none' : undefined, ...phoneVars } as CSSProperties}
         // A click during a page turn finishes it at once.
         onPointerDownCapture={() => flip && setFlip(null)}
       >
@@ -217,30 +321,39 @@ function Planner() {
         )}
 
         <div className={`${styles.stage} ${styles.bookStage}`} style={fitStyle} inert={win === 'open' || popup ? true : undefined}>
-          <BookBack />
+          <BookBack side={phone ? side : undefined} />
 
-          <main>
-            <div className={styles.slotL}>
-              <Half url={bookUrl} side="L" live paperRef={leftRef} />
+          <main {...swipeHandlers}>
+            <div className={styles.slotL} {...offPage('L')}>
+              <Half url={bookUrl} side="L" live paperRef={leftRef} phone={phone} />
             </div>
-            <div className={styles.slotR}>
-              <Half url={bookUrl} side="R" live />
+            <div className={styles.slotR} {...offPage('R')}>
+              <Half url={bookUrl} side="R" live paperRef={rightRef} phone={phone} />
             </div>
           </main>
 
-          {flip && !flip.fade && <PageTurn flip={flip} to={bookUrl} onDone={() => setFlip(null)} />}
+          {flip && !flip.fade && !phone && <PageTurn flip={flip} to={bookUrl} onDone={() => setFlip(null)} />}
+          {flip && !flip.fade && phone && <PhonePageTurn flip={flip} to={bookUrl} onDone={() => setFlip(null)} />}
           {flip && flip.fade && (
             <div className={styles.fadeOld} inert aria-hidden="true" onAnimationEnd={() => setFlip(null)}>
-              <div className={styles.slotL}>
-                <Half url={flip.from} side="L" />
-              </div>
-              <div className={styles.slotR}>
-                <Half url={flip.from} side="R" />
-              </div>
+              {phone ? (
+                <div className={styles.slotL}>
+                  <Half url={flip.from} side={flip.fromSide} />
+                </div>
+              ) : (
+                <>
+                  <div className={styles.slotL}>
+                    <Half url={flip.from} side="L" />
+                  </div>
+                  <div className={styles.slotR}>
+                    <Half url={flip.from} side="R" />
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          <BookFront />
+          <BookFront side={phone ? side : undefined} />
         </div>
 
         {win !== 'hidden' && (
@@ -253,11 +366,19 @@ function Planner() {
 
         <div className={`${styles.stage} ${styles.chromeStage}`} style={fitStyle} inert={popup ? true : undefined}>
           <SectionTabs />
-          <Bookmarks active={activeMark} onGo={(to) => navigate(to)} />
-          {!fullscreen && (
+          <Bookmarks active={activeMark} onGo={(to) => navigate(to)} phone={phone} />
+          {phone ? (
+            // Phone: the pager, then Full screen (only where the browser can go full screen).
             <div className={styles.topRight}>
-              <FullscreenButton />
+              <Pager side={side} onTurn={turnPage} />
+              {!fullscreen && document.fullscreenEnabled && <FullscreenButton />}
             </div>
+          ) : (
+            !fullscreen && (
+              <div className={styles.topRight}>
+                <FullscreenButton />
+              </div>
+            )
           )}
           {win !== 'hidden' && (
             <StudentsWindow
@@ -282,19 +403,73 @@ function Planner() {
         {popup === 'newSection' && <NewSectionDialog onClose={close} />}
         {popup === 'addStudent' && <AddStudentDialog onClose={close} />}
       </div>
+      </PhonePagesContext.Provider>
     </PlannerActionsContext.Provider>
   )
 }
 
+/** Not on a phone: both pages show (the context's default). */
+const NOT_PHONE = { phone: false, side: 'L' } as const
+
+/**
+ * Phone: the paper scrolls inside the book. While there is more below, it
+ * gets data-more (a soft fade at its bottom edge, planner.module.css).
+ */
+function usePaperMore(paperRef: RefObject<HTMLDivElement | null> | undefined, on: boolean) {
+  useEffect(() => {
+    const paper = paperRef?.current
+    if (!on || !paper) return
+    let frame = 0
+    const check = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const more = paper.scrollTop + paper.clientHeight < paper.scrollHeight - 4
+        if (more) paper.dataset.more = ''
+        else delete paper.dataset.more
+      })
+    }
+    check()
+    paper.addEventListener('scroll', check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(paper)
+    for (const child of paper.children) ro.observe(child)
+    const mo = new MutationObserver(check)
+    mo.observe(paper, { childList: true, subtree: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      paper.removeEventListener('scroll', check)
+      ro.disconnect()
+      mo.disconnect()
+      delete paper.dataset.more
+    }
+  }, [paperRef, on])
+}
+
 /** One page of a spread, on lined paper. live = false for still copies. */
-function Half({ url, side, live = false, paperRef }: { url: string; side: 'L' | 'R'; live?: boolean; paperRef?: Ref<HTMLDivElement> }) {
+function Half({
+  url,
+  side,
+  live = false,
+  paperRef,
+  phone = false,
+}: {
+  url: string
+  side: 'L' | 'R'
+  live?: boolean
+  paperRef?: RefObject<HTMLDivElement | null>
+  phone?: boolean
+}) {
   const { key, lessonId, query } = resolvePage(url)
   const Page = side === 'L' ? SPREADS[key].Left : SPREADS[key].Right
+  usePaperMore(paperRef, phone && live)
   return (
     <div
       ref={paperRef}
       className={`${styles.paper} ${side === 'L' ? styles.paperL : styles.paperR}`}
-      tabIndex={paperRef ? -1 : undefined}
+      // The left page takes focus after a page change (as before); the right one only needs its ref.
+      tabIndex={paperRef && side === 'L' ? -1 : undefined}
+      // The scrolling paper of a live page (Check finds it to scroll to a card).
+      data-paper={live ? '' : undefined}
     >
       <Page key={pathOf(url)} lessonId={lessonId} query={query} live={live} />
       <span className={side === 'L' ? `${styles.pageNum} ${styles.pageNumL}` : `${styles.pageNum} ${styles.pageNumR}`} aria-hidden="true">
@@ -340,6 +515,60 @@ function PageTurn({ flip, to, onDone }: { flip: Flip; to: string; onDone: () => 
   )
 }
 
+/**
+ * Phone: the same 3D turn, for one page. Forward: the page on show turns
+ * over toward the left (around its left edge), and the next page is already
+ * underneath. Backward: the earlier page comes back from the left and lands
+ * on the page on show. Same time, shading and curl as the laptop turn.
+ */
+function PhonePageTurn({ flip, to, onDone }: { flip: Flip; to: string; onDone: () => void }) {
+  const fwd = flip.dir === 'fwd'
+  return (
+    <div className={styles.flipLayer} inert aria-hidden="true">
+      {/* Backward: the old page stays on top until the turning page lands on it. */}
+      {!fwd && (
+        <div className={`${styles.slotL} ${styles.cover2}`}>
+          <Half url={flip.from} side={flip.fromSide} />
+        </div>
+      )}
+      <div className={`${styles.underShade} ${styles.phoneUnder}`} />
+      <div
+        className={`${styles.flipper} ${fwd ? styles.phoneTurnAway : styles.phoneTurnBack}`}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget) onDone()
+        }}
+      >
+        <div className={styles.face}>
+          <Half url={fwd ? flip.from : to} side={fwd ? flip.fromSide : flip.toSide} />
+          <div className={`${styles.shade} ${fwd ? styles.shadeIn : styles.shadeInBack} ${styles.shadeFromLeft}`} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Phone: ‹ "Page 1 of 2" › in the top bar, between the section tabs and Full screen. */
+function Pager({ side, onTurn }: { side: PageSide; onTurn: (to: PageSide) => void }) {
+  const n = side === 'L' ? 1 : 2
+  return (
+    <div className={styles.pager} role="group" aria-label="Pages">
+      <button type="button" className={styles.pageBtn} aria-label="Previous page" disabled={side === 'L'} onClick={() => onTurn('L')}>
+        <ChevronLeft size={30} strokeWidth={2.8} aria-hidden="true" />
+      </button>
+      <span className={styles.pagePill} aria-live="polite">
+        Page {n} of 2
+        <span className={styles.pageDots} aria-hidden="true">
+          <span className={n === 1 ? styles.pageDotOn : styles.pageDot} />
+          <span className={n === 2 ? styles.pageDotOn : styles.pageDot} />
+        </span>
+      </span>
+      <button type="button" className={styles.pageBtn} aria-label="Next page" disabled={side === 'R'} onClick={() => onTurn('R')}>
+        <ChevronRight size={30} strokeWidth={2.8} aria-hidden="true" />
+      </button>
+    </div>
+  )
+}
+
 // ---------- The book (maroon hardcover) ----------
 
 /** A gold corner guard (top-left as drawn; the others are mirrored in CSS). */
@@ -354,9 +583,10 @@ function Corner({ className }: { className: string }) {
 }
 
 /** Under the pages: shadow, cover, gold line and corners, the spine, the stacked page edges and the paper leaves. */
-function BookBack() {
+/** side: on a phone, the page on show (the spine is at its inner edge). */
+function BookBack({ side }: { side?: PageSide }) {
   return (
-    <div className={styles.bookBack} aria-hidden="true">
+    <div className={styles.bookBack} aria-hidden="true" data-side={side}>
       <span className={styles.bookShadow} />
       <span className={styles.cover}>
         <span className={styles.foil} />
@@ -376,9 +606,9 @@ function BookBack() {
 }
 
 /** Over the pages (never over the text): the gutter line, the headband and the ribbon bookmark. */
-function BookFront() {
+function BookFront({ side }: { side?: PageSide }) {
   return (
-    <div className={styles.bookFront} aria-hidden="true">
+    <div className={styles.bookFront} aria-hidden="true" data-side={side}>
       <span className={styles.gutter} />
       <span className={styles.band} />
       <span className={styles.ribbon} />
@@ -454,10 +684,12 @@ const BOOKMARK_COLORS: Record<BookmarkKey, string> = {
   lobby: styles.bmLobby,
 }
 
-function Bookmarks({ active, onGo }: { active: BookmarkKey; onGo: (to: string) => void }) {
+function Bookmarks({ active, onGo, phone }: { active: BookmarkKey; onGo: (to: string) => void; phone: boolean }) {
   return (
     <nav className={styles.bookmarks} aria-label="Planner pages">
-      {BOOKMARKS.map(({ key, label, icon: Icon, top, to }) => {
+      {BOOKMARKS.map(({ key, label, icon: Icon, top: laptopTop, to }, i) => {
+        // Phone: an even column down the left edge.
+        const top = phone ? PHONE_MARK_TOP + i * PHONE_MARK_STEP : laptopTop
         const on = key === active
         const className = [styles.bookmark, BOOKMARK_COLORS[key], on && styles.bookmarkOn]
           .filter(Boolean)

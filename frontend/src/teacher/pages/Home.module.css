@@ -375,3 +375,30 @@
 .placeholder svg {
   color: #c9b08c;
 }
+
+/* Phone held sideways: the To do checkbox keeps its look, with a 44px tap
+   area around it. The stats strip and the chart keep their laptop size (on
+   the wider page they would look stretched); the chart is centered. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .stats {
+    max-width: 500px;
+  }
+
+  .chart {
+    width: 100%;
+    max-width: 500px;
+    margin-inline: auto;
+  }
+
+  /* Above the row text, so the tap area isn't covered. */
+  .check {
+    position: relative;
+    z-index: 1;
+  }
+
+  .check::after {
+    content: '';
+    position: absolute;
+    inset: -20px;
+  }
+}

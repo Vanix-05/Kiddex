@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { characterArt } from '../../assets/art'
+import { usePhonePages } from './phonePages'
 import styles from './ui.module.css'
 
 /** Padding for a left or right page (left clears the red margin line). */
@@ -110,10 +111,12 @@ export function FileBadge({ type, className }: { type: string; className?: strin
 
 /**
  * Ollie's sticky note at the bottom of a right page, with Ollie standing
- * beside it. Placed by the page (absolute, bottom area).
+ * beside it. Placed by the page (absolute, bottom area). On a phone the page
+ * scrolls, so the note and Ollie sit in a row after the page's content.
  */
 export function OllieNote({ children }: { children: ReactNode }) {
-  return (
+  const { phone } = usePhonePages()
+  const parts = (
     <>
       <aside className={styles.note}>
         <span className={styles.tape} aria-hidden="true" />
@@ -123,6 +126,7 @@ export function OllieNote({ children }: { children: ReactNode }) {
       <img src={characterArt.ollie} alt="" className={styles.ollie} draggable={false} />
     </>
   )
+  return phone ? <div className={styles.noteRow}>{parts}</div> : parts
 }
 
 /** A short line for things that only exist with data, with a way back. */

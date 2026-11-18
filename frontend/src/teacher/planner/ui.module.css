@@ -362,3 +362,70 @@
     transition: none;
   }
 }
+
+/* ---------- Phone held sideways ----------
+   The page grows with its content and the paper scrolls (planner.module.css).
+   Every page has the same side padding. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .body {
+    position: relative;
+    inset: auto;
+    min-height: 100%;
+  }
+
+  .bodyL {
+    padding: 16px 44px 48px 80px;
+  }
+
+  .bodyR {
+    padding: 16px 44px 48px 48px;
+  }
+
+  /* Ollie's note and Ollie: a row after the content (OllieNote), at the
+     bottom when the page is short. */
+  .noteRow {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: auto;
+    padding-top: 40px;
+  }
+
+  .note,
+  .ollie {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    flex: none;
+  }
+
+  .note {
+    margin-left: -6px;
+  }
+
+  .ollie {
+    margin: 0 6px -44px 0;
+  }
+}
+
+/* Phone held sideways: every button is at least 44px on screen (67 design px). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .btn {
+    height: auto;
+    min-height: 67px;
+    padding: 0 20px;
+  }
+
+  .link {
+    min-width: 67px;
+    min-height: 67px;
+    padding: 0;
+  }
+
+  .pill {
+    height: 67px;
+    padding: 0 18px;
+  }
+}

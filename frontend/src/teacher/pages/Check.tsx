@@ -7,6 +7,7 @@ import { ApiError, errorMessage } from '../api/client'
 import { useCards, useCheckSeenEnd, useLessonLoad, type LessonDetail } from '../data/useTeacherData'
 import { GAME_INFO, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
+import { SHOW_PAGE_2, usePhonePages } from '../planner/phonePages'
 import { EmptyLine, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import { ApproveBar } from './check/ApproveBar'
 import {
@@ -27,6 +28,20 @@ import { QuestionItem } from './check/QuestionItem'
 import styles from './Check.module.css'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/**
+ * Phone: the scrolling paper holds the list, so a card's place is measured
+ * from the paper (its offsetTop is from the page inside it).
+ */
+function topIn(el: HTMLElement, scroller: HTMLElement) {
+  let y = 0
+  let node: HTMLElement | null = el
+  while (node && node !== scroller) {
+    y += node.offsetTop
+    node = node.offsetParent as HTMLElement | null
+  }
+  return y
+}
 
 /** A new value for each "Go →" tap, so tapping the same row again scrolls again. */
 const stamp = () => Date.now().toString(36)
@@ -64,8 +79,9 @@ export function CheckLeft({ lessonId, live }: PageProps) {
   const marked = markedList(cards)
   const left = marked.filter((m) => !m.checked).length
   const byAi = cards.filter((c) => c.madeBy === 'ai').length
-  /** Tells the right page to scroll to a card (a new `t` repeats the same card). */
-  const go = (id: string) => navigate(`${lessonStepPath(lessonId, 'check')}?q=${encodeURIComponent(id)}&t=${stamp()}`, { replace: true })
+  /** Tells the right page to scroll to a card (a new `t` repeats the same card). On a phone the book turns to it (page 2). */
+  const go = (id: string) =>
+    navigate(`${lessonStepPath(lessonId, 'check')}?q=${encodeURIComponent(id)}&t=${stamp()}`, { replace: true, state: SHOW_PAGE_2 })
 
   return (
     <PageBody side="L">
@@ -141,6 +157,7 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
   const { cards, editCard, keepCard, deleteCard, addCard, approveAll, refresh } = useCards(lessonId)
   const { seen, markSeen } = useCheckSeenEnd(lessonId)
   const navigate = useNavigate()
+  const { phone } = usePhonePages()
   const listRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
@@ -165,6 +182,14 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
 
   useEffect(() => () => window.clearTimeout(leaveTimer.current), [])
 
+  /** What scrolls: the list, or on a phone the paper the whole page scrolls in. */
+  const scroller = useCallback(
+    () => (phone ? (listRef.current?.closest<HTMLElement>('[data-paper]') ?? null) : listRef.current),
+    [phone],
+  )
+  /** A card's top inside what scrolls (on a laptop, its offsetTop in the list, as always). */
+  const topOf = useCallback((el: HTMLElement, s: HTMLElement) => (phone ? topIn(el, s) : el.offsetTop), [phone])
+
   // An approved lesson was read before: Approve all stays unlocked after an edit.
   useEffect(() => {
     if (approved) markSeen()
@@ -172,7 +197,7 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
 
   // "At the end": the marker after the last card was on screen once (a short list counts at once).
   useEffect(() => {
-    const root = listRef.current
+    const root = scroller()
     const end = endRef.current
     if (!live || seen || !showList || !root || !end) return
     const io = new IntersectionObserver(
@@ -183,11 +208,11 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
     )
     io.observe(end)
     return () => io.disconnect()
-  }, [live, seen, showList, markSeen])
+  }, [live, seen, showList, markSeen, scroller])
 
   // "{N} more below": the cards that start below the list's bottom edge.
   useEffect(() => {
-    const list = listRef.current
+    const list = scroller()
     const content = contentRef.current
     if (!live || !showList || !list || !content) return
     let frame = 0
@@ -195,7 +220,7 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
       cancelAnimationFrame(frame)
       frame = requestAnimationFrame(() => {
         const bottom = list.getBoundingClientRect().bottom
-        const below = [...list.querySelectorAll('[data-card]')].filter((el) => el.getBoundingClientRect().top >= bottom - 4).length
+        const below = [...content.querySelectorAll('[data-card]')].filter((el) => el.getBoundingClientRect().top >= bottom - 4).length
         setMoreBelow(below)
       })
     }
@@ -208,19 +233,19 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
       ro.disconnect()
       list.removeEventListener('scroll', count)
     }
-  }, [live, showList])
+  }, [live, showList, scroller])
 
   /** Scrolls the list so the card is in the middle, with a short soft highlight. */
   const scrollToCard = useCallback((id: string) => {
-    const list = listRef.current
-    const el = list?.querySelector<HTMLElement>(`[data-card="${CSS.escape(id)}"]`)
+    const list = scroller()
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-card="${CSS.escape(id)}"]`)
     if (!list || !el) return
     const reduced = reducedMotion()
-    list.scrollTo({ top: Math.max(0, el.offsetTop - (list.clientHeight - el.offsetHeight) / 2), behavior: reduced ? 'auto' : 'smooth' })
+    list.scrollTo({ top: Math.max(0, topOf(el, list) - (list.clientHeight - el.offsetHeight) / 2), behavior: reduced ? 'auto' : 'smooth' })
     if (reduced) return
     el.dataset.flash = 'on'
     window.setTimeout(() => delete el.dataset.flash, 1600)
-  }, [])
+  }, [scroller, topOf])
 
   // From the left page ("Go →", ?q=) or the Games page (?game=match-up).
   const askedCard = query.get('q')
@@ -231,11 +256,11 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
     if (askedCard) {
       scrollToCard(askedCard)
     } else if (askedGame) {
-      const list = listRef.current
-      const group = list?.querySelector<HTMLElement>(`[data-group="${CSS.escape(askedGame)}"]`)
-      if (list && group) list.scrollTo({ top: Math.max(0, group.offsetTop - 4), behavior: reducedMotion() ? 'auto' : 'smooth' })
+      const list = scroller()
+      const group = listRef.current?.querySelector<HTMLElement>(`[data-group="${CSS.escape(askedGame)}"]`)
+      if (list && group) list.scrollTo({ top: Math.max(0, topOf(group, list) - 4), behavior: reducedMotion() ? 'auto' : 'smooth' })
     }
-  }, [live, hasCards, askedCard, askedAt, askedGame, scrollToCard])
+  }, [live, hasCards, askedCard, askedAt, askedGame, scrollToCard, scroller, topOf])
 
   if (!lesson || !lessonId) {
     return (
@@ -294,11 +319,11 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
     setChoosingGame(false)
     // Keep the opened card in view, and start typing in it.
     requestAnimationFrame(() => {
-      const list = listRef.current
-      const el = list?.querySelector<HTMLElement>('[data-editor]')
+      const list = scroller()
+      const el = listRef.current?.querySelector<HTMLElement>('[data-editor]')
       if (!list || !el) return
-      const top = el.offsetTop - 8
-      const bottom = el.offsetTop + el.offsetHeight - list.clientHeight + 8
+      const top = topOf(el, list) - 8
+      const bottom = topOf(el, list) + el.offsetHeight - list.clientHeight + 8
       if (list.scrollTop > top) list.scrollTo({ top })
       else if (list.scrollTop < bottom) list.scrollTo({ top: Math.min(top, bottom) })
       el.querySelector<HTMLElement>('textarea, input')?.focus({ preventScroll: true })
@@ -388,6 +413,8 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
     setApproving(false)
   }
 
+  const approveBar = <ApproveBar state={bar} done={done} busy={approving} onGo={scrollToCard} onApprove={approve} />
+
   return (
     <PageBody side="R">
       <div className={styles.rightPage} inert={!live || undefined}>
@@ -456,6 +483,8 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
                 </button>
               )}
               <div ref={endRef} className={styles.endMarker} aria-hidden="true" />
+              {/* Phone: the bar is at the end of the list (pinned, it would cover the 3rd question). */}
+              {phone && approveBar}
             </div>
           </div>
 
@@ -468,7 +497,7 @@ export function CheckRight({ lessonId, query, live }: PageProps) {
           </div>
         </div>
 
-        <ApproveBar state={bar} done={done} busy={approving} onGo={scrollToCard} onApprove={approve} />
+        {!phone && approveBar}
       </div>
     </PageBody>
   )

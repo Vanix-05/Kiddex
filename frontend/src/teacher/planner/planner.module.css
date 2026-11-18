@@ -1003,3 +1003,411 @@
     transition: none;
   }
 }
+
+/* ---------- Phone turn (TeacherPlanner PhonePageTurn; only drawn on a phone) ---------- */
+
+/* Forward: the page on show turns over toward the left, around its left
+   edge. Backward: the earlier page comes back from the left. Same keyframes,
+   time and shading as the laptop turn. */
+.phoneTurnAway,
+.phoneTurnBack {
+  transform-origin: -8px 50%;
+  animation-name: turnForward;
+}
+
+.phoneTurnBack {
+  animation-direction: reverse;
+}
+
+.phoneUnder {
+  background: linear-gradient(to right, rgba(60, 35, 20, 0.35), rgba(60, 35, 20, 0) 60%);
+}
+
+/* The page coming back: shaded while it stands up, clear when it lands. */
+.shadeInBack {
+  animation: shadeIn var(--flip-ms) linear reverse forwards;
+}
+
+/* ---------- Phone pager (only drawn on a phone) ---------- */
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageBtn {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-card-bg);
+  box-shadow: 0 4px 0 rgba(74, 52, 38, 0.2);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--color-tint-peach);
+}
+
+.pageBtn:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: default;
+}
+
+.pagePill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 66px;
+  padding: 0 20px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-card-bg);
+  box-shadow: 0 4px 0 rgba(74, 52, 38, 0.2);
+  font: 600 20px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  white-space: nowrap;
+}
+
+.pageDots {
+  display: flex;
+  gap: 7px;
+}
+
+.pageDot,
+.pageDotOn {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #d9cbb6;
+}
+
+.pageDotOn {
+  background: var(--color-button-bg);
+}
+
+/* ---------- Phone held sideways ----------
+ * One planner scale on every page (PHONE_SCALE in TeacherPlanner.tsx). The
+ * stage is the screen's size in design px (--sw x --sh, set by
+ * TeacherPlanner). Top bar (tabs, pager, Full screen) above the book; the
+ * bookmarks and the Teacher badge in a column on the left; the book fills the
+ * rest and shows one page at a time, which scrolls inside the paper.
+ *
+ *   cover   --cl, --ct, --cw x --ch      page   --px, --py, --pw x --ph
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  .stage {
+    --cl: 152px;
+    --ct: 72px;
+    --cw: calc(var(--sw) - 160px);
+    --ch: calc(var(--sh) - 86px);
+    --px: calc(var(--cl) + 16px);
+    --py: calc(var(--ct) + 15px);
+    --pw: calc(var(--cw) - 31px);
+    --ph: calc(var(--ch) - 30px);
+    width: var(--sw);
+    height: var(--sh);
+  }
+
+  /* ----- The book: same cover, foil, corners, edges, leaf and ribbon ----- */
+
+  .bookShadow {
+    left: calc(var(--cl) + 19px);
+    top: calc(var(--ct) + var(--ch) - 42px);
+    width: calc(var(--cw) - 29px);
+  }
+
+  .cover {
+    left: var(--cl);
+    top: var(--ct);
+    width: var(--cw);
+    height: var(--ch);
+  }
+
+  .cornerTL,
+  .cornerBL {
+    left: calc(var(--cl) + 2px);
+  }
+
+  .cornerTR,
+  .cornerBR {
+    left: calc(var(--cl) + var(--cw) - 44px);
+  }
+
+  .cornerTL,
+  .cornerTR {
+    top: calc(var(--ct) + 2px);
+  }
+
+  .cornerBL,
+  .cornerBR {
+    top: calc(var(--ct) + var(--ch) - 44px);
+  }
+
+  .stackL,
+  .stackR {
+    top: calc(var(--ct) + 18px);
+    height: calc(var(--ch) - 38px);
+  }
+
+  .stackL {
+    left: calc(var(--cl) + 7px);
+  }
+
+  .stackR {
+    left: calc(var(--cl) + var(--cw) - 20px);
+  }
+
+  .stackB {
+    left: calc(var(--cl) + 15px);
+    top: calc(var(--ct) + var(--ch) - 24px);
+    width: calc(var(--cw) - 30px);
+  }
+
+  /* One page shows: no spine between two pages (its hinge, gutter and the
+     edge's dip into it aren't needed). */
+  .hinge,
+  .gutter,
+  .stackB::after {
+    display: none;
+  }
+
+  .leaf {
+    left: calc(var(--cl) + 13px);
+    top: calc(var(--ct) + 13px);
+    width: calc(var(--cw) - 26px);
+    height: calc(var(--ch) - 26px);
+  }
+
+  [data-side='L'] .leafR,
+  [data-side='R'] .leafL {
+    display: none;
+  }
+
+  /* The spine is at the page's inner edge: right of page 1, left of page 2.
+     The headband and the ribbon hang there. */
+  .band {
+    top: calc(var(--ct) + 5px);
+    left: calc(var(--cl) + var(--cw) - 64px);
+  }
+
+  [data-side='R'] .band {
+    left: calc(var(--cl) + 24px);
+  }
+
+  .ribbon {
+    top: calc(var(--ct) + var(--ch) - 24px);
+    left: calc(var(--cl) + var(--cw) - 110px);
+  }
+
+  [data-side='R'] .ribbon {
+    left: calc(var(--cl) + 80px);
+  }
+
+  /* ----- One page at a time, the whole width of the open book ----- */
+
+  .slotL,
+  .slotR,
+  .underShade,
+  .flipper {
+    left: var(--px);
+    top: var(--py);
+    width: var(--pw);
+    height: var(--ph);
+  }
+
+  /* The page scrolls up and down inside the paper (never sideways), with a
+     thin scroll bar on its right edge and a soft fade while there's more below. */
+  .paper {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #c9b08c transparent;
+    touch-action: pan-y;
+  }
+
+  .paper[data-more] {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  }
+
+  /* The same paper, its shading in px (a wider page must not get a wider dark
+     band), and the lines scroll with the writing. */
+  .paperL {
+    background-image:
+      linear-gradient(
+        to right,
+        transparent 64px,
+        color-mix(in srgb, var(--color-notebook-margin) 80%, transparent) 64px,
+        color-mix(in srgb, var(--color-notebook-margin) 80%, transparent) 66px,
+        transparent 66px
+      ),
+      linear-gradient(
+        90deg,
+        transparent calc(100% - 180px),
+        rgba(255, 255, 255, 0.55) calc(100% - 96px),
+        rgba(196, 170, 130, 0) calc(100% - 60px),
+        rgba(150, 118, 80, 0.38) calc(100% - 18px),
+        rgba(90, 60, 36, 0.55) 100%
+      ),
+      linear-gradient(90deg, var(--paper-edge), transparent 36px),
+      repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line)),
+      var(--grain);
+    background-attachment: local;
+  }
+
+  .paperR {
+    background-image:
+      linear-gradient(
+        270deg,
+        transparent calc(100% - 180px),
+        rgba(255, 255, 255, 0.55) calc(100% - 96px),
+        rgba(196, 170, 130, 0) calc(100% - 60px),
+        rgba(150, 118, 80, 0.38) calc(100% - 18px),
+        rgba(90, 60, 36, 0.55) 100%
+      ),
+      linear-gradient(270deg, var(--paper-edge), transparent 36px),
+      repeating-linear-gradient(to bottom, transparent 0 calc(var(--line) - 1.5px), var(--color-notebook-line) calc(var(--line) - 1.5px) var(--line)),
+      var(--grain);
+    background-attachment: local;
+  }
+
+  /* The page number sits at the end of the page, in its bottom padding. */
+  .pageNum {
+    position: relative;
+    bottom: auto;
+    display: block;
+    height: 20px;
+    margin-top: -36px;
+  }
+
+  .pageNumL {
+    left: 0;
+    padding-left: 92px;
+  }
+
+  .pageNumR {
+    right: auto;
+    padding-right: 58px;
+    text-align: right;
+  }
+
+  /* ----- Top bar: the section tabs, the pager and Full screen ----- */
+
+  /* Same tabs, tucked behind the cover's top edge; a long row scrolls
+     sideways inside itself (the page never does). */
+  .tabs {
+    left: 168px;
+    width: calc(var(--sw) - 168px - 540px);
+    height: calc(var(--ct) + 3px);
+    padding-left: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    pointer-events: auto;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Each tab shows at least 67 design px (44px) above the cover. */
+  .tab {
+    margin-top: 6px;
+    height: calc(var(--ct) + 17px);
+    padding: 0 16px 20px 10px;
+  }
+
+  .tabOn,
+  .tabAdd {
+    margin-top: 0;
+    height: calc(var(--ct) + 29px);
+    padding-bottom: 26px;
+  }
+
+  .tabNew {
+    margin-top: 8px;
+    height: calc(var(--ct) + 9px);
+    padding-bottom: 14px;
+  }
+
+  .topRight {
+    right: 8px;
+    top: 3px;
+    gap: 8px;
+  }
+
+  .fullscreen {
+    height: 66px;
+    padding: 0 18px 0 15px;
+    font-size: 18px;
+  }
+
+  /* ----- Bookmarks: a column down the left edge (tops in TeacherPlanner) ----- */
+
+  .bookmarks {
+    height: var(--sh);
+  }
+
+  .bookmark {
+    height: 68px;
+  }
+
+  /* ----- The Teacher badge: a compact card under the bookmarks ----- */
+
+  .badgeWrap {
+    left: 6px;
+    top: calc(var(--sh) - 138px);
+    width: 140px;
+    height: 134px;
+  }
+
+  .lanyard {
+    left: 66px;
+    height: 16px;
+  }
+
+  .clip {
+    left: 55px;
+    top: 7px;
+    height: 12px;
+  }
+
+  .badge {
+    top: 14px;
+    width: 140px;
+    height: 120px;
+    padding: 6px 6px 6px;
+  }
+
+  .badge::before {
+    height: 24px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-width: 2px;
+    font-size: 15px;
+  }
+
+  /* No room for the name and "Teacher" on a phone; the initials and Log out stay. */
+  .badgeName,
+  .badgeRole {
+    display: none;
+  }
+
+  .badgeOut {
+    flex: none;
+    height: 68px;
+    font-size: 17px;
+  }
+}
