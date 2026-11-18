@@ -1,7 +1,7 @@
 // What the Teacher screens get for a lesson: the list row and the full lesson.
 // The lesson text (units) is only sent when asked for (the "See the text" window).
 import { MIN_CARDS, TEMPLATE_FOR_TYPE, type TemplateId } from "../content/questionCard";
-import type { Lesson, Question } from "../store/lessonStore";
+import type { Lesson, LessonSummary, Question } from "../store/lessonStore";
 import { messageForCode } from "./lessonErrors";
 
 function counts(questions: Question[]) {
@@ -14,7 +14,7 @@ function counts(questions: Question[]) {
 }
 
 /** One row of GET /api/lessons. */
-export function lessonListItem(lesson: Lesson, questions: Question[]) {
+export function lessonListItem(lesson: LessonSummary, questions: Question[]) {
   return {
     id: lesson.id,
     topic: lesson.topic,

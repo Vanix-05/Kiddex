@@ -1,5 +1,5 @@
 // `npm run make-questions -- "C:\path\to\file.docx" --games quiz-show,match-up --topic "..." --subject Math --grade 4 [--order groq,gemini]`
-// Reads a lesson file, creates a lesson in the store and makes its questions with the same functions as the addresses,
+// Reads a lesson file, creates a lesson in the database (owned by the seed Teacher) and makes its questions with the same functions as the addresses,
 // prints what happened, and saves the full cards to backend/results/.
 // This is the only place that may write question text to disk.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -7,7 +7,7 @@ import path from "node:path";
 import { cleanEmail } from "../auth/passwords";
 import { AI_PROVIDERS, type AiProviderName } from "../config/env";
 import type { TemplateId } from "../content/questionCard";
-import { dbProblem } from "../db/dbProblem";
+import { dbProblem, isDbUnreachable } from "../db/dbProblem";
 import { prisma } from "../db/prisma";
 import { AppError } from "../middleware/AppError";
 import { messageForCode } from "../lessons/lessonErrors";
@@ -85,8 +85,8 @@ async function main(): Promise<void> {
     const lesson = await readLessonFile(buffer, fileName);
     console.log(`Read ${lesson.fileType}: ${lesson.unitCount} ${lesson.unitLabel}(s), ${lesson.wordCount} words, level ${lesson.textLevel}`);
 
-    // Same path as the addresses: create the lesson in the store, then make its questions.
-    const stored = createLesson({
+    // Same path as the addresses: create the lesson in the database, then make its questions.
+    const stored = await createLesson({
       ownerId,
       fileName,
       fileType: lesson.fileType,
@@ -103,7 +103,7 @@ async function main(): Promise<void> {
     console.log(`Lesson id:    ${stored.id}`);
     console.log(`Asking the AI${args.order ? ` (order ${args.order.join(",")})` : ""}...`);
 
-    const { finished } = startMaking(ownerId, stored.id, {
+    const { finished } = await startMaking(ownerId, stored.id, {
       topic: args.topic,
       subject: args.subject,
       grade: args.grade,
@@ -111,7 +111,7 @@ async function main(): Promise<void> {
       order: args.order,
     });
     const outcome = await finished;
-    const after = getLesson(ownerId, stored.id);
+    const after = await getLesson(ownerId, stored.id);
     console.log(`Lesson status: ${after?.status}${after?.errorCode ? ` (${after.errorCode})` : ""}`);
     if (!outcome.ok) {
       console.log(`${outcome.code}: ${messageForCode(outcome.code)}`);
@@ -120,7 +120,7 @@ async function main(): Promise<void> {
     }
     const { summary, run } = outcome.result;
     // The cards as stored (with position, flagChecked, madeBy).
-    const cards = listQuestions(ownerId, stored.id);
+    const cards = await listQuestions(ownerId, stored.id);
     console.log(`Stored:       ${cards.length} questions, positions 1-${cards.length}`);
 
     console.log("");
@@ -174,6 +174,7 @@ async function main(): Promise<void> {
   } catch (err) {
     if (err instanceof AppError) console.log(`${err.code}: ${err.message}`);
     else if ((err as NodeJS.ErrnoException)?.code === "ENOENT") console.log("File not found. Check the path.");
+    else if (isDbUnreachable(err)) console.log(`Database problem: ${dbProblem(err)}.`);
     else console.log("Something went wrong:", err);
     process.exitCode = 1;
   }

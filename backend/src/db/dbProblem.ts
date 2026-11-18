@@ -1,5 +1,14 @@
-// Turns a database error into a short, safe reason for scripts.
+// Turns a database error into a short, safe reason for scripts and the server log.
 // The raw error text is never printed: it can contain the database address.
+
+/** What dbProblem says for an error that is not about reaching the database. */
+export const UNEXPECTED_DB_ERROR = "unexpected database error";
+
+/** True when the error means the database can't be reached (or refused us), not a bug in our query. */
+export function isDbUnreachable(err: unknown): boolean {
+  return dbProblem(err) !== UNEXPECTED_DB_ERROR;
+}
+
 export function dbProblem(err: unknown): string {
   const code = (err as { code?: unknown })?.code;
   const cause = (err as { cause?: unknown })?.cause;
@@ -17,5 +26,5 @@ export function dbProblem(err: unknown): string {
   if (code === "P1001" || code === "P1002" || /timeout|timed out|econnrefused|enotfound|etimedout|getaddrinfo|connect/.test(text)) {
     return "can't reach the database, check the internet connection (a sleeping Neon database can take a few seconds to wake)";
   }
-  return "unexpected database error";
+  return UNEXPECTED_DB_ERROR;
 }

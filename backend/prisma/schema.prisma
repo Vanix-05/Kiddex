@@ -22,4 +22,96 @@ model Teacher {
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  lessons      Lesson[]
+}
+
+// ---------- Lessons and their questions ----------
+// The original uploaded file is never stored: only its text (units) and counts.
+
+enum LessonStatus {
+  uploaded
+  making
+  ready
+  failed
+  approved
+}
+
+enum CardType {
+  multiple_choice
+  matching_pair
+  fill_blank
+}
+
+enum Level {
+  easy
+  medium
+  hard
+}
+
+enum CardStatus {
+  draft
+  approved
+}
+
+enum CardFlag {
+  not_in_lesson
+  ai_unsure
+}
+
+model Lesson {
+  id                  String       @id @default(cuid())
+  ownerId             String
+  owner               Teacher      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  topic               String?
+  subject             String?
+  grade               Int?
+  games               String[] // the 1 or 2 picked games
+  fileName            String
+  fileType            String // pdf | docx | pptx
+  sizeBytes           Int
+  unitLabel           String // page | slide
+  unitCount           Int
+  unitCountIsEstimate Boolean
+  wordCount           Int
+  tablesRead          Int?
+  picturesSkipped     Int?
+  textLevel           String // none | low | ok
+  units               Json // [{ number, text }], the lesson text only
+  textWasCut          Boolean      @default(false)
+  status              LessonStatus @default(uploaded)
+  errorCode           String?
+  makingStep          String? // writing | checking | waiting
+  makingStartedAt     DateTime?
+  approvedAt          DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  questions           Question[]
+
+  @@index([ownerId, createdAt])
+}
+
+model Question {
+  id          String     @id @default(cuid())
+  lessonId    String
+  lesson      Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  position    Int
+  type        CardType
+  prompt      String
+  choices     String[]
+  answer      String
+  subject     String
+  topic       String
+  grade       Int
+  level       Level
+  explanation String?
+  sourcePage  Int?
+  sourceQuote String?
+  flag        CardFlag?
+  flagChecked Boolean    @default(false)
+  madeBy      String     @default("ai") // ai | teacher
+  status      CardStatus @default(draft)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([lessonId, position])
 }

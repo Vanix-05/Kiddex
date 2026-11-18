@@ -48,6 +48,13 @@ export const lessonErrors = {
       "NO_GOOD_QUESTIONS",
       "We could not make good questions from this lesson. Try a file with more text.",
     ),
+  // Stored on a lesson that was still "making" when the server stopped (Render's free server can sleep or restart).
+  serverRestarted: () =>
+    new AppError(500, "SERVER_RESTARTED", "The server restarted while making questions. Please try again."),
+
+  // The database
+  dbUnavailable: () =>
+    new AppError(503, "DB_UNAVAILABLE", "We can't reach the saved lessons right now. Please try again in a minute."),
 };
 
 const SERVER_ERROR_MESSAGE = "Something went wrong on the server. Please try again.";

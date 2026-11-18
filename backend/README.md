@@ -1,6 +1,6 @@
 # KIDDEX backend
 
-Express 5 + TypeScript API for KIDDEX. Teacher accounts live in a Neon Postgres database, used through Prisma 7.
+Express 5 + TypeScript API for KIDDEX. Teacher accounts, lessons and their questions are saved in a Neon Postgres database, used through Prisma 7, so nothing is lost when the server restarts or sleeps.
 
 ## Install
 
@@ -69,7 +69,7 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run db:studio` | Opens Prisma Studio, a web page to look at the tables. |
 | `npm run db:generate` | Makes the Prisma client again (after a change to `prisma/schema.prisma`). |
 | `npm run db:seed` | Makes the first Teacher from the `SEED_TEACHER_*` settings. Safe to run twice. |
-| `npm run db:check` | Prints `Database: OK. Teachers: N.` or a short reason it failed. |
+| `npm run db:check` | Prints `Database: OK. Teachers: N. Lessons: N. Questions: N.` or a short reason it failed. |
 | `npm run add-teacher -- --name "Ms. Santos" --email "santos@school.ph"` | Admin: makes a Teacher account and prints a temporary password once. |
 | `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
@@ -77,7 +77,7 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 ## Check that it runs
 
 - http://localhost:3000/api/health shows `status: "ok"`, whether each AI key is set, and `db: true` when the database answers.
-- `npm run db:check` shows whether the database is reachable and how many Teachers there are.
+- `npm run db:check` shows whether the database is reachable and how many Teachers, lessons and questions there are.
 
 ## Teacher accounts (admins only)
 
@@ -149,7 +149,21 @@ Every address below needs a Teacher login token (`Authorization: Bearer <token>`
 
 Lesson `status`: `uploaded` → `making` → `ready` (or `failed`) → `approved`. A question is the card format from `src/content/questionCard.ts` plus `position` (order in the Check list), `flagChecked` and `madeBy` (`ai` or `teacher`).
 
-**Memory only, for testing:** lessons and questions live in `src/store/lessonStore.ts` until the server stops (at most 30 lessons; when full, the oldest that is not making is removed). A database replaces the inside of that file later; the addresses stay the same. Every lesson belongs to the logged-in Teacher (its `ownerId` is the Teacher's id, from `src/auth/currentTeacher.ts`); another Teacher's lesson or question answers `404`.
+**Saved in the database:** lessons and their questions are kept in the `Lesson` and `Question` tables (through `src/store/lessonStore.ts`), so they survive a restart. There is no limit on how many lessons a Teacher keeps. Every lesson belongs to the logged-in Teacher (its `ownerId` is the Teacher's id, from `src/auth/currentTeacher.ts`); another Teacher's lesson or question answers `404`.
+
+### The database tables
+
+| Table | What it holds |
+| --- | --- |
+| `Teacher` | One row per Teacher account (email, name, password hash, login lock). |
+| `Lesson` | One row per uploaded lesson: its owner, the file's name, type and counts, the lesson **text** (`units`, as JSON), the picked topic, subject, grade and games, and its `status`. The original file is never stored. |
+| `Question` | One row per question card of a lesson, with its `position` (order in the Check list, 1, 2, 3…), `flagChecked` and `madeBy`. Deleted together with its lesson. |
+
+- Saving the AI's cards, adding a question, deleting one (the rest are renumbered) and Approve all each happen in **one transaction**: all or nothing.
+- "At most 2 lessons made at the same time" counts the `making` lessons in the database.
+- **A server restart while making:** the free server can sleep or restart in the middle of making questions. On start, and then every minute, any lesson still `making` more than 5 minutes after it started becomes `failed` with `SERVER_RESTARTED` ("The server restarted while making questions. Please try again."). A job never runs over 3 minutes, so such a lesson was cut off.
+- **Database not reachable** during a lesson or question address: `503 DB_UNAVAILABLE` "We can't reach the saved lessons right now. Please try again in a minute." (The login check runs first, so usually you get the login's version of `DB_UNAVAILABLE` instead.) The server log gets only a short safe reason, never the address or any lesson text.
+- A Teacher who still has lessons can't be deleted from the database (their lessons must be deleted first).
 
 Try it (with a token from the login address):
 
@@ -175,6 +189,6 @@ curl -H "Authorization: Bearer <token>" http://localhost:3000/api/lessons/<lesso
 
 Try it: `curl -H "Authorization: Bearer <token>" -F "file=@C:\path\to\lesson.pdf" http://localhost:3000/api/lessons/extract`
 
-Errors always look like `{ "error": { "code": "...", "message": "..." } }`. Login codes: `LOGIN_NEEDED`, `WRONG_LOGIN`, `TOO_MANY_TRIES`, `DB_UNAVAILABLE`. Lesson codes: `NO_FILE`, `ONE_FILE_ONLY`, `FILE_TOO_BIG`, `OLD_FORMAT`, `WRONG_TYPE`, `PDF_LOCKED`, `CANT_READ`. Lesson and question codes: `LESSON_NOT_FOUND`, `QUESTION_NOT_FOUND`, `ALREADY_MAKING`, `ALREADY_HAS_QUESTIONS`, `MARKED_NOT_CHECKED`, `NO_QUESTIONS`, `BAD_REQUEST`, `TOO_MANY_GAMES`, `NOT_ENOUGH_TEXT`, `AI_BUSY`. A failed lesson shows `AI_BUSY` or `NO_GOOD_QUESTIONS` in its `error`.
+Errors always look like `{ "error": { "code": "...", "message": "..." } }`. Login codes: `LOGIN_NEEDED`, `WRONG_LOGIN`, `TOO_MANY_TRIES`, `DB_UNAVAILABLE`. Lesson codes: `NO_FILE`, `ONE_FILE_ONLY`, `FILE_TOO_BIG`, `OLD_FORMAT`, `WRONG_TYPE`, `PDF_LOCKED`, `CANT_READ`. Lesson and question codes: `LESSON_NOT_FOUND`, `QUESTION_NOT_FOUND`, `ALREADY_MAKING`, `ALREADY_HAS_QUESTIONS`, `MARKED_NOT_CHECKED`, `NO_QUESTIONS`, `BAD_REQUEST`, `TOO_MANY_GAMES`, `NOT_ENOUGH_TEXT`, `AI_BUSY`. A failed lesson shows `AI_BUSY`, `NO_GOOD_QUESTIONS`, `SERVER_RESTARTED` or `DB_UNAVAILABLE` in its `error`.
 
 The limits (file size, word levels) are in `src/lessons/limits.ts`.

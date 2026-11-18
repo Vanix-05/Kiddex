@@ -49,7 +49,7 @@ lessonsRouter.post("/api/lessons/extract", uploadLesson, async (req, res) => {
   try {
     const read = await readLessonFile(file.buffer, fileName);
     // The original file is never stored: only its text and counts.
-    const lesson = createLesson({
+    const lesson = await createLesson({
       ownerId: currentTeacherId(req),
       fileName,
       fileType: read.fileType,
@@ -74,30 +74,30 @@ lessonsRouter.post("/api/lessons/extract", uploadLesson, async (req, res) => {
   }
 });
 
-lessonsRouter.get("/api/lessons/extract/:extractId", (req, res) => {
-  const lesson = getLesson(currentTeacherId(req), req.params.extractId);
+lessonsRouter.get("/api/lessons/extract/:extractId", async (req, res) => {
+  const lesson = await getLesson(currentTeacherId(req), req.params.extractId);
   if (!lesson) throw lessonErrors.lessonNotFound();
   res.json(uploadAnswer(lesson));
 });
 
-lessonsRouter.get("/api/lessons", (req, res) => {
-  const ownerId = currentTeacherId(req);
-  res.json(listLessons(ownerId).map((lesson) => lessonListItem(lesson, listQuestions(ownerId, lesson.id))));
+lessonsRouter.get("/api/lessons", async (req, res) => {
+  const rows = await listLessons(currentTeacherId(req));
+  res.json(rows.map(({ lesson, questions }) => lessonListItem(lesson, questions)));
 });
 
-lessonsRouter.get("/api/lessons/:lessonId", (req, res) => {
+lessonsRouter.get("/api/lessons/:lessonId", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  const lesson = getLesson(ownerId, req.params.lessonId);
+  const lesson = await getLesson(ownerId, req.params.lessonId);
   if (!lesson) throw lessonErrors.lessonNotFound();
-  res.json(lessonDetail(lesson, listQuestions(ownerId, lesson.id), req.query.withText === "1"));
+  res.json(lessonDetail(lesson, await listQuestions(ownerId, lesson.id), req.query.withText === "1"));
 });
 
-lessonsRouter.delete("/api/lessons/:lessonId", (req, res) => {
+lessonsRouter.delete("/api/lessons/:lessonId", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  const lesson = getLesson(ownerId, req.params.lessonId);
+  const lesson = await getLesson(ownerId, req.params.lessonId);
   if (!lesson) throw lessonErrors.lessonNotFound();
   if (lesson.status === "making") throw lessonErrors.alreadyMaking();
-  deleteLesson(ownerId, lesson.id);
+  await deleteLesson(ownerId, lesson.id);
   console.log("[lessons] lesson deleted");
   res.status(204).end();
 });
@@ -129,7 +129,7 @@ const GenerateSchema = z.object({
     .refine((games) => new Set(games).size === games.length, "Please pick two different games."),
 });
 
-lessonsRouter.post("/api/lessons/:lessonId/generate", (req, res) => {
+lessonsRouter.post("/api/lessons/:lessonId/generate", async (req, res) => {
   const body: unknown = req.body;
   const games = (body as { games?: unknown } | undefined)?.games;
   if (Array.isArray(games) && games.length > 2) throw lessonErrors.tooManyGames();
@@ -141,7 +141,7 @@ lessonsRouter.post("/api/lessons/:lessonId/generate", (req, res) => {
 
   const lessonId = req.params.lessonId;
   // Throws right away if it cannot start; otherwise the work goes on in the background.
-  startMaking(currentTeacherId(req), lessonId, parsed.data);
+  await startMaking(currentTeacherId(req), lessonId, parsed.data);
   res.status(202).json({ lessonId });
 });
 

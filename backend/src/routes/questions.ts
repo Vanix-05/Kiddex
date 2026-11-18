@@ -76,15 +76,15 @@ function parseBody<T>(schema: z.ZodType<T>, body: unknown): T {
 }
 
 /** An approved lesson that gets a new or changed draft card goes back to "ready". */
-function backToReady(ownerId: string, lesson: Lesson): void {
+async function backToReady(ownerId: string, lesson: Lesson): Promise<void> {
   if (lesson.status === "approved" || lesson.status === "failed") {
-    updateLesson(ownerId, lesson.id, { status: "ready", approvedAt: null, errorCode: null });
+    await updateLesson(ownerId, lesson.id, { status: "ready", approvedAt: null, errorCode: null });
   }
 }
 
-questionsRouter.post("/api/lessons/:lessonId/questions", (req, res) => {
+questionsRouter.post("/api/lessons/:lessonId/questions", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  const lesson = getLesson(ownerId, req.params.lessonId);
+  const lesson = await getLesson(ownerId, req.params.lessonId);
   if (!lesson) throw lessonErrors.lessonNotFound();
   if (lesson.status === "making") throw lessonErrors.alreadyMaking();
   if (!lesson.topic || !lesson.subject || !lesson.grade) {
@@ -110,17 +110,17 @@ questionsRouter.post("/api/lessons/:lessonId/questions", (req, res) => {
     status: "draft",
   });
 
-  const question = addQuestion(ownerId, lesson.id, card, "teacher");
-  backToReady(ownerId, lesson);
+  const question = await addQuestion(ownerId, lesson.id, card, "teacher");
+  await backToReady(ownerId, lesson);
   console.log(`[questions] Teacher added a ${card.type} question`);
   res.status(201).json(question);
 });
 
-questionsRouter.patch("/api/questions/:questionId", (req, res) => {
+questionsRouter.patch("/api/questions/:questionId", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  const question = getQuestion(ownerId, req.params.questionId);
+  const question = await getQuestion(ownerId, req.params.questionId);
   if (!question) throw lessonErrors.questionNotFound();
-  const lesson = getLesson(ownerId, question.lessonId);
+  const lesson = await getLesson(ownerId, question.lessonId);
   if (!lesson) throw lessonErrors.questionNotFound();
 
   const edit = parseBody(EditSchema, req.body);
@@ -132,7 +132,7 @@ questionsRouter.patch("/api/questions/:questionId", (req, res) => {
     status: "draft",
   });
 
-  const updated = updateQuestion(ownerId, question.id, {
+  const updated = await updateQuestion(ownerId, question.id, {
     prompt: checked.prompt,
     choices: checked.choices,
     answer: checked.answer,
@@ -142,34 +142,34 @@ questionsRouter.patch("/api/questions/:questionId", (req, res) => {
     // Saving a marked card counts as checking it.
     ...(question.flag ? { flagChecked: true } : {}),
   });
-  if (question.status === "approved") backToReady(ownerId, lesson);
+  if (question.status === "approved") await backToReady(ownerId, lesson);
   res.json(updated);
 });
 
-questionsRouter.post("/api/questions/:questionId/keep", (req, res) => {
+questionsRouter.post("/api/questions/:questionId/keep", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  const question = getQuestion(ownerId, req.params.questionId);
+  const question = await getQuestion(ownerId, req.params.questionId);
   if (!question) throw lessonErrors.questionNotFound();
-  res.json(updateQuestion(ownerId, question.id, { flagChecked: true }));
+  res.json(await updateQuestion(ownerId, question.id, { flagChecked: true }));
 });
 
-questionsRouter.delete("/api/questions/:questionId", (req, res) => {
+questionsRouter.delete("/api/questions/:questionId", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  if (!deleteQuestion(ownerId, req.params.questionId)) throw lessonErrors.questionNotFound();
+  if (!(await deleteQuestion(ownerId, req.params.questionId))) throw lessonErrors.questionNotFound();
   res.status(204).end();
 });
 
-questionsRouter.post("/api/lessons/:lessonId/approve-all", (req, res) => {
+questionsRouter.post("/api/lessons/:lessonId/approve-all", async (req, res) => {
   const ownerId = currentTeacherId(req);
-  const lesson = getLesson(ownerId, req.params.lessonId);
+  const lesson = await getLesson(ownerId, req.params.lessonId);
   if (!lesson) throw lessonErrors.lessonNotFound();
   if (lesson.status === "making") throw lessonErrors.alreadyMaking();
 
-  const questions = listQuestions(ownerId, lesson.id);
+  const questions = await listQuestions(ownerId, lesson.id);
   if (!questions.length) throw lessonErrors.noQuestions();
   if (questions.some((q) => q.flag && !q.flagChecked)) throw lessonErrors.markedNotChecked();
 
-  const approved = approveAll(ownerId, lesson.id)!;
+  const approved = (await approveAll(ownerId, lesson.id))!;
   console.log(`[questions] approved all ${questions.length} questions of a lesson`);
-  res.json(lessonDetail(approved, listQuestions(ownerId, lesson.id), false));
+  res.json(lessonDetail(approved, await listQuestions(ownerId, lesson.id), false));
 });
