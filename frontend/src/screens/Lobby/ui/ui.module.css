@@ -1006,3 +1006,58 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- Phone held sideways: shorter Lobby cards ----------
+   Less scrolling, nothing cut: smaller padding and gaps, a smaller round
+   picture and wheel (it still spins), and the Settings rows in two columns
+   like How to play. Every button stays at least 44px. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .card {
+    padding: 14px 18px;
+  }
+
+  .cardTitle {
+    margin-top: 0;
+  }
+
+  .acts {
+    margin-top: 10px;
+  }
+
+  .bigIcon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .bigIcon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .bigIcon img {
+    height: 72px;
+  }
+
+  .list,
+  .set {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .list > div {
+    padding: 4px 10px;
+  }
+
+  .wheelBox {
+    width: min(170px, 40vh);
+    margin: 0 auto 2px;
+  }
+
+  .card:has(.set) {
+    width: min(660px, 100%);
+  }
+
+  .set {
+    grid-template-columns: 1fr 1fr;
+  }
+}

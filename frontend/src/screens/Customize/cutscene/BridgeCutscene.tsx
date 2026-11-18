@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { CompanionId } from '../../../companions/registry'
 import { SECTION, type Look } from '../../../setup/customizeData'
 import { petById } from '../../../setup/petData'
@@ -401,7 +401,11 @@ export function BridgeCutscene({ avatar, buddy, look, buddyName, onDone, freezeA
       <p className="visually-hidden" role="status">
         Sailing to Rene Island…
       </p>
-      <div className={styles.stage} style={{ left, top, width: STAGE_W, height: STAGE_H, transform: `scale(${scale})` }}>
+      <div
+        className={styles.stage}
+        // --stage-px: one screen pixel in stage pixels (sideways phones size Skip with it).
+        style={{ left, top, width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, '--stage-px': 1 / scale } as CSSProperties}
+      >
         {/* The picture: nothing in it can be tabbed to or clicked */}
         <div className={styles.layer} inert aria-hidden="true">
           {has('a') && (

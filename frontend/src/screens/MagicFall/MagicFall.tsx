@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { bedroomArt } from '../../assets/art'
-import { fitStage } from '../../components/StoryBook/fitStage'
+import { fitStage, stageScale } from '../../components/StoryBook/fitStage'
 import { Companion } from '../../companions/Companion'
 import { rigSettings } from '../../companions/rig/useSpringRig'
 import type { BuddyId } from '../../setup/quizData'
@@ -92,7 +92,11 @@ export function MagicFall({ buddy, buddyColor, video, onLeave, onGone, freezeAt 
   useLayoutEffect(() => {
     const root = rootRef.current
     if (!root) return
-    const fit = () => root.style.setProperty('--stage', fitStage(root.clientWidth, root.clientHeight))
+    // --stage-px: one screen pixel in stage pixels (sideways phones size Skip with it).
+    const fit = () => {
+      root.style.setProperty('--stage', fitStage(root.clientWidth, root.clientHeight))
+      root.style.setProperty('--stage-px', (1 / stageScale(root.clientWidth, root.clientHeight)).toFixed(4))
+    }
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)

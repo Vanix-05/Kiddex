@@ -186,3 +186,18 @@
   opacity: 0;
   pointer-events: none;
 }
+
+/* Phone held sideways: Skip is at least 44px tall on screen (--stage-px is one
+   screen pixel in stage pixels), with slightly bigger text. Same pill, still in
+   the bottom-right corner, sitting just above the bottom edge. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .skip {
+    top: auto;
+    bottom: calc(8px * var(--stage-px, 2.3));
+    min-height: calc(44px * var(--stage-px, 2.3));
+    padding: 0 calc(16px * var(--stage-px, 2.3));
+    transform: none;
+    border-width: calc(2px * var(--stage-px, 2.3));
+    font-size: calc(15px * var(--stage-px, 2.3));
+  }
+}
