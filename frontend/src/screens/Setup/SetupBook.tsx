@@ -22,7 +22,7 @@ import { useIntroClip } from './intro/useIntroClip'
 import { magicFall } from '../MagicFall/magicFallStore'
 import { magicVideo } from '../MagicFall/magicVideo'
 import { pullInGate } from './pullIn/pullInGate'
-import { preloadPullInVideo, whenPullInVideo } from './pullIn/pullInVideo'
+import { preloadPullInVideo, primePullInVideo, pullInVideoReady, whenPullInVideo } from './pullIn/pullInVideo'
 import { usePullInClip } from './pullIn/usePullInClip'
 import { PerchedOllie } from './PerchedOllie'
 import { PetSpread } from './PetSpread'
@@ -264,8 +264,15 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
     const nickname = (names[selectedId] ?? '').trim()
     if (busy || !avatar || !isBuddyReady(selectedId)) return
     setChosen(true)
-    // The wide shot for the gender being saved: normally downloaded long ago (at Boy or Girl);
-    // if not, it is waited for, and the clip plays the old rush if it isn't there by the cut.
+    // The wide shot for the gender being saved: normally downloaded long ago (at Boy or Girl).
+    // Then its <video> is made and primed right here, inside the tap: phones only load a video
+    // (and iPhone Low Power Mode only lets it play) after a play() started by a tap. If it is
+    // still downloading, it is waited for (and primed when the clip puts it on the page).
+    const ready = reducedMotion() ? null : pullInVideoReady(avatar)
+    if (ready) {
+      keepWideVideo(ready)
+      primePullInVideo(ready)
+    }
     void whenPullInVideo(avatar).then(keepWideVideo)
     later(CHOSEN_MS, () => {
       // Saved now, so the picks are kept even if the clip is skipped or the tab is closed.

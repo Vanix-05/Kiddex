@@ -6,6 +6,7 @@ import type { BuddyId } from '../../../setup/quizData'
 import { reducedMotion } from '../bookPages'
 import letterbox from '../intro/Intro.module.css'
 import { BuddyArms } from './BuddyArms'
+import { claimPullInPlayer, makePullInPlayer, primePullInPlayer, takePrimedPullInVideo } from './pullInVideo'
 import {
   armsAt,
   BEAT,
@@ -125,6 +126,32 @@ export function usePullInClip({ bedroom, active, buddy, buddyColor, wideVideo, z
     onEndRef.current = onEnd
     onCoveredRef.current = onCovered
   }, [onEnd, onCovered])
+
+  // ---------- The wide shot's <video> ----------
+  // Made in code (not JSX), so it can be the very element primed on the Choose tap
+  // (pullInVideo.ts): phones only load it after a play() from a tap. Put on the page,
+  // hidden, as soon as the clip starts and its address is known. Laid out (above) before
+  // the clock below, so the clock finds it.
+  const wideHostRef = useRef<HTMLDivElement>(null)
+  /** The clock has reached the cut: too late to prime a video that only arrives now. */
+  const pastCutRef = useRef(false)
+  useLayoutEffect(() => {
+    const host = wideHostRef.current
+    if (!active || !wideVideo || !host || reducedMotion()) return
+    const primedOnTap = takePrimedPullInVideo(wideVideo)
+    const player = primedOnTap ?? makePullInPlayer(wideVideo)
+    player.className = styles.wide
+    host.appendChild(player)
+    videoRef.current = player
+    // Not primed on the tap (still downloading then, or the dev page): prime it now, before the cut.
+    // (Not while a dev ?t= holds a moment: that sets the video's time itself.)
+    if (!primedOnTap && !pastCutRef.current && freezeAt === undefined) primePullInPlayer(player)
+    return () => {
+      player.pause()
+      player.remove()
+      if (videoRef.current === player) videoRef.current = null
+    }
+  }, [active, wideVideo, freezeAt])
 
   // Skip has the focus from the start; Enter or Escape work anywhere.
   useEffect(() => {
@@ -324,8 +351,17 @@ export function usePullInClip({ bedroom, active, buddy, buddyColor, wideVideo, z
     skipNow.current = () => end('customize')
 
     // ---------- The wide shot ----------
-    /** clip: up to the cut. wide: the video. rush: the old rush (no video, or it wouldn't start). */
-    let mode: 'clip' | 'wide' | 'rush' = 'clip'
+    /**
+     * clip: up to the cut. wide: the video. rush: the old rush (no video, or it wouldn't start).
+     * waiting: at the cut the video had no frame yet (a phone that didn't preload): it was asked
+     * to play, and the bedroom holds its frame at the cut until it really plays.
+     */
+    let mode: 'clip' | 'wide' | 'rush' | 'waiting' = 'clip'
+    pastCutRef.current = false
+    /** Dev only: which path ran and why (for checking on a phone over USB debugging). Not in the real build. */
+    const tell = (path: string, why: string) => {
+      if (import.meta.env.DEV) console.info(`[pull-in] ${path}: ${why}`)
+    }
     let waitTimer = 0
     let started = false
     /** Clock times: when the video ended, or broke after it had started (then the start frame fades in from there). */
@@ -340,8 +376,9 @@ export function usePullInClip({ bedroom, active, buddy, buddyColor, wideVideo, z
       return video?.currentTime ?? 0
     }
     /** Back to the bedroom: the old rush plays from the cut. */
-    const toRush = () => {
+    const toRush = (why: string) => {
       if (mode === 'rush') return
+      tell('rush', why)
       window.clearTimeout(waitTimer)
       mode = 'rush'
       if (video) {
@@ -351,39 +388,63 @@ export function usePullInClip({ bedroom, active, buddy, buddyColor, wideVideo, z
       hideRoom(false)
       if (freezeAt === undefined) t = BEAT.cut
     }
+    /** On this very frame: the video shown (at video time vt), the bedroom hidden. */
+    const showWide = (vt: number) => {
+      mode = 'wide'
+      hideRoom(true)
+      applyWide(vt, duration())
+    }
     /**
-     * The hard cut: on this very frame the video is shown and the bedroom hidden. Only if the
-     * video is there with its first frame ready (else the old rush, at once: never an empty frame).
+     * The hard cut. With the video's first frame ready (laptops: always), it is shown and played on
+     * this very frame, as before. A phone may not have loaded it yet (it was primed on the Choose
+     * tap, but the frame can still be on its way): then it is asked to play and the bedroom keeps
+     * its frame at the cut (never an empty frame), and the wide shot comes on when it really plays.
+     * Not started within 1.5 s, or play() refused, or no video at all: the old rush instead.
      */
     const cut = () => {
+      pastCutRef.current = true
       const player = calm ? null : videoRef.current
-      if (!player || player.error || player.readyState < HAVE_CURRENT_DATA) {
-        toRush()
+      if (!player || player.error) {
+        toRush(player ? `the video failed (error ${player.error?.code})` : 'no video on the page')
         return
       }
       video = player
+      claimPullInPlayer(player)
+      const ready = player.readyState >= HAVE_CURRENT_DATA
+      const cutAt = performance.now()
       player.onplaying = () => {
         started = true
         window.clearTimeout(waitTimer)
+        if (mode === 'waiting' && !over) {
+          tell('wide video', `it started ${((performance.now() - cutAt) / 1000).toFixed(2)} s after the cut (readyState ${player.readyState})`)
+          showWide(player.currentTime)
+        }
       }
       player.onended = () => {
         if (endedAt === null) endedAt = t
       }
       player.onerror = () => {
+        if (mode === 'waiting') toRush(`the video failed while waiting (error ${player.error?.code})`)
         if (mode !== 'wide') return
         if (started) brokenAt ??= t
-        else toRush()
+        else toRush(`the video failed before it started (error ${player.error?.code})`)
       }
-      mode = 'wide'
-      hideRoom(true)
-      applyWide(0, duration())
-      if (freezeAt !== undefined) return
-      void player.play().catch(() => {
-        if (!started) toRush()
+      if (ready) {
+        tell('wide video', `first frame ready at the cut (readyState ${player.readyState})`)
+        showWide(0)
+        if (freezeAt !== undefined) return
+      } else {
+        tell('waiting', `no frame yet at the cut (readyState ${player.readyState}): asked it to play`)
+        mode = 'waiting'
+      }
+      void player.play().catch((err: unknown) => {
+        if (!started) toRush(`play() was refused (${err instanceof Error ? err.name : 'unknown error'})`)
       })
       // Not playing 1.5 s after the cut: the old rush instead, so the clip never gets stuck.
       waitTimer = window.setTimeout(() => {
-        if (!started && mode === 'wide' && !over) toRush()
+        if (!started && (mode === 'wide' || mode === 'waiting') && !over) {
+          toRush(`it had not started 1.5 s after the cut (readyState ${player.readyState})`)
+        }
       }, WIDE.startWithin * 1000)
     }
 
@@ -408,7 +469,8 @@ export function usePullInClip({ bedroom, active, buddy, buddyColor, wideVideo, z
     const frame = (now: number) => {
       // One frame moves the clock 0.1 s at most, so a stall pauses the clip instead of skipping part of it.
       // During the wide shot the video keeps its own time; the clock only times the end.
-      if (freezeAt === undefined && last) {
+      // While waiting for the video to start, the clock stays on the cut: the bedroom holds that frame.
+      if (freezeAt === undefined && last && mode !== 'waiting') {
         const step = Math.min((now - last) / 1000, 0.1)
         t = mode === 'wide' ? t + step : Math.min(length, t + step)
       }
@@ -532,20 +594,11 @@ export function usePullInClip({ bedroom, active, buddy, buddyColor, wideVideo, z
           {RUSHING.map((_, i) => (
             <span key={i} data-pull="rushing" className={styles.sparkle} />
           ))}
-          {/* The wide shot: here from the start, paused on its first frame and hidden, so the cut is instant. */}
-          {wideVideo && !reducedMotion() && (
-            <video
-              ref={videoRef}
-              className={styles.wide}
-              src={wideVideo}
-              muted
-              playsInline
-              preload="auto"
-              disablePictureInPicture
-              aria-hidden="true"
-              tabIndex={-1}
-            />
-          )}
+          {/* The wide shot: its <video> is put in here from the start (see above), paused on its first
+              frame and hidden, so the cut is instant. display: contents, so the video is laid out as
+              a child of the stage, as before. */}
+          <div ref={wideHostRef} style={{ display: 'contents' }} />
+
           <img data-pull="start" src={bedroomArt.startFrame} alt="" className={styles.startFrame} draggable={false} />
           <div data-pull="masks" className={letterbox.masks}>
             <span className={letterbox.maskLeft} />

@@ -51,3 +51,72 @@ export async function whenPullInVideo(gender: Avatar | null | undefined): Promis
   await loading.get(g)
   return blobs.get(g) ?? fileFor(g)
 }
+
+// ---------- The <video> itself, primed on the Choose tap ----------
+//
+// Phones don't load a hidden video by themselves: iPhone Safari ignores
+// preload, Android does the same in Data Saver or battery saver, and iPhone
+// Low Power Mode refuses play() unless a tap started it. So on the Choose tap
+// the video element is made right away and primed (muted play(), then pause
+// at 0): that is allowed from a tap even in Low Power Mode, and it makes the
+// phone load the first frame. The clip (usePullInClip) then puts this same
+// element on screen. Laptops load it anyway, so for them nothing changes.
+
+/** The downloaded copy's address if it is already in memory (no waiting), else null. */
+export function pullInVideoReady(gender: Avatar | null | undefined): string | null {
+  return blobs.get(gender ?? 'boy') ?? null
+}
+
+/** A hidden, muted, inline <video> for the wide shot (the clip gives it its class and puts it on screen). */
+export function makePullInPlayer(url: string): HTMLVideoElement {
+  const video = document.createElement('video')
+  video.muted = true
+  video.defaultMuted = true
+  video.playsInline = true
+  video.setAttribute('playsinline', '')
+  video.setAttribute('muted', '')
+  video.preload = 'auto'
+  video.disablePictureInPicture = true
+  video.setAttribute('aria-hidden', 'true')
+  video.tabIndex = -1
+  video.src = url
+  return video
+}
+
+/** Players the clip has started using at the cut: a late priming pause must not stop them. */
+const inUse = new WeakSet<HTMLVideoElement>()
+
+/** The clip uses this player now (from the cut on): priming leaves it alone. */
+export function claimPullInPlayer(video: HTMLVideoElement) {
+  inUse.add(video)
+}
+
+/** Muted play(), then pause at 0 as soon as it plays: unlocks and loads it on phones. Errors are ignored. */
+export function primePullInPlayer(video: HTMLVideoElement) {
+  video.muted = true
+  video
+    .play()
+    .then(() => {
+      if (inUse.has(video)) return
+      video.pause()
+      video.currentTime = 0
+    })
+    .catch(() => {})
+}
+
+/** The player made and primed on the Choose tap, waiting for the clip. */
+let primed: { url: string; video: HTMLVideoElement } | null = null
+
+/** On the Choose tap (inside it): make this video's player and prime it. */
+export function primePullInVideo(url: string) {
+  if (primed?.url !== url) primed = { url, video: makePullInPlayer(url) }
+  primePullInPlayer(primed.video)
+}
+
+/** The clip takes the player primed on the tap for this address (once), or null if there is none. */
+export function takePrimedPullInVideo(url: string): HTMLVideoElement | null {
+  if (primed?.url !== url) return null
+  const { video } = primed
+  primed = null
+  return video
+}
