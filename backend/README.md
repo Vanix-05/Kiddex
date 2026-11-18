@@ -71,10 +71,10 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run db:generate` | Makes the Prisma client again (after a change to `prisma/schema.prisma`). |
 | `npm run db:seed` | Makes the first Teacher from the `SEED_TEACHER_*` settings. Safe to run twice. |
 | `npm run db:check` | Prints `Database: OK. Teachers: N. Lessons: N. Questions: N.` or a short reason it failed. |
-| `npm run add-teacher -- --name "Ms. Santos" --email "santos@school.ph"` | Admin: makes a Teacher account and prints a temporary password once. |
-| `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. |
-| `npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"` | Makes an admin account for the Admin page and prints a temporary password once. |
-| `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). |
+| `npm run add-teacher -- --name "Ms. Santos" --email "santos@school.ph"` | Admin: makes a Teacher account and prints a temporary password once. Add `--password "..."` to choose it instead (testing; see "Choosing the password"). |
+| `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. Add `--password "..."` to choose it instead. |
+| `npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"` | Makes an admin account for the Admin page and prints a temporary password once. Add `--password "..."` to choose it instead (testing; see "Choosing the password"). |
+| `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). Add `--password "..."` to choose it instead. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
 
 ## Check that it runs
@@ -146,7 +146,23 @@ npm run reset-teacher-password -- --email "santos@school.ph"
 
 It prints a new temporary password once, signs the Teacher out everywhere (`tokenVersion` goes up by 1) and clears the "too many wrong tries" lock. An unknown email changes nothing.
 
-Emails are always saved trimmed and lowercase. Passwords are stored only as bcrypt hashes (bcryptjs, cost 12; `src/auth/passwords.ts`). Teacher passwords must be at least 8 characters.
+**Choosing the password (for testing):** all four account scripts (`add-teacher`, `reset-teacher-password`, `add-admin`, `reset-admin-password`) also take `--password "..."`. It works in Windows cmd and PowerShell:
+
+```
+npm run add-teacher -- --name "Ms. Santos" --email "santos@school.ph" --password "1234"
+npm run reset-teacher-password -- --email "mr.gucci@kiddex.test" --password "1234"
+npm run add-admin -- --name "Admin" --email "admin@kiddex.com" --password "1234"
+npm run reset-admin-password -- --email "admin@kiddex.com" --password "5678"
+```
+
+- The chosen password is used instead of a random one and is **never printed**: the script only says `Made Teacher Ms. Santos with the password you chose.` (or `Made admin …`) or `Password changed for <email>.`
+- A chosen password may be as short as **4 characters** (at most 200). Shorter than 8, it is still accepted, with one warning line: `Warning: this password is short. Use it for testing only and change it before real use.` Shorter than 4 is refused (nothing changes).
+- A reset with `--password` works like any reset: the account is signed out everywhere (`tokenVersion` goes up by 1) and the lock is cleared.
+- Without `--password`, the scripts work as before: a random 12-character temporary password, printed once. The Admin page always makes random 12-character passwords.
+- The Teacher and admin logins accept any password from 1 to 200 characters, so a 4-character test password logs in normally (same shared `WRONG_LOGIN` error and lock after 5 tries).
+- Note: a password typed on the command line can stay in your terminal's history. Use short passwords only for testing, and reset to a real one (without `--password`) before real use.
+
+Emails are always saved trimmed and lowercase. Passwords are stored only as bcrypt hashes (bcryptjs, cost 12; `src/auth/passwords.ts`). Random temporary passwords are 12 characters; `SEED_TEACHER_PASSWORD` must be at least 8; a password chosen with `--password` at least 4 (for testing).
 
 ## Admin page
 
@@ -156,6 +172,8 @@ The Admin page (`/admin` on the website) manages **Teacher accounts only** (noth
 npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"
 npm run reset-admin-password -- --email "carlo@kiddex.test"
 ```
+
+Both admin scripts also take `--password "..."` to choose the password (for testing): see "Choosing the password" under "Teacher accounts".
 
 Same style as the Teacher scripts: a duplicate email is refused, the temporary password is printed **once**, and a reset also signs the admin out everywhere and clears the lock. Your laptop and the live site use the same Neon database, so a new admin can log in on the live site right away.
 

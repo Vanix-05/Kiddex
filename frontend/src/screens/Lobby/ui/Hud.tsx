@@ -11,7 +11,8 @@ import styles from './ui.module.css'
  * top left the Student card, top right today's mission and who's here,
  * bottom left My Room (under the Student card on touch screens, where the
  * joystick takes the bottom left), bottom middle the emote bar, bottom right Zoom, the
- * Settings gear and All games.
+ * Settings gear and All games. On a phone held sideways there is no Zoom button
+ * (Settings has Camera: Close / Far) and the emote bar is smaller.
  */
 export function Hud({
   student,
@@ -137,7 +138,8 @@ export function Hud({
       <EmoteBar onEmote={onEmote} />
 
       <div className={styles.bottomRight}>
-        <button type="button" className={styles.round} onClick={onZoom} aria-label={zoom === 'close' ? 'Zoom out' : 'Zoom in'}>
+        {/* Hidden on a phone held sideways (ui.module.css): zoom is in Settings, Camera Close / Far. */}
+        <button type="button" className={`${styles.round} ${styles.zoomButton}`} onClick={onZoom} aria-label={zoom === 'close' ? 'Zoom out' : 'Zoom in'}>
           <LobbyIcon name={zoom === 'close' ? 'zoomOut' : 'zoomIn'} size={28} />
         </button>
         <button type="button" className={styles.round} onClick={onSettings} aria-label="Settings">

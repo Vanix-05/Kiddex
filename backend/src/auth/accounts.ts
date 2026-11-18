@@ -110,10 +110,12 @@ const isUniqueClash = (err: unknown) => (err as { code?: unknown })?.code === "P
 export async function createAccount(
   role: AccountRole,
   data: { name: string; email: string },
+  /** A password the caller chose and already checked (add-admin --password). Default: a random one. */
+  chosenPassword?: string,
 ): Promise<{ account: AccountInfo; temporaryPassword: string }> {
   const table = accountTables[role];
   if (await table.findByEmail(data.email)) throw emailTaken(role);
-  const temporaryPassword = makeTemporaryPassword();
+  const temporaryPassword = chosenPassword ?? makeTemporaryPassword();
   try {
     const account = await table.create({ ...data, passwordHash: await hashPassword(temporaryPassword) });
     return { account, temporaryPassword };
@@ -131,8 +133,10 @@ export async function createAccount(
 export async function resetAccountPassword(
   role: AccountRole,
   id: string,
+  /** A password the caller chose and already checked (reset-admin-password --password). Default: a random one. */
+  chosenPassword?: string,
 ): Promise<{ account: AccountInfo; temporaryPassword: string }> {
-  const temporaryPassword = makeTemporaryPassword();
+  const temporaryPassword = chosenPassword ?? makeTemporaryPassword();
   const account = await accountTables[role].update(id, {
     passwordHash: await hashPassword(temporaryPassword),
     tokenVersion: { increment: 1 },

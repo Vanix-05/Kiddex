@@ -77,7 +77,8 @@ export function ViewerHud({
       </div>
 
       <div className={styles.bottomRight}>
-        <button type="button" className={styles.round} onClick={onZoom} aria-label={zoom === 'close' ? 'Zoom out' : 'Zoom in'}>
+        {/* Hidden on a phone held sideways (ui.module.css): zoom is in Settings, Camera Close / Far. */}
+        <button type="button" className={`${styles.round} ${styles.zoomButton}`} onClick={onZoom} aria-label={zoom === 'close' ? 'Zoom out' : 'Zoom in'}>
           <LobbyIcon name={zoom === 'close' ? 'zoomOut' : 'zoomIn'} size={28} />
         </button>
         <button type="button" className={styles.round} onClick={onSettings} aria-label="Settings">

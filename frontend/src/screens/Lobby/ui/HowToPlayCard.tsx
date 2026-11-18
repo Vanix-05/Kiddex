@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { usePhoneSideways } from '../../../hooks/usePhoneSideways'
 import { CardButton, LobbyCard } from './LobbyCard'
 import { IS_TOUCH } from './touch'
 import styles from './ui.module.css'
@@ -15,13 +16,15 @@ const Keys = ({ keys }: { keys: string }) => (
 
 /** Opens once per session, and from Settings. A walking key also closes it. */
 export function HowToPlayCard({ buddyName, onClose }: { buddyName: string; onClose: () => void }) {
+  // A phone held sideways has no Zoom button (the camera is in Settings).
+  const phone = usePhoneSideways()
   const rows: [ReactNode, string][] = IS_TOUCH
     ? [
         ['Joystick', 'Walk around (or tap the floor)'],
         ['Tap the button', 'Do the action near you: sit, talk, play'],
         ['Tap a classmate', 'See their Buddy card, wave, walk together'],
         [`Tap ${buddyName}`, 'Give your buddy some love'],
-        ['Round buttons', 'Zoom in or out, and Settings'],
+        phone ? ['Gear button', 'Settings (and Close / Far camera)'] : ['Round buttons', 'Zoom in or out, and Settings'],
       ]
     : [
         [
