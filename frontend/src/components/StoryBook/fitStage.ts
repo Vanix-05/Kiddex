@@ -21,3 +21,8 @@ export function fitStage(w: number, h: number, view: StageView = FULL_STAGE) {
   const y = (h - view.h * s) / 2 - view.y * s
   return `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${s.toFixed(4)})`
 }
+
+/** The scale fitStage uses: one stage pixel is this many screen pixels. */
+export function stageScale(w: number, h: number, view: StageView = FULL_STAGE) {
+  return Math.min(w / view.w, h / view.h)
+}

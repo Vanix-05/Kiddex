@@ -745,3 +745,12 @@
     }
   }
 }
+
+/* Phone held sideways: "Play again" is at least 44px tall to tap (the
+   negative margins give the height back, so the card doesn't move). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .again {
+    min-height: 44px;
+    margin: -6px 0;
+  }
+}

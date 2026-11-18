@@ -375,3 +375,19 @@
     animation: none;
   }
 }
+
+/* Phone held sideways: "Pick the best answer" stays on one line. When the
+   buddy's "helped" tag is there too and the phone is narrow, "From Ms. Cruz
+   · Math" makes room for it. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .ask {
+    min-width: 0;
+    white-space: nowrap;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 760px) {
+  .head:has(.helpedTag) .from {
+    display: none;
+  }
+}

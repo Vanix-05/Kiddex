@@ -6,6 +6,7 @@ import { Companion } from '../../companions/Companion'
 import { girlColorKeys } from '../../companions/girl/colorKeys'
 import { companionRegistry, isCompanionId } from '../../companions/registry'
 import type { ColorKeys } from '../../companions/rig/recolor'
+import { usePhoneSideways } from '../../hooks/usePhoneSideways'
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import type { Avatar } from '../../setup/avatar'
@@ -178,6 +179,8 @@ function Bridge({
   const level = levelFromXp(FAKE_XP)
 
   const [layout, setLayout] = useState(layoutFor)
+  // A phone held sideways: "Not you? Log out" moves to the top-right corner.
+  const phone = usePhoneSideways()
   const [side, setSide] = useState<Side>('you')
   const [tab, setTab] = useState<LookKey>(TABS.you[0].key)
   const [bubble, setBubble] = useState<string | null>(null)
@@ -312,11 +315,29 @@ function Bridge({
 
   const sparkleAt = (who: Side) => (who === 'you' ? { x: AVATAR.x, y: FEET_Y - 250 } : { x: BUDDY.x, y: FEET_Y - 160 })
 
+  const logOutLine = (
+    <p className={phone ? `${styles.out} ${styles.outCorner}` : styles.out}>
+      Not you?{' '}
+      <button type="button" onClick={onLogOut}>
+        Log out
+      </button>
+    </p>
+  )
+
   return (
     <main className={styles.screen}>
       <div
         className={styles.stage}
-        style={{ width: STAGE_W, height: STAGE_H, top: layout.top, transform: `translateX(-50%) scale(${layout.scene})` }}
+        style={
+          {
+            width: STAGE_W,
+            height: STAGE_H,
+            top: layout.top,
+            transform: `translateX(-50%) scale(${layout.scene})`,
+            // One screen pixel in scene pixels (sideways phones size 44px tap targets with it).
+            '--scene-px': 1 / layout.scene,
+          } as CSSProperties
+        }
       >
         <Scene className={styles.scene} />
 
@@ -435,7 +456,9 @@ function Bridge({
           height: STAGE_H - HUD_TOP,
           bottom: layout.bottom,
           transform: `translateX(-50%) scale(${layout.hud})`,
-        }}
+          // One screen pixel in tray pixels (sideways phones size 44px tap targets with it).
+          '--hud-px': 1 / layout.hud,
+        } as CSSProperties}
       >
         {/* ---------- You / Buddy toggle ---------- */}
         <div className={styles.toggle} role="group" aria-label="Who to dress up">
@@ -545,17 +568,15 @@ function Bridge({
         <button type="button" className={styles.go} onClick={onLobby}>
           Go to Lobby <span aria-hidden="true">→</span>
         </button>
-        <p className={styles.out}>
-          Not you?{' '}
-          <button type="button" onClick={onLogOut}>
-            Log out
-          </button>
-        </p>
+        {!phone && logOutLine}
       </div>
 
       <div className={styles.logo}>
         <KiddexLogo size="sm" />
       </div>
+
+      {/* Phone held sideways: in the top-right corner, outside the scaled tray, so it can be 44px tall. */}
+      {phone && logOutLine}
     </main>
   )
 }

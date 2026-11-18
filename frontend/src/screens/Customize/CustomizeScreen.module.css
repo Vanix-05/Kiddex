@@ -752,3 +752,82 @@
     transition: none;
   }
 }
+
+/* ---------- Phone held sideways ----------
+   The You / buddy switch and the tabs are at least 44px tall on the screen
+   (--hud-px, set in CustomizeScreen.tsx, is one screen pixel in tray pixels),
+   with bigger writing. They grow upward, so they still sit on the tray. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tabs button {
+    min-height: calc(44px * var(--hud-px, 1.7));
+    padding-inline: 18px;
+    font-size: 26px;
+  }
+
+  .tabs .tabOn {
+    min-height: calc(44px * var(--hud-px, 1.7) + 4px);
+  }
+
+  .tabs {
+    top: calc(58px - 44px * var(--hud-px, 1.7));
+  }
+
+  /* Less side padding, so the buddy's name fits at the bigger size. */
+  .toggle button {
+    min-height: calc(44px * var(--hud-px, 1.7));
+    padding: 4px 12px 4px 6px;
+    gap: 6px;
+    font-size: 26px;
+  }
+
+  .toggle {
+    top: calc(56px - 44px * var(--hud-px, 1.7) - 14px);
+    max-width: 300px;
+  }
+
+  .head {
+    width: 46px;
+    height: 46px;
+  }
+
+  .chip {
+    font-size: 25px;
+  }
+
+  /* The rename chip and the ribbon pencil keep their look; an invisible
+     strip around each makes it at least 44px tall to tap (--scene-px is one
+     screen pixel in scene pixels). */
+  .chip::before,
+  .pen::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(100%, calc(44px * var(--scene-px, 2.6)));
+    translate: 0 -50%;
+  }
+}
+
+/* "Not you? Log out", moved out of the tray to the top-right corner of the
+   screen on a sideways phone (CustomizeScreen.tsx): a small cream pill. */
+.outCorner {
+  left: auto;
+  top: 8px;
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px 0 14px;
+  transform: none;
+  border: 2px solid var(--line);
+  background: var(--color-card-bg);
+  box-shadow: 0 2px 0 rgba(91, 58, 34, 0.15);
+  font-size: 13px;
+}
+
+.outCorner button {
+  min-height: 44px;
+  font-size: 14px;
+}

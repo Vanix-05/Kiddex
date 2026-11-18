@@ -147,3 +147,11 @@
   right: 104px;
   top: 622px;
 }
+
+/* Phone held sideways: the taller Next (StoryPage.module.css) sits a little
+   lower, so it stays clear of the bottom answer cards. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .next {
+    top: 640px;
+  }
+}

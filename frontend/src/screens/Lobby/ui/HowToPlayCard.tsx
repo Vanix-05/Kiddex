@@ -17,7 +17,7 @@ const Keys = ({ keys }: { keys: string }) => (
 export function HowToPlayCard({ buddyName, onClose }: { buddyName: string; onClose: () => void }) {
   const rows: [ReactNode, string][] = IS_TOUCH
     ? [
-        ['Tap the floor', 'Walk around the room'],
+        ['Joystick', 'Walk around (or tap the floor)'],
         ['Tap the button', 'Do the action near you: sit, talk, play'],
         ['Tap a classmate', 'See their Buddy card, wave, walk together'],
         [`Tap ${buddyName}`, 'Give your buddy some love'],

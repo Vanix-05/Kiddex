@@ -7,7 +7,7 @@ import { Confetti } from './Confetti'
 import { PauseCard } from './PauseCard'
 import { GAMES } from './session'
 import type { GameId, Player } from './types'
-import { SLOTS, type StageFit } from './useStage'
+import { slotsFor, type StageFit } from './useStage'
 import styles from './GameFrame.module.css'
 
 /**
@@ -110,13 +110,12 @@ export function GameFrame(props: GameFrameProps) {
   const { game, lessonName, stage, calm, scene, mode, progress, board, tallBoard, strip, spotlight, confetti, buddyLine, player, happy, jump, kidLine } = props
   const help = mode === 'play' ? props.help : undefined
   const [paused, setPaused] = useState(false)
-  const [playAnyway, setPlayAnyway] = useState(false)
   // Buddy Help used: the buddy leans toward the board (a new number restarts it) and looks surprised for a moment.
   const [lean, setLean] = useState(0)
   const [surprised, setSurprised] = useState(false)
   const surpriseTimer = useRef(0)
   useEffect(() => () => window.clearTimeout(surpriseTimer.current), [])
-  const slots = stage.short ? SLOTS.short : SLOTS.normal
+  const slots = slotsFor(stage)
   const boardSlot = tallBoard ? slots.tall : slots.board
 
   // The button, a tap on the buddy and H all do this.
@@ -159,6 +158,8 @@ export function GameFrame(props: GameFrameProps) {
     height: stage.h,
     transform: `translate(${stage.left}px, ${stage.top}px) scale(${stage.scale})`,
     '--s': stage.scale,
+    // The design height (taller than 420 on some sideways phones): the buddy and the kid stand on its bottom.
+    '--stage-h': `${stage.h}px`,
   } as CSSProperties
   const slot = (s: { x: number; y: number; w: number; h: number }) => ({ left: s.x, top: s.y, width: s.w, height: s.h })
 
@@ -239,23 +240,6 @@ export function GameFrame(props: GameFrameProps) {
           }}
           onLeave={props.onLeave}
         />
-      )}
-
-      {/* Phones held upright (CSS shows it): the games need landscape, like the Lobby. */}
-      {!playAnyway && (
-        <div className={styles.rotate}>
-          <div className={styles.rotateCard}>
-            <svg viewBox="0 0 64 64" width="90" height="90" aria-hidden="true">
-              <rect x="18" y="6" width="28" height="52" rx="6" />
-              <circle cx="32" cy="50" r="2.5" />
-            </svg>
-            <h1>Turn your phone sideways</h1>
-            <p>The game is wider than it is tall.</p>
-            <button type="button" onClick={() => setPlayAnyway(true)}>
-              Play anyway
-            </button>
-          </div>
-        </div>
       )}
     </div>
   )

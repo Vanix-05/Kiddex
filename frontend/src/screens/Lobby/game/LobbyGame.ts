@@ -223,6 +223,8 @@ export class LobbyGame {
   private names = new Map<string, CastMember>()
 
   private keys = new Set<string>()
+  /** The joystick (touch screens): a screen direction, 0..1 long (1 = full walking speed). */
+  private stick: Point | null = null
   private inputEnabled = true
   private osReducedMotion: MediaQueryList
   private time = 0
@@ -347,6 +349,7 @@ export class LobbyGame {
     if (!ticker) return
     if (document.hidden) {
       this.keys.clear()
+      this.stick = null
       ticker.stop()
     } else {
       ticker.start()
@@ -749,7 +752,30 @@ export class LobbyGame {
 
   private clearKeys = () => this.keys.clear()
 
-  /** The walking keys as a direction on the floor: W walks straight up the screen. */
+  /**
+   * The joystick (ui/Joystick.tsx): a direction on the screen, x right and y
+   * down, any angle. Its length (0..1) is the speed: 1 = normal walking
+   * speed. (0, 0) = let go, the Student stops. Walking keys win while held.
+   */
+  setStick(x: number, y: number) {
+    const length = Math.hypot(x, y)
+    if (length < 1e-3) {
+      this.stick = null
+      return
+    }
+    const k = Math.min(1, length) / length
+    this.stick = { x: x * k, y: y * k }
+    if (this.inputEnabled) {
+      this.noteMoved()
+      if (this.marker) this.marker.visible = false
+    }
+  }
+
+  /**
+   * The walking keys as a direction on the floor: W walks straight up the
+   * screen. With no walking key held, the joystick's direction (shorter =
+   * slower). The walker stops it at desks and walls, as for the keys.
+   */
   private keyDirection(): Point | null {
     if (!this.inputEnabled) return null
     let sx = 0
@@ -762,7 +788,12 @@ export class LobbyGame {
     }
     sx = Math.sign(sx)
     sy = Math.sign(sy)
-    return sx || sy ? this.proj.floorDir(sx, sy) : null
+    if (sx || sy) return this.proj.floorDir(sx, sy)
+    const stick = this.stick
+    if (!stick) return null
+    const dir = this.proj.floorDir(stick.x, stick.y)
+    const speed = Math.hypot(stick.x, stick.y)
+    return { x: dir.x * speed, y: dir.y * speed }
   }
 
   private tapFloor(screenX: number, screenY: number) {

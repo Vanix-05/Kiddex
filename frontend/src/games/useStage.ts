@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { PHONE_SIDEWAYS_QUERY } from '../hooks/usePhoneSideways'
 import { useLobbySettings } from '../screens/Lobby/useLobbySettings'
 
 /**
@@ -34,6 +35,27 @@ export const SLOTS = {
   },
 } as const
 
+/** A place on the stage, in design px. */
+export interface Slot {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/**
+ * The slots for this stage. A sideways phone narrower than the short design
+ * (e.g. 667x375) gets a taller design (see fit): the board grows down by the
+ * extra height, so its cards can stay 44px on screen.
+ */
+export function slotsFor(stage: StageFit): { board: Slot; tall: Slot; strip: Slot } {
+  if (!stage.short) return SLOTS.normal
+  const extra = stage.h - DESIGN.short.h
+  if (extra <= 0) return SLOTS.short
+  const { board, tall, strip } = SLOTS.short
+  return { board: { ...board, h: board.h + extra }, tall: { ...tall, h: tall.h + extra }, strip }
+}
+
 export interface StageFit {
   short: boolean
   scale: number
@@ -48,8 +70,13 @@ function fit(): StageFit {
   const h = window.innerHeight
   const short = h < 600
   const design = short ? DESIGN.short : DESIGN.normal
-  const scale = Math.min(w / design.w, h / design.h)
-  return { short, scale, left: (w - design.w * scale) / 2, top: (h - design.h * scale) / 2, w: design.w, h: design.h }
+  // A sideways phone narrower than the short design's shape (e.g. 667x375)
+  // would leave empty bands above and below: the design gets as tall as the
+  // screen's shape instead, and the board takes the extra height (slotsFor).
+  const tall = short && window.matchMedia(PHONE_SIDEWAYS_QUERY).matches
+  const designH = tall ? Math.max(design.h, Math.round((design.w * h) / w)) : design.h
+  const scale = Math.min(w / design.w, h / designH)
+  return { short, scale, left: (w - design.w * scale) / 2, top: (h - designH * scale) / 2, w: design.w, h: designH }
 }
 
 export function useStageFit() {

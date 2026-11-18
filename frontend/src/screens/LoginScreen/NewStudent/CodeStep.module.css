@@ -232,3 +232,91 @@
     transition: none;
   }
 }
+
+/* ---------- Phone held sideways ----------
+   StudentFlow splits the step across the spread: the hint and boxes go on
+   Ollie's page (CodeEntry), the number pad fills the right page
+   (CodePadPage). The book is drawn at about half size on a phone, so 92px
+   keys here are about 46px on the screen. --open-px (set by StoryBook) is one
+   screen pixel in the book's pixels, for 44px tap targets. */
+
+.phoneEntry {
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.phoneEntry .hint {
+  margin: 6px 0 0;
+  font-size: 27px;
+  text-wrap: balance;
+}
+
+.phoneEntry .boxArea,
+.phoneEntry.large .boxArea {
+  margin: 22px 0 0;
+}
+
+.phoneEntry .boxes,
+.phoneEntry .slot {
+  gap: 6px;
+}
+
+.phoneEntry .box {
+  font-size: 36px;
+}
+
+.phoneEntry.large .boxes,
+.phoneEntry.large .slot {
+  gap: 12px;
+}
+
+/* At least 44px tall on the screen; the negative margins give that room back. */
+.phoneEntry .toggle {
+  --h: calc(44px * var(--open-px, 1));
+  min-height: var(--h);
+  margin: calc((40px - var(--h)) / 2) 0 calc((24px - var(--h)) / 2);
+  font-size: 24px;
+}
+
+.phoneEntry .toggle svg {
+  width: 26px;
+  height: 26px;
+}
+
+.phonePad .pad {
+  gap: 12px;
+  margin: 0;
+}
+
+.phonePad .key,
+.phonePad.large .key {
+  height: 92px;
+  border-radius: 18px;
+}
+
+.phonePad .key {
+  font-size: 44px;
+}
+
+.phonePad .keySmall {
+  font-size: 30px;
+}
+
+.phonePad .keySmall svg {
+  width: 40px;
+  height: 40px;
+}
+
+.phonePad .next,
+.phonePad.large .next {
+  height: 92px;
+  margin: 14px 0 0;
+  border-radius: 20px;
+  font-size: 40px;
+}
+
+.phonePad .next svg {
+  width: 34px;
+  height: 34px;
+}

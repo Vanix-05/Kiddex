@@ -1,6 +1,6 @@
 import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { bedroomArt, bedroomLayout } from '../../assets/art'
-import { fitStage } from '../StoryBook/fitStage'
+import { fitStage, stageScale } from '../StoryBook/fitStage'
 import {
   bookTransform,
   DESK,
@@ -321,7 +321,11 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
     apply(STILL_FRAME)
     // Once every picture is in its canvas, the decoded copies are freed (see ready).
     void ready()
-    const fit = () => root.style.setProperty('--stage', fitStage(root.clientWidth, root.clientHeight))
+    // --stage-px: one screen pixel in stage pixels (sideways phones size 44px tap targets with it).
+    const fit = () => {
+      root.style.setProperty('--stage', fitStage(root.clientWidth, root.clientHeight))
+      root.style.setProperty('--stage-px', (1 / stageScale(root.clientWidth, root.clientHeight)).toFixed(4))
+    }
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)

@@ -171,3 +171,36 @@
     transform: none;
   }
 }
+
+/* ---------- Phone held sideways ----------
+   Back and Next are at least 44px tall on the screen (--stage-px, set by
+   Bedroom, is one screen pixel in stage pixels: about 100px here), with
+   bigger writing. They grow upward from where their bottom edge was, so they
+   stay on the page and clear of the picture cards. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .next.next {
+    --h: calc(44px * var(--stage-px, 2.3));
+    --size-control-height: var(--h);
+    padding: 0 40px;
+    font-size: 46px;
+    translate: 0 calc(68px - var(--h));
+  }
+
+  .next.next svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .back {
+    --h: calc(44px * var(--stage-px, 2.3));
+    min-height: var(--h);
+    padding: 0 18px;
+    font-size: 40px;
+    translate: 0 calc(var(--size-tap-target) - var(--h));
+  }
+
+  .back svg {
+    width: 34px;
+    height: 34px;
+  }
+}

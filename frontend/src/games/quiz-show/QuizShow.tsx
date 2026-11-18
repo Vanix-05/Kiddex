@@ -9,7 +9,7 @@ import { StageScene } from '../scenes/StageScene'
 import { decisionLine, makeResult } from '../session'
 import type { GameProps } from '../types'
 import { useGameProgress } from '../useGameProgress'
-import { SLOTS, useCalmMotion, useStageFit } from '../useStage'
+import { slotsFor, useCalmMotion, useStageFit } from '../useStage'
 import { MarqueeBoard } from './MarqueeBoard'
 import {
   answer,
@@ -135,7 +135,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
     return () => window.removeEventListener('keydown', onKey)
   }, [q, answered, pick, goOn, summary])
 
-  const slots = stage.short ? SLOTS.short : SLOTS.normal
+  const slots = slotsFor(stage)
   const common = {
     game: 'quiz-show' as const,
     lessonName: lesson.name,

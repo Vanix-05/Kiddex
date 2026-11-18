@@ -3,6 +3,7 @@ import {
   useId,
   useLayoutEffect,
   useRef,
+  useState,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -10,7 +11,12 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { ollieLarge } from '../../../assets/art'
-import { fitStage, FULL_STAGE as FULL, type StageView as View } from '../../../components/StoryBook/fitStage'
+import {
+  fitStage,
+  stageScale,
+  FULL_STAGE as FULL,
+  type StageView as View,
+} from '../../../components/StoryBook/fitStage'
 import { OllieLive } from '../../../components/StoryBook/OllieLive'
 import { StepTabs } from '../../../components/StoryBook/StepTabs'
 import { Wing } from './Wing'
@@ -24,6 +30,20 @@ const CLOSED: View = { x: 420, y: 10, w: 600, h: 890 }
 const OPEN: View = { x: 690, y: 84, w: 750, h: 790 }
 /** Windows narrower than this (width / height) use the two zoomed views. */
 const WIDE = 1.2
+/**
+ * Phones held sideways: the open book up close, leaving out most of the desk,
+ * so the book and its step tabs fill the screen height. The closed book keeps
+ * the laptop view; the camera moves in while the book opens.
+ */
+const PHONE_OPEN: View = { x: 90, y: 85, w: 1350, h: 760 }
+
+/**
+ * Ollie's flight, in stage pixels: from the Ollie on the cover into the
+ * picture frame on the left page. The phone's frame is smaller and higher
+ * (BookPage.module.css), so it has its own trail (and --fly-* in the CSS).
+ */
+const TRAIL = 'M880 126 C852 60 700 40 590 150 C520 220 462 300 426 372'
+const PHONE_TRAIL = 'M880 126 C852 60 700 40 590 130 C520 185 462 245 421 300'
 
 interface StoryBookProps {
   phase: BookPhase
@@ -54,12 +74,22 @@ interface StoryBookProps {
   bounceKey: number
   /** Goes up each time Ollie says a line (see OllieLive). */
   talkKey: number
-  /** Draws a step's left page (a BookLeftPage) around the given Ollie. */
-  renderLeft: (step: Step, ollie: ReactNode) => ReactNode
+  /**
+   * Draws a step's left page (a BookLeftPage) around the given Ollie. On a
+   * phone held sideways the step's title, hint and boxes go on this page too,
+   * when withStep is true (titleId only for the live page).
+   */
+  renderLeft: (step: Step, ollie: ReactNode, withStep: boolean, titleId?: string) => ReactNode
   /** Draws a step's right page. live = false for still copies and while anything animates. */
   renderRight: (step: Step, live: boolean, titleId?: string) => ReactNode
   /** Esc or a tap on the dark area, while the book is closed. */
   onClose: () => void
+  /**
+   * A phone held sideways (usePhoneSideways): the open book is zoomed in, the
+   * step's title, hint and boxes are on Ollie's page and the number pad
+   * fills the right page.
+   */
+  phone?: boolean
 }
 
 /**
@@ -92,6 +122,7 @@ export function StoryBook({
   renderLeft,
   renderRight,
   onClose,
+  phone = false,
 }: StoryBookProps) {
   const titleId = useId()
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -105,7 +136,18 @@ export function StoryBook({
   // During a page turn the old left page stays put until the new one lands on it.
   const leftStep = turningFrom ?? step
 
+  // Phone: the step on Ollie's page fades in once he has landed from the
+  // cover (like the rest of the page did while he flew). Not after a page
+  // turn: the turning page already brings it.
+  const [landIn, setLandIn] = useState(false)
+  const [seen, setSeen] = useState({ phase, step })
+  if (seen.phase !== phase || seen.step !== step) {
+    setSeen({ phase, step })
+    setLandIn(seen.phase === 'enter' && phase === 'steps')
+  }
+
   // Scale the stage to fit the window (before the first paint, then on resize).
+  // --open-px / --closed-px: one screen pixel in stage pixels, for 44px tap targets.
   useLayoutEffect(() => {
     const overlay = overlayRef.current
     if (!overlay) return
@@ -113,14 +155,17 @@ export function StoryBook({
       const w = overlay.clientWidth
       const h = overlay.clientHeight
       const wide = w / h >= WIDE
-      const show = (name: string, view: View) => overlay.style.setProperty(name, fitStage(w, h, view))
-      show('--view-closed', wide ? FULL : CLOSED)
-      show('--view-open', wide ? FULL : OPEN)
+      const show = (name: string, view: View) => {
+        overlay.style.setProperty(`--view-${name}`, fitStage(w, h, view))
+        overlay.style.setProperty(`--${name}-px`, (1 / stageScale(w, h, view)).toFixed(4))
+      }
+      show('closed', wide ? FULL : CLOSED)
+      show('open', phone ? PHONE_OPEN : wide ? FULL : OPEN)
     }
     fit()
     window.addEventListener('resize', fit)
     return () => window.removeEventListener('resize', fit)
-  }, [])
+  }, [phone])
 
   // Keyboard focus: on the blocker while animating, on the New Student plate
   // when the book is closed, on the book itself for each step.
@@ -166,6 +211,22 @@ export function StoryBook({
     </div>
   )
 
+  // The open book's left page (Ollie's page). On a phone it holds the step's
+  // title, hint and boxes, so it comes before the right page (the number pad)
+  // for screen readers. The two never overlap, so the order doesn't show.
+  const leftClass = [styles.pageLeft, fadedIn && styles.arriveFade, phone && landIn && styles.landIn]
+    .filter(Boolean)
+    .join(' ')
+  const leftSpread = phase === 'steps' && (
+    <>
+      <span className={`${styles.board} ${styles.boardLeft}`} />
+      <span className={`${styles.stack} ${styles.stackLeft}`} />
+      <div key={leftStep} className={leftClass} inert={phone ? !live : undefined}>
+        {renderLeft(leftStep, pageOllie, true, titleId)}
+      </div>
+    </>
+  )
+
   return createPortal(
     <div
       ref={overlayRef}
@@ -191,6 +252,8 @@ export function StoryBook({
             {/* The closed book's block of pages, showing at the right and bottom. */}
             <span className={styles.pageBlock} />
 
+            {phone && leftSpread}
+
             {!closed && <StepTabs steps={tabs} step={step} className={styles.tabs} />}
 
             <span className={`${styles.stack} ${styles.stackRight}`} />
@@ -205,15 +268,7 @@ export function StoryBook({
               </div>
             )}
 
-            {phase === 'steps' && (
-              <>
-                <span className={`${styles.board} ${styles.boardLeft}`} />
-                <span className={`${styles.stack} ${styles.stackLeft}`} />
-                <div key={leftStep} className={fadedIn ? `${styles.pageLeft} ${styles.arriveFade}` : styles.pageLeft}>
-                  {renderLeft(leftStep, pageOllie)}
-                </div>
-              </>
-            )}
+            {!phone && leftSpread}
             {!closed && <span className={styles.gutter} />}
             {!closed && <span className={`${styles.ribbon} ${styles.ribbonTop}`} />}
 
@@ -225,7 +280,9 @@ export function StoryBook({
                   <span className={`${styles.stack} ${styles.stackLeft}`} />
                   <div className={styles.pageLeft}>
                     {/* Opening: the frame is empty, Ollie is flying to it.
-                        Closing: he slips away, and comes back on the cover. */}
+                        Closing: he slips away, and comes back on the cover.
+                        Phone: the step fades in only after he lands, but it
+                        is still there while the cover closes. */}
                     {renderLeft(
                       1,
                       phase === 'back' ? (
@@ -233,6 +290,7 @@ export function StoryBook({
                           <OllieLive />
                         </div>
                       ) : null,
+                      phase === 'back',
                     )}
                   </div>
                 </div>
@@ -248,7 +306,7 @@ export function StoryBook({
               <div className={styles.turn} aria-hidden="true" inert>
                 <div className={styles.turnLift}>
                   <div className={`${styles.face} ${styles.faceBack}`}>
-                    {renderLeft(step, <OllieLive />)}
+                    {renderLeft(step, <OllieLive />, true)}
                     <span className={`${styles.shade} ${styles.shadeBack}`} />
                   </div>
                   <div className={`${styles.face} ${styles.faceFront}`}>
@@ -266,7 +324,7 @@ export function StoryBook({
           {phase === 'enter' && (
             <>
               <svg className={styles.trail} viewBox="0 0 1440 900" aria-hidden="true">
-                <path d="M880 126 C852 60 700 40 590 150 C520 220 462 300 426 372" />
+                <path d={phone ? PHONE_TRAIL : TRAIL} />
               </svg>
               <div className={styles.flyer} aria-hidden="true">
                 <div className={styles.flyY}>

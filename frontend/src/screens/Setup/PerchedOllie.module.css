@@ -119,3 +119,12 @@
     animation-duration: 120ms;
   }
 }
+
+/* Phone held sideways: Ollie's words 25% bigger. Its top stays put (higher
+   would leave the screen on short phones); it grows down and to the left. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .bubble {
+    max-width: 800px; /* the longest line still fits at the bigger size */
+    font-size: 27.5px;
+  }
+}

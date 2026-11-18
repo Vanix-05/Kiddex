@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { SECTION } from '../../setup/customizeData'
 import { isWalkKey, LobbyGame, type BubbleContent, type NearAction, type ZoneId, type ZoneNews } from './game/LobbyGame'
 import { ZONE_IDS } from './game/room'
@@ -14,6 +14,8 @@ import type { LobbySpot } from '../../games/allGames/pageMemory'
 import { MISSION_GAMES } from '../../games/mission'
 import { HowToPlayCard } from './ui/HowToPlayCard'
 import { Hud } from './ui/Hud'
+import { Joystick } from './ui/Joystick'
+import { IS_TOUCH } from './ui/touch'
 import { LobbyIcon, type LobbyIconName } from './ui/icons'
 import { MissionCard } from './ui/MissionCard'
 import { OpeningClassroom } from './OpeningClassroom'
@@ -145,7 +147,6 @@ export function MainLobby({
   const [walkingWith, setWalkingWith] = useState<string | null>(null)
   const [ollieLine, setOllieLine] = useState(0)
   const [scale, setScale] = useState(hudScale)
-  const [playAnyway, setPlayAnyway] = useState(false)
   const [fps] = useState(showFps)
   const [spun, setSpun] = useState<WheelPrize | null>(readSpin)
   /** Stars won on the wheel this visit (FAKE: the backend will add them to the Student's count). */
@@ -292,6 +293,9 @@ export function MainLobby({
     return () => window.clearInterval(timer)
   }, [])
 
+  // The joystick (touch screens) walks the Student; see LobbyGame.setStick.
+  const moveStick = useCallback((x: number, y: number) => game?.setStick(x, y), [game])
+
   const close = () => setCard(null)
   const soon = (kind: SoonKind) => setCard({ type: 'soon', kind })
   /** The mission's Start: the next unfinished mission game (the first one again when all are done). */
@@ -421,6 +425,10 @@ export function MainLobby({
             </Hud>
           )}
 
+          {/* Phones and tablets: the walking joystick, bottom left. Hidden while a
+              card is open, and in the Teacher's view-only Lobby. */}
+          {IS_TOUCH && !viewer && !card && <Joystick onMove={moveStick} />}
+
           {fps && <output ref={(el) => game.setFpsElement(el)} className={styles.fps} />}
 
           {card?.type === 'howto' && <HowToPlayCard buddyName={student?.buddyName ?? ''} onClose={close} />}
@@ -511,25 +519,6 @@ export function MainLobby({
                   Log out
                 </button>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Phones and tablets held upright (CSS shows it): the room needs landscape. */}
-      {!playAnyway && (
-        <div className={styles.rotate}>
-          <div className={styles.message}>
-            <svg viewBox="0 0 64 64" width="90" height="90" aria-hidden="true">
-              <rect x="18" y="6" width="28" height="52" rx="6" />
-              <circle cx="32" cy="50" r="2.5" />
-            </svg>
-            <h1>Turn your phone sideways</h1>
-            <p>The classroom is wider than it is tall.</p>
-            <div className={styles.messageButtons}>
-              <button type="button" onClick={() => setPlayAnyway(true)}>
-                Play anyway
-              </button>
             </div>
           </div>
         </div>

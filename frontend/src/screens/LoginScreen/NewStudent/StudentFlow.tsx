@@ -5,12 +5,13 @@ import { paths } from '../../../routes/paths'
 import { preloadLobby } from '../../Lobby/preloadLobby'
 import { useSession } from '../../../session/session'
 import { BookLeftPage } from '../StoryBook/BookLeftPage'
-import { BookRightPage } from '../StoryBook/BookRightPage'
+import { BookKeypadPage, BookRightPage } from '../StoryBook/BookRightPage'
 import { StoryBook } from '../StoryBook/StoryBook'
 import { ENTER_MS, FINISH_MS, LAND_MS, LEAVE_MS, TURN_MS, type BookPhase, type Step } from '../StoryBook/timing'
 import { CoverOllie, WelcomeCover, type StudentKind } from '../WelcomeStudentPopup/WelcomeStudentPopup'
-import { CodeStep } from './CodeStep'
+import { CodeEntry, CodePadPage, CodeStep, type CodeStepProps } from './CodeStep'
 import { Padlock } from './Padlock'
+import { usePhoneSideways } from '../../../hooks/usePhoneSideways'
 
 /** The step tabs on the right edge of the book, for each kind of student. */
 const STEP_LABELS: Record<StudentKind, readonly string[]> = {
@@ -32,6 +33,17 @@ const OLLIE_SAYS: Record<StudentKind, readonly { title: string; line: string }[]
 }
 
 const ignoreTyping = () => {}
+
+/** One step of the book: its title, corner picture, help line and code entry. */
+interface StepPage {
+  title: ReactNode
+  corner?: ReactNode
+  help?: ReactNode
+  /** The code entry (renderRight adds `active`). */
+  code: Omit<CodeStepProps, 'active'>
+  /** Typing is off (after Log in, the Lobby is on its way). */
+  locked?: boolean
+}
 
 /** Log in: the padlock's shackle pops open (Padlock.module.css), then the Lobby opens. */
 const PADLOCK_MS = 550
@@ -70,6 +82,8 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
   // Done!: the book goes blank, then the first-time setup starts (with its bedroom intro clip).
   const [finishing, setFinishing] = useState(false)
   const navigate = useNavigate()
+  // A phone held sideways: the book zooms in and the step is split across the spread.
+  const phone = usePhoneSideways()
   const { logInNewStudent, logInReturningStudent } = useSession()
 
   const timer = useRef<number | undefined>(undefined)
@@ -192,129 +206,165 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
 
   // ---------- Pages ----------
 
-  /** Ollie's page. Step s is pages 2s-1 (left) and 2s (right). */
-  const renderLeft = (s: Step, ollie: ReactNode) => {
-    const says = OLLIE_SAYS[kind][s - 1]
-    return <BookLeftPage chapter={s} title={says.title} line={says.line} pageNumber={s * 2 - 1} ollie={ollie} />
-  }
-
-  const renderRight = (s: Step, live: boolean, titleId?: string) =>
-    kind === 'returning' ? renderReturningStep(s, live, titleId) : renderNewStep(s, live, titleId)
-
   const typePinTitle = (
     <>
       Type your <strong>PIN code</strong>
     </>
   )
 
-  /** Returning Student: School ID, then the PIN code they made before. */
-  const renderReturningStep = (s: Step, live: boolean, titleId?: string) => {
-    const page = { titleId, onBack: goBack, pageNumber: s * 2 }
-    if (s === 1) {
-      return (
-        <BookRightPage {...page} title="Hi, Student!">
-          <CodeStep
-            hint={
+  /**
+   * What each step shows: its title, the corner picture, the help line next
+   * to Back, and the code entry. Laptops draw it all on the right page; a
+   * phone held sideways splits it across the spread (see renderLeft).
+   */
+  const stepPage = (s: Step): StepPage => {
+    if (kind === 'returning') {
+      if (s === 1) {
+        return {
+          title: 'Hi, Student!',
+          code: {
+            hint: (
               <>
                 Welcome back! Type the <strong>School ID</strong> on your login card.
               </>
-            }
-            label="School ID"
-            groups={[4, 4]}
-            value={schoolId}
-            onChange={setSchoolId}
-            submitLabel="Next"
-            onSubmit={() => turnTo(2)}
-            active={live}
-          />
-        </BookRightPage>
+            ),
+            label: 'School ID',
+            groups: [4, 4],
+            value: schoolId,
+            onChange: setSchoolId,
+            submitLabel: 'Next',
+            onSubmit: () => turnTo(2),
+          },
+        }
+      }
+      return {
+        title: typePinTitle,
+        corner: <Padlock open={loggingIn} />,
+        help: (
+          <>
+            Forgot your PIN code? <strong>Ask your teacher</strong>
+          </>
+        ),
+        code: {
+          hint: 'The 4 numbers you made.',
+          label: 'PIN code',
+          groups: [4],
+          value: loginPin,
+          // After Log in, the number pad no longer changes the PIN code.
+          onChange: loggingIn ? ignoreTyping : setLoginPin,
+          masked: true,
+          large: true,
+          submitLabel: 'Log in',
+          onSubmit: logIn,
+        },
+        locked: loggingIn,
+      }
+    }
+    if (s === 1) {
+      return {
+        title: 'Hi, Student!',
+        code: {
+          hint: (
+            <>
+              Type the <strong>School ID</strong> on your login card.
+            </>
+          ),
+          label: 'School ID',
+          groups: [4, 4],
+          value: schoolId,
+          onChange: setSchoolId,
+          submitLabel: 'Next',
+          onSubmit: () => turnTo(2),
+        },
+      }
+    }
+    if (s === 2) {
+      return {
+        title: 'Hi, Student!',
+        code: {
+          hint: (
+            <>
+              Type the <strong>one-time code</strong> on your login card. You only need it once!
+            </>
+          ),
+          label: 'One-time code',
+          groups: [3, 3],
+          value: oneTimeCode,
+          onChange: setOneTimeCode,
+          submitLabel: 'Next',
+          onSubmit: () => turnTo(3),
+        },
+      }
+    }
+    return {
+      title: typePinTitle,
+      corner: <Padlock open={pin.length === 4} />,
+      code: {
+        hint: 'Pick 4 numbers you can remember.',
+        label: 'PIN code',
+        groups: [4],
+        value: pin,
+        onChange: setPin,
+        masked: true,
+        large: true,
+        submitLabel: 'Done!',
+        onSubmit: finish,
+      },
+    }
+  }
+
+  /**
+   * Ollie's page. Step s is pages 2s-1 (left) and 2s (right). On a phone held
+   * sideways it also has the step's title, hint and boxes, and Back.
+   */
+  const renderLeft = (s: Step, ollie: ReactNode, withStep: boolean, titleId?: string) => {
+    const says = OLLIE_SAYS[kind][s - 1]
+    const page = phone && withStep ? stepPage(s) : null
+    return (
+      <BookLeftPage
+        chapter={s}
+        title={says.title}
+        line={says.line}
+        pageNumber={s * 2 - 1}
+        ollie={ollie}
+        phone={phone}
+        step={
+          page
+            ? {
+                title: page.title,
+                titleId,
+                corner: page.corner,
+                help: page.help,
+                onBack: goBack,
+                entry: <CodeEntry {...page.code} />,
+              }
+            : undefined
+        }
+      />
+    )
+  }
+
+  /** The step's page: everything on a laptop, only the number pad on a phone held sideways. */
+  const renderRight = (s: Step, live: boolean, titleId?: string) => {
+    const page = stepPage(s)
+    const code = { ...page.code, active: live && !page.locked }
+    if (phone) {
+      return (
+        <BookKeypadPage pageNumber={s * 2}>
+          <CodePadPage {...code} />
+        </BookKeypadPage>
       )
     }
     return (
       <BookRightPage
-        {...page}
-        title={typePinTitle}
-        corner={<Padlock open={loggingIn} />}
-        help={
-          <>
-            Forgot your PIN code? <strong>Ask your teacher</strong>
-          </>
-        }
+        title={page.title}
+        titleId={titleId}
+        corner={page.corner}
+        help={page.help}
+        onBack={goBack}
+        pageNumber={s * 2}
       >
-        <CodeStep
-          hint="The 4 numbers you made."
-          label="PIN code"
-          groups={[4]}
-          value={loginPin}
-          // After Log in, the number pad no longer changes the PIN code.
-          onChange={loggingIn ? ignoreTyping : setLoginPin}
-          masked
-          large
-          submitLabel="Log in"
-          onSubmit={logIn}
-          active={live && !loggingIn}
-        />
-      </BookRightPage>
-    )
-  }
-
-  /** New Student: School ID, one-time code, then make a PIN code. */
-  const renderNewStep = (s: Step, live: boolean, titleId?: string) => {
-    const page = { titleId, onBack: goBack, pageNumber: s * 2 }
-    if (s === 1) {
-      return (
-        <BookRightPage {...page} title="Hi, Student!">
-          <CodeStep
-            hint={
-              <>
-                Type the <strong>School ID</strong> on your login card.
-              </>
-            }
-            label="School ID"
-            groups={[4, 4]}
-            value={schoolId}
-            onChange={setSchoolId}
-            submitLabel="Next"
-            onSubmit={() => turnTo(2)}
-            active={live}
-          />
-        </BookRightPage>
-      )
-    }
-    if (s === 2) {
-      return (
-        <BookRightPage {...page} title="Hi, Student!">
-          <CodeStep
-            hint={
-              <>
-                Type the <strong>one-time code</strong> on your login card. You only need it once!
-              </>
-            }
-            label="One-time code"
-            groups={[3, 3]}
-            value={oneTimeCode}
-            onChange={setOneTimeCode}
-            submitLabel="Next"
-            onSubmit={() => turnTo(3)}
-            active={live}
-          />
-        </BookRightPage>
-      )
-    }
-    return (
-      <BookRightPage {...page} title={typePinTitle} corner={<Padlock open={pin.length === 4} />}>
-        <CodeStep
-          hint="Pick 4 numbers you can remember."
-          label="PIN code"
-          groups={[4]}
-          value={pin}
-          onChange={setPin}
-          masked
-          large
-          submitLabel="Done!"
-          onSubmit={finish}
-          active={live}
-        />
+        <CodeStep {...code} />
       </BookRightPage>
     )
   }
@@ -346,6 +396,7 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
         renderLeft={renderLeft}
         renderRight={renderRight}
         onClose={onClose}
+        phone={phone}
       />
     </>
   )

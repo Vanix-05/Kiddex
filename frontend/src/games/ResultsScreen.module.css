@@ -408,3 +408,51 @@
 :global([data-calm]) .xpNew {
   animation: none;
 }
+
+/* Phone held sideways: the card's spacing is tighter (smaller stars, less gap
+   under them), so the buttons sit clear of the bottom edge, and the stat
+   boxes grow to fit their text ("7 of 8 / correct / 1 with Mochi's help"). */
+@media (orientation: landscape) and (max-height: 500px) {
+  :global([data-short]) .results {
+    padding-bottom: 22px;
+  }
+
+  :global([data-short]) .stars {
+    height: 48px;
+    margin-top: -26px;
+  }
+
+  :global([data-short]) .star {
+    width: 40px;
+    height: 40px;
+  }
+
+  :global([data-short]) .starBig {
+    width: 54px;
+    height: 54px;
+    margin-bottom: 2px;
+  }
+
+  :global([data-short]) .title {
+    margin-top: 0;
+  }
+
+  :global([data-short]) .line {
+    margin-top: 2px;
+  }
+
+  :global([data-short]) .stats,
+  :global([data-short]) .again {
+    margin-top: 8px;
+  }
+
+  :global([data-short]) .stat {
+    height: auto;
+    min-height: 56px;
+    padding: 4px 8px;
+  }
+
+  :global([data-short]) .again {
+    padding: 6px 14px;
+  }
+}

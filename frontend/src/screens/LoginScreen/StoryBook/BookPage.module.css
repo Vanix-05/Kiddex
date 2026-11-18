@@ -233,3 +233,66 @@
   color: var(--color-link);
   font-weight: 700;
 }
+
+/* ---------- Phone held sideways ----------
+   StudentFlow passes `phone`: Ollie's page keeps the chapter and the same
+   picture frame with Ollie, at 60% and higher up, then the step's title,
+   hint and boxes, and Back at the bottom. The right page is only the number
+   pad (.keypadPage). The flight in StoryBook lands on this smaller frame
+   (--fly-* in StoryBook.module.css); change them together. */
+
+.phoneLeft .picture {
+  top: 62px;
+  transform-origin: 50% 0;
+  scale: 0.6;
+}
+
+/* Desktop: 30px below the frame's top and centered on it, so 18px at 60%. */
+.phoneLeft .ollieSpot {
+  top: 80px;
+  transform-origin: 50% 0;
+  scale: 0.6;
+}
+
+.phoneStep {
+  position: absolute;
+  inset: 0;
+}
+
+.phoneStepMain {
+  position: absolute;
+  top: 286px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.phoneStep .title {
+  font-size: 46px;
+}
+
+.phoneStep .title::before {
+  height: 20px;
+}
+
+.phoneStep .footer {
+  left: 44px;
+  right: 44px;
+  bottom: 36px;
+}
+
+.phoneStep .back,
+.phoneStep .help {
+  font-size: 24px;
+}
+
+/* At least 44px tall on the screen (--open-px: one screen pixel in book pixels). */
+.phoneStep .back {
+  min-height: calc(44px * var(--open-px, 1));
+}
+
+.keypadPage {
+  padding: 46px 46px 0 52px;
+}

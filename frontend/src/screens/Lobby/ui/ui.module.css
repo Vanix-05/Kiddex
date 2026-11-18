@@ -895,3 +895,114 @@
 .hintLow {
   top: calc(84 * var(--u));
 }
+
+/* ---------- Touch screens: My Room and the joystick ---------- */
+
+/* My Room right under the Student card (Hud.tsx), since the joystick takes
+   the bottom left. Same pill, at least 48px tall. */
+.topLeft {
+  position: absolute;
+  left: max(var(--edge), env(safe-area-inset-left, 0px));
+  top: calc(16 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: max(8px, calc(12 * var(--u)));
+}
+
+.topLeft > .board {
+  position: static;
+}
+
+/* The walking joystick (Joystick.tsx): a see-through cream base with a soft
+   brown ring and faint arrows, and a more solid knob with an orange ring. */
+.joy {
+  position: absolute;
+  left: max(18px, env(safe-area-inset-left, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  z-index: 4;
+  width: 124px;
+  height: 124px;
+  border: 3px solid color-mix(in srgb, var(--color-card-border) 35%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-input-bg) 32%, transparent);
+  box-shadow: inset 0 0 0 10px color-mix(in srgb, var(--color-input-bg) 14%, transparent);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.joyMark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-left: 3px solid color-mix(in srgb, var(--color-card-border) 35%, transparent);
+  border-top: 3px solid color-mix(in srgb, var(--color-card-border) 35%, transparent);
+  pointer-events: none;
+}
+
+.joyUp {
+  transform: translate(-50%, -50%) translateY(-44px) rotate(45deg);
+}
+
+.joyDown {
+  transform: translate(-50%, -50%) translateY(44px) rotate(225deg);
+}
+
+.joyLeft {
+  transform: translate(-50%, -50%) translateX(-44px) rotate(-45deg);
+}
+
+.joyRight {
+  transform: translate(-50%, -50%) translateX(44px) rotate(135deg);
+}
+
+.knob {
+  position: absolute;
+  left: calc(50% - 28px);
+  top: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  border: 3px solid color-mix(in srgb, var(--color-button-bg) 90%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-input-bg) 78%, transparent);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color-card-border) 30%, transparent);
+  pointer-events: none;
+}
+
+/* Let go: the knob springs back to the middle. */
+.joyBack {
+  transition: translate 180ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .joyBack {
+    transition: none;
+  }
+}
+
+/* ---------- Phone held sideways: How to play fits without scrolling ---------- */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .card:has(.howto) {
+    width: min(660px, 100%);
+    padding: 14px 18px;
+  }
+
+  .card:has(.howto) .cardTitle {
+    margin-top: 0;
+  }
+
+  /* Two columns of rows; the last row (Round buttons) spans both. */
+  .howto {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .howto > div:last-child {
+    grid-column: 1 / -1;
+  }
+}

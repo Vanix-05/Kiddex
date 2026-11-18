@@ -35,23 +35,46 @@ export function BookRightPage({ title, titleId, corner, onBack, help, pageNumber
 
       {children}
 
-      <footer className={styles.footer}>
-        <button type="button" className={styles.back} onClick={onBack}>
-          <Icon name="arrowLeft" size={20} />
-          Back
-        </button>
-        <p className={styles.help}>
-          {help ?? (
-            <>
-              No card? <strong>Ask your teacher</strong>
-            </>
-          )}
-        </p>
-      </footer>
+      <PageFooter onBack={onBack} help={help} />
 
       <span className={styles.pageNumber} aria-hidden="true">
         {pageNumber}
       </span>
     </div>
+  )
+}
+
+/**
+ * Phone held sideways: the right page holds only the number pad and Next
+ * (a CodePadPage). The title, hint, boxes and Back are on Ollie's page.
+ */
+export function BookKeypadPage({ pageNumber, children }: { pageNumber: number; children: ReactNode }) {
+  return (
+    <div className={`${styles.paper} ${styles.right} ${styles.keypadPage}`}>
+      {children}
+
+      <span className={styles.pageNumber} aria-hidden="true">
+        {pageNumber}
+      </span>
+    </div>
+  )
+}
+
+/** Back and the help line ("No card? Ask your teacher") at the bottom of a page. */
+export function PageFooter({ onBack, help }: { onBack: () => void; help?: ReactNode }) {
+  return (
+    <footer className={styles.footer}>
+      <button type="button" className={styles.back} onClick={onBack}>
+        <Icon name="arrowLeft" size={20} />
+        Back
+      </button>
+      <p className={styles.help}>
+        {help ?? (
+          <>
+            No card? <strong>Ask your teacher</strong>
+          </>
+        )}
+      </p>
+    </footer>
   )
 }

@@ -296,3 +296,87 @@
     display: none;
   }
 }
+
+/*
+ * Phone held sideways (the app's "sideways phone" query, also in
+ * hooks/usePhoneSideways.ts). Same idea as the laptop: logo top-left, girl
+ * and fox under it, the card on the right, vertically centered. One viewport
+ * tall, never scrolls. Every control is 44px tall. Last in the file, so it
+ * wins over the tablet and laptop rules above.
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  .layout {
+    --size-control-height: 44px;
+    --size-tap-target: 44px;
+    --gap: 8px;
+    --field-font: 1rem;
+
+    position: relative;
+    height: 100vh; /* fallback for browsers without dvh */
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    grid-template-columns: minmax(0, 1fr) min(400px, 50vw);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'brand card'
+      'hero  card';
+    column-gap: 20px;
+    row-gap: 0;
+    padding: 8px 24px 8px 20px;
+  }
+
+  .brand {
+    --logo-scale: 0.62; /* ~62% of the laptop logo */
+    align-self: start;
+    padding: 6px 0 0;
+  }
+
+  /* Characters fill the left column under the logo, feet at the bottom. */
+  .hero {
+    --hero-h: min(96cqh, 474px);
+    grid-area: hero;
+    position: relative;
+    inset: auto;
+    display: flex;
+    justify-content: flex-start;
+    padding-left: 4vw;
+  }
+
+  .kids {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    margin-bottom: calc(var(--hero-h) * var(--feet-pad) * -1);
+  }
+
+  .sign {
+    display: none;
+  }
+
+  /* `section` beats .card in Card.module.css, which can load after this file. */
+  section.card {
+    align-self: center;
+    max-width: 400px;
+    margin: 0;
+    gap: var(--gap);
+    padding: 14px 20px;
+  }
+
+  section.card h1 {
+    padding: 2px 22px;
+    font-size: 1.45rem;
+  }
+
+  section.card > p {
+    font-size: 0.95rem;
+  }
+
+  section.card input {
+    font-size: var(--field-font);
+  }
+
+  section.card button[type='submit'] {
+    font-size: 1.2rem;
+  }
+}

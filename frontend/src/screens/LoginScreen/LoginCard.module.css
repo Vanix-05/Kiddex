@@ -15,3 +15,11 @@ section.longTitle h1 {
     gap: clamp(6px, 1.4vh, 12px);
   }
 }
+
+/* Phone held sideways: long titles use the same small title as the rest. */
+@media (orientation: landscape) and (max-height: 500px) {
+  section.longTitle h1 {
+    padding-inline: 18px;
+    font-size: 1.45rem;
+  }
+}

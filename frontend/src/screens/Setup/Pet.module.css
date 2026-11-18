@@ -498,3 +498,33 @@
     animation: none;
   }
 }
+
+/* Phone held sideways: Back and Choose are at least 44px tall on the screen
+   (--stage-px, set by Bedroom, is one screen pixel in stage pixels). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .back {
+    --h: calc(44px * var(--stage-px, 2.3));
+    min-height: var(--h);
+    padding: 0 20px;
+    font-size: 38px;
+    translate: 0 calc(var(--size-tap-target) - var(--h));
+  }
+
+  /* Grows downward: the Name field is just above it. */
+  .choose {
+    --size-control-height: calc(44px * var(--stage-px, 2.3));
+    font-size: 40px;
+  }
+
+  /* The buddies keep their size; an invisible strip makes each at least 44px
+     tall to tap. */
+  .buddy::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: max(100%, calc(44px * var(--stage-px, 2.3)));
+    translate: 0 -50%;
+  }
+}

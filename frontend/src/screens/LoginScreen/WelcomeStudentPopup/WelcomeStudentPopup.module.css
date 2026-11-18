@@ -554,3 +554,15 @@
     transform: none;
   }
 }
+
+/* Phone held sideways: Back is at least 44px tall on the screen
+   (--closed-px, set by StoryBook, is one screen pixel in stage pixels; the
+   closed book is drawn at 92% of that). The negative margins give the extra
+   height back, so nothing moves. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .back {
+    --h: calc(44px * var(--closed-px, 1) / 0.92);
+    min-height: var(--h);
+    margin-block: calc((var(--size-tap-target) - var(--h)) / 2);
+  }
+}

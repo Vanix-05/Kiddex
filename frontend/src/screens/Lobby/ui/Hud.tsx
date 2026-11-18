@@ -9,7 +9,8 @@ import styles from './ui.module.css'
 /**
  * The screen UI around the room, kept clean for kids:
  * top left the Student card, top right today's mission and who's here,
- * bottom left My Room, bottom middle the emote bar, bottom right Zoom, the
+ * bottom left My Room (under the Student card on touch screens, where the
+ * joystick takes the bottom left), bottom middle the emote bar, bottom right Zoom, the
  * Settings gear and All games.
  */
 export function Hud({
@@ -33,7 +34,7 @@ export function Hud({
   mission: Mission
   classmatesHere: number
   zoom: Zoom
-  /** "WASD or click to walk", until the first move. */
+  /** "WASD or click to walk" ("Use the joystick to walk" on touch screens), until the first move. */
   showHint: boolean
   onStart: () => void
   onMyRoom: () => void
@@ -45,36 +46,56 @@ export function Hud({
   children?: ReactNode
 }) {
   const xpPercent = Math.min(100, Math.round((student.xp / student.xpGoal) * 100))
+  const studentCard = (
+    <section className={styles.board} aria-label="You">
+      <div className={styles.ava}>
+        <img src={headUrl} alt="" draggable={false} />
+      </div>
+      <div>
+        <h2 className={styles.name}>
+          {student.name} <span className={styles.lv}>Lv {student.level}</span>
+        </h2>
+        <div className={styles.xp} role="img" aria-label={`${student.xp} of ${student.xpGoal} XP`}>
+          <i style={{ width: `${xpPercent}%` }} />
+        </div>
+        <div className={styles.meta}>
+          <span>
+            {student.xp}/{student.xpGoal} XP
+          </span>
+          <span>
+            <LobbyIcon name="star" size={14} /> <b>{student.stars}</b>
+          </span>
+          <span>
+            <LobbyIcon name="flame" size={14} /> <b>{student.streakDays} days</b>
+          </span>
+        </div>
+      </div>
+    </section>
+  )
+  const myRoom = (
+    <button type="button" className={styles.pill} onClick={onMyRoom}>
+      <span className={styles.pillIcon}>
+        <LobbyIcon name="house" />
+      </span>
+      My Room
+    </button>
+  )
+
   return (
     <div className={styles.hud}>
-      <section className={styles.board} aria-label="You">
-        <div className={styles.ava}>
-          <img src={headUrl} alt="" draggable={false} />
+      {/* Touch screens: My Room right under the Student card (the joystick is bottom left). */}
+      {IS_TOUCH ? (
+        <div className={styles.topLeft}>
+          {studentCard}
+          {myRoom}
         </div>
-        <div>
-          <h2 className={styles.name}>
-            {student.name} <span className={styles.lv}>Lv {student.level}</span>
-          </h2>
-          <div className={styles.xp} role="img" aria-label={`${student.xp} of ${student.xpGoal} XP`}>
-            <i style={{ width: `${xpPercent}%` }} />
-          </div>
-          <div className={styles.meta}>
-            <span>
-              {student.xp}/{student.xpGoal} XP
-            </span>
-            <span>
-              <LobbyIcon name="star" size={14} /> <b>{student.stars}</b>
-            </span>
-            <span>
-              <LobbyIcon name="flame" size={14} /> <b>{student.streakDays} days</b>
-            </span>
-          </div>
-        </div>
-      </section>
+      ) : (
+        studentCard
+      )}
 
       <div className={`${styles.hint} ${showHint ? '' : styles.hintGone}`} aria-hidden={!showHint}>
         {IS_TOUCH ? (
-          'Tap the floor to walk'
+          'Use the joystick to walk'
         ) : (
           <>
             <span className={styles.keys}>
@@ -111,14 +132,7 @@ export function Hud({
         </div>
       </div>
 
-      <div className={styles.bottomLeft}>
-        <button type="button" className={styles.pill} onClick={onMyRoom}>
-          <span className={styles.pillIcon}>
-            <LobbyIcon name="house" />
-          </span>
-          My Room
-        </button>
-      </div>
+      {!IS_TOUCH && <div className={styles.bottomLeft}>{myRoom}</div>}
 
       <EmoteBar onEmote={onEmote} />
 

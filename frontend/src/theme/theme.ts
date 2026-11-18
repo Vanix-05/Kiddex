@@ -175,6 +175,7 @@ export const theme = {
     aiBg: '#E8E5FA',
     aiLine: '#B9B2EC',
     stickyYellow: '#FCF0A6', // Ollie's note
+    turnPhone: '#FDE6C4', // the sideways phone on the "Turn your phone sideways" card
     tape: '#F3C78E',
     tapeBlue: '#BFDDF2',
     codeYellow: '#FBEBA0', // one-time code chip

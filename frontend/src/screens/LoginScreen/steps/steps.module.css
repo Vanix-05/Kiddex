@@ -189,3 +189,40 @@ section.welcomeCard {
     transition: none;
   }
 }
+
+/* Phone held sideways: smaller role buttons so the whole card fits. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .roleButton {
+    --edge: 4px;
+    gap: 10px;
+    min-height: 64px;
+    padding: 6px 10px;
+  }
+
+  .roleIcon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .roleTitle {
+    font-size: 1.25rem;
+  }
+
+  .roleHint {
+    font-size: 0.85rem;
+  }
+
+  .divider,
+  .backLink {
+    font-size: 0.95rem;
+  }
+
+  .error {
+    font-size: 0.9rem;
+  }
+
+  .adminNote {
+    margin-top: 0;
+    font-size: 0.8rem;
+  }
+}

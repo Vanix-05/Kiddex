@@ -265,10 +265,9 @@
   border-bottom: 11px solid var(--color-card-border);
 }
 
-/* ---------- Loading, errors, "turn your phone" ---------- */
+/* ---------- Loading and errors ---------- */
 
-.cover,
-.rotate {
+.cover {
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -283,18 +282,6 @@
 
 .cover {
   display: grid;
-}
-
-/* Only on touch devices held upright. */
-.rotate {
-  display: none;
-  z-index: 30;
-}
-
-@media (orientation: portrait) and (pointer: coarse) {
-  .rotate {
-    display: grid;
-  }
 }
 
 .message {
@@ -316,30 +303,6 @@
   font-size: 16px;
   font-weight: 500;
   color: var(--color-text-muted);
-}
-
-.message svg {
-  display: block;
-  margin: 0 auto 10px;
-  fill: var(--color-card-bg);
-  stroke: var(--color-card-border);
-  stroke-width: 4;
-  animation: tilt 2s ease-in-out infinite;
-}
-
-.message svg circle {
-  fill: var(--color-card-border);
-}
-
-@keyframes tilt {
-  0%,
-  30% {
-    transform: rotate(0);
-  }
-  60%,
-  100% {
-    transform: rotate(-90deg);
-  }
 }
 
 .messageButtons {

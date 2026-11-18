@@ -8,7 +8,7 @@ import { MatchCornerScene } from '../scenes/MatchCornerScene'
 import { decisionLine, makeResult } from '../session'
 import type { GameProps } from '../types'
 import { useGameProgress } from '../useGameProgress'
-import { SLOTS, useCalmMotion, useStageFit } from '../useStage'
+import { slotsFor, useCalmMotion, useStageFit } from '../useStage'
 import {
   cardOf,
   clearMiss,
@@ -30,6 +30,20 @@ import styles from './MatchUp.module.css'
 const GEO = {
   normal: { cardTop: 112, cardH: 70, step: 82, leftX: 66, rightX: 470, cardW: 260 },
   short: { cardTop: 70, cardH: 48, step: 52, leftX: 30, rightX: 324, cardW: 250 },
+}
+
+/**
+ * Short windows: the cards try to stay at least 44px tall on screen, so on a
+ * small sideways phone (scale under 44/48) they get taller, with the same 4px
+ * gap. Only as tall as five rows fit on the board (with the usual 24px under
+ * them): the board is taller on those phones (slotsFor); on the usual 350px
+ * board that is exactly 48.
+ */
+const shortGeo = (scale: number, boardH: number) => {
+  const { cardTop, cardH: base, step } = GEO.short
+  const fits = Math.floor((boardH - 24 - cardTop - 4 * (step - base)) / 5)
+  const cardH = Math.max(base, Math.min(fits, Math.ceil(44 / scale)))
+  return { ...GEO.short, cardH, step: cardH + (GEO.short.step - GEO.short.cardH) }
 }
 
 /** Each tied pair takes the next color. */
@@ -92,8 +106,8 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
   const boardRef = useRef<HTMLDivElement>(null)
   const ignoreClick = useRef(false)
 
-  const geo = stage.short ? GEO.short : GEO.normal
-  const slots = stage.short ? SLOTS.short : SLOTS.normal
+  const slots = slotsFor(stage)
+  const geo = stage.short ? shortGeo(stage.scale, slots.board.h) : GEO.normal
   const n = round.cards.length
   const offset = ((5 - n) * geo.step) / 2
   const rowY = (i: number) => geo.cardTop + offset + i * geo.step
