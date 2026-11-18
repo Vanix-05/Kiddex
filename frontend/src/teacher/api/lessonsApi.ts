@@ -3,7 +3,8 @@
  * Screens don't call these directly: they use the hooks in src/teacher/data/useTeacherData.ts.
  */
 import type { QuestionCard, TemplateId } from '../../content/questionCard'
-import { api, API_URL, errorFromBody, networkError } from './client'
+import { getToken } from '../../session/authToken'
+import { api, API_URL, checkLoginEnded, errorFromBody, networkError } from './client'
 
 // ---------- Shapes the backend sends ----------
 
@@ -114,6 +115,8 @@ export function uploadLessonFile(file: File, onProgress: (p: UploadPhase) => voi
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${API_URL}/api/lessons/extract`)
+    const sentToken = getToken()
+    if (sentToken) xhr.setRequestHeader('Authorization', `Bearer ${sentToken}`)
     xhr.responseType = 'json'
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress({ phase: 'uploading', percent: Math.min(100, Math.round((e.loaded / e.total) * 100)) })
@@ -124,7 +127,11 @@ export function uploadLessonFile(file: File, onProgress: (p: UploadPhase) => voi
       const body: unknown = xhr.response
       if (xhr.status >= 200 && xhr.status < 300) resolve(body as UploadAnswer)
       else if (body === null && xhr.status >= 500) reject(networkError())
-      else reject(errorFromBody(xhr.status, body))
+      else {
+        const error = errorFromBody(xhr.status, body)
+        checkLoginEnded(error, sentToken)
+        reject(error)
+      }
     }
     xhr.onerror = () => reject(networkError())
     xhr.onabort = () => reject(new DOMException('Upload stopped', 'AbortError'))

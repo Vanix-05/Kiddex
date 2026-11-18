@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { FAKE_TEACHER_NAME } from '../../mock/teacherMock'
+import { useSession } from '../../session/session'
 import { TeacherDataContext } from './teacherDataContext'
 import type { TeacherData } from './types'
 
@@ -17,7 +17,8 @@ function nextFriday(today: Date) {
 function emptyData(): TeacherData {
   const today = new Date()
   return {
-    teacher: { name: FAKE_TEACHER_NAME },
+    // The real name comes from the session (see TeacherDataProvider).
+    teacher: { name: '' },
     sections: [],
     activeSectionId: '',
     todayLabel: dayLabel(today),
@@ -38,11 +39,14 @@ function emptyData(): TeacherData {
 /**
  * Holds the Teacher Dashboard's in-memory data. It starts empty; what the Teacher adds
  * (sections, students, To dos) lives in memory until a refresh. Lessons and their
- * questions come from the backend (React Query, see useTeacherData.ts).
+ * questions come from the backend (React Query, see useTeacherData.ts). The
+ * Teacher's name comes from the login (the email until /api/auth/me answers).
  */
 export function TeacherDataProvider({ children }: { children: ReactNode }) {
+  const { user } = useSession()
+  const name = user?.name || user?.username || ''
   const [data, setData] = useState(emptyData)
   const update = useCallback((change: (data: TeacherData) => TeacherData) => setData((d) => change(d)), [])
-  const value = useMemo(() => ({ data, update }), [data, update])
+  const value = useMemo(() => ({ data: { ...data, teacher: { ...data.teacher, name } }, update }), [data, name, update])
   return <TeacherDataContext.Provider value={value}>{children}</TeacherDataContext.Provider>
 }

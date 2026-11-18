@@ -1,10 +1,16 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { SessionContext, isRole, type SessionState, type SetupResult, type User } from './session'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { LOGIN_ENDED_NOTICE, SessionContext, isRole, type SessionState, type SetupResult, type User } from './session'
+import { clearToken, getToken, setToken } from './authToken'
 import type { Look } from '../setup/customizeData'
 import { isAvatar } from '../setup/avatar'
 import { cleanLook } from '../setup/customizeData'
 import { isBuddyId } from '../setup/quizData'
 import { FAKE_RETURNING_STUDENT } from '../mock/studentMock'
+import { authApi } from '../teacher/api/authApi'
+import { setLoginEndedHandler } from '../teacher/api/client'
+import { teacherQueryClient } from '../teacher/api/queryClient'
+import { router } from '../routes/router'
+import { paths } from '../routes/paths'
 
 const STORAGE_KEY = 'kiddex.session'
 
@@ -32,6 +38,8 @@ function loadSession(): SessionState {
       const saved = JSON.parse(raw) as Partial<SessionState>
       // A user with an old or unknown role: start fresh (logged out).
       if (saved.user && !isUser(saved.user)) return EMPTY
+      // A Teacher without a login token (an old fake login, or blocked storage): logged out.
+      if (saved.user?.role === 'teacher' && !getToken()) return EMPTY
       return {
         user: saved.user ?? null,
         companionId: saved.companionId ?? null,
@@ -92,16 +100,19 @@ function returningStudentLook(): SavedStudent {
   return { ...FAKE_RETURNING_STUDENT }
 }
 
-const fakeDelay = () => new Promise((resolve) => setTimeout(resolve, 300))
-
 /**
- * FAKE authentication for now (no backend yet):
- * - any email + password logs a Teacher in
+ * Who is logged in.
+ *
+ * Teacher login is REAL: email + password go to the backend, which answers with
+ * a login token (8 hours, kept in sessionStorage by authToken.ts). After a page
+ * reload the token is checked once with GET /api/auth/me.
+ *
+ * Student login is still FAKE (no backend yet):
  * - any 8-digit School ID + 6-digit one-time code + 4-digit PIN code starts
  *   a new Student (New Student notebook pages), with no buddy yet
  * - any 8-digit School ID + 4-digit PIN code logs a Returning Student in,
  *   with the kid and buddy saved in this browser (or a default one)
- * TODO: replace with real calls to the backend auth endpoints.
+ * TODO: replace the Student parts with real calls to the backend.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>(loadSession)
@@ -118,9 +129,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logInTeacher = useCallback(
     async (email: string, password: string): Promise<User> => {
-      await fakeDelay()
       if (!email.trim() || !password) throw new Error('Please enter your email and password.')
-      const user: User = { username: email.trim(), role: 'teacher' }
+      // Throws an ApiError with the backend's friendly message (wrong login,
+      // too many tries, can't reach KIDDEX).
+      const { token, teacher } = await authApi.logIn(email.trim(), password)
+      setToken(token)
+      // A fresh cache: never show lessons from an earlier login on this computer.
+      teacherQueryClient.clear()
+      const user: User = { username: teacher.email, role: 'teacher', name: teacher.name }
       update({ ...EMPTY, user })
       return user
     },
@@ -166,7 +182,49 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const markIntroClipSeen = useCallback(() => update({ seenIntroClip: true }), [update])
   const markLoadingVideoSeen = useCallback(() => update({ seenLoadingVideo: true }), [update])
 
-  const logOut = useCallback(() => update(EMPTY), [update])
+  // There is no logout address: the browser forgets the token. The Teacher cache
+  // is cleared too, so the next Teacher on this computer never sees these lessons.
+  const logOut = useCallback(() => {
+    clearToken()
+    teacherQueryClient.clear()
+    update(EMPTY)
+  }, [update])
+
+  // The backend said the Teacher's login ended (8 hours passed, or the password
+  // was reset): log out and open Teacher Login with a notice. client.ts calls
+  // this at most once per token, so it can't loop.
+  useEffect(() => {
+    setLoginEndedHandler(() => {
+      // One transition, like the planner's Log out: a separate log-out would
+      // render first and the guard would send us to the Welcome card instead.
+      startTransition(() => {
+        void router.navigate(paths.teacher.login, { state: { notice: LOGIN_ENDED_NOTICE } })
+        logOut()
+      })
+    })
+    return () => setLoginEndedHandler(null)
+  }, [logOut])
+
+  // After a page reload: check the saved Teacher login once and refresh the name.
+  // 401: the login-ended handler above logs out. Network error (the backend may
+  // be waking up): keep the session; the next call tries again.
+  // Only a Teacher session loaded at start is checked (not one from a fresh login).
+  const checkedSavedLogin = useRef(state.user?.role !== 'teacher')
+  useEffect(() => {
+    if (checkedSavedLogin.current) return
+    checkedSavedLogin.current = true
+    authApi
+      .me()
+      .then(({ teacher }) =>
+        setState((prev) => {
+          if (prev.user?.role !== 'teacher') return prev
+          const next = { ...prev, user: { ...prev.user, username: teacher.email, name: teacher.name } }
+          saveSession(next)
+          return next
+        }),
+      )
+      .catch(() => {})
+  }, [state.user?.role])
 
   const value = useMemo(
     () => ({

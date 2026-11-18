@@ -1,0 +1,25 @@
+// KIDDEX database (Neon Postgres). The addresses live in backend/.env and are
+// passed in by prisma.config.ts (migrations) and src/db/prisma.ts (the server).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Teacher {
+  id           String    @id @default(cuid())
+  email        String    @unique // always saved trimmed + lowercase
+  name         String // shown in the planner, e.g. "Mr. Gucci"
+  passwordHash String // bcrypt hash, never the password
+  tokenVersion Int       @default(0) // goes up when the password is reset, so old logins stop working
+  failedLogins Int       @default(0) // for the "too many wrong tries" rule
+  lockedUntil  DateTime? // same
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}

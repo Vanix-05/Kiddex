@@ -1,0 +1,21 @@
+// Turns a database error into a short, safe reason for scripts.
+// The raw error text is never printed: it can contain the database address.
+export function dbProblem(err: unknown): string {
+  const code = (err as { code?: unknown })?.code;
+  const cause = (err as { cause?: unknown })?.cause;
+  const text = err instanceof Error ? `${err.message} ${String(cause ?? "")}`.toLowerCase() : "";
+
+  if (code === "P2021" || /does not exist|tablenotfound/.test(text)) {
+    return "the tables are not made yet, run npm run db:migrate";
+  }
+  if (code === "P1000" || /password authentication failed|authentication/.test(text)) {
+    return "the database refused the login, copy the address again from Neon";
+  }
+  if (/channel.binding|scram-sha-256-plus/.test(text)) {
+    return "the database driver could not do channel binding (channel_binding=require)";
+  }
+  if (code === "P1001" || code === "P1002" || /timeout|timed out|econnrefused|enotfound|etimedout|getaddrinfo|connect/.test(text)) {
+    return "can't reach the database, check the internet connection (a sleeping Neon database can take a few seconds to wake)";
+  }
+  return "unexpected database error";
+}

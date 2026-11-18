@@ -3,7 +3,13 @@
  *
  * In development VITE_API_URL is empty and Vite passes /api/... to the backend
  * (vite.config.ts). For the real website, VITE_API_URL is the backend's address.
+ *
+ * Every call sends the Teacher's login token (Authorization: Bearer ...) when there
+ * is one. If the backend says the login ended (401 LOGIN_NEEDED), the token is
+ * forgotten and the login-ended handler (set by SessionProvider) logs the Teacher
+ * out and opens Teacher Login with a notice.
  */
+import { clearToken, getToken } from '../../session/authToken'
 
 /** The backend's address, without a trailing slash ('' = this same site). */
 export const API_URL = String(import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')
@@ -34,6 +40,27 @@ export function errorFromBody(status: number, body: unknown): ApiError {
   return new ApiError(code, message, status)
 }
 
+// ---------- Login ended ----------
+
+let loginEndedHandler: (() => void) | null = null
+
+/** SessionProvider sets this: log out and go to Teacher Login with a notice. */
+export function setLoginEndedHandler(handler: (() => void) | null) {
+  loginEndedHandler = handler
+}
+
+/**
+ * Call with every failed answer. On 401 LOGIN_NEEDED for the token we sent, forget
+ * the token and tell the handler, once: later answers for that same token (other
+ * calls that were already on their way) find it gone and do nothing, so this never loops.
+ */
+export function checkLoginEnded(error: ApiError, sentToken: string | null) {
+  if (error.status !== 401 || error.code !== 'LOGIN_NEEDED') return
+  if (!sentToken || getToken() !== sentToken) return
+  clearToken()
+  loginEndedHandler?.()
+}
+
 /** The friendly words of any error (an ApiError's own message, else a general one). */
 export const errorMessage = (error: unknown) => (error instanceof ApiError ? error.message : UNKNOWN_MESSAGE)
 
@@ -46,12 +73,16 @@ interface ApiOptions {
 
 /** Calls the backend and returns its JSON answer. Throws an ApiError on any failure. */
 export async function api<T>(path: string, { method = 'GET', body, signal }: ApiOptions = {}): Promise<T> {
+  const sentToken = getToken()
+  const headers: Record<string, string> = sentToken ? { Authorization: `Bearer ${sentToken}` } : {}
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+
   let response: Response
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
       signal,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch (err) {
@@ -71,7 +102,9 @@ export async function api<T>(path: string, { method = 'GET', body, signal }: Api
   if (!response.ok) {
     // The Vite proxy answers 500/502/504 without our JSON when the backend is down.
     if (json === null && response.status >= 500) throw networkError()
-    throw errorFromBody(response.status, json)
+    const error = errorFromBody(response.status, json)
+    checkLoginEnded(error, sentToken)
+    throw error
   }
   return json as T
 }

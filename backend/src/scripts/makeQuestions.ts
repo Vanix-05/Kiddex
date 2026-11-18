@@ -4,9 +4,11 @@
 // This is the only place that may write question text to disk.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { currentTeacherId } from "../auth/currentTeacher";
+import { cleanEmail } from "../auth/passwords";
 import { AI_PROVIDERS, type AiProviderName } from "../config/env";
 import type { TemplateId } from "../content/questionCard";
+import { dbProblem } from "../db/dbProblem";
+import { prisma } from "../db/prisma";
 import { AppError } from "../middleware/AppError";
 import { messageForCode } from "../lessons/lessonErrors";
 import { startMaking } from "../lessons/makeLessonQuestions";
@@ -42,10 +44,37 @@ function readArgs(argv: string[]) {
   return { filePath: filePath!, games, order, grade, topic: options.topic!, subject: options.subject!, problems };
 }
 
+/**
+ * This script has no login, so its lessons belong to the seed Teacher
+ * (SEED_TEACHER_EMAIL, default mr.gucci@kiddex.test), looked up in the database.
+ * Returns null (after printing why) when that Teacher can't be found.
+ */
+async function seedTeacherId(): Promise<string | null> {
+  const email = cleanEmail(process.env.SEED_TEACHER_EMAIL?.trim() || "mr.gucci@kiddex.test");
+  if (!email) {
+    console.log("SEED_TEACHER_EMAIL in backend/.env does not look like an email address.");
+    return null;
+  }
+  try {
+    const teacher = await prisma.teacher.findUnique({ where: { email }, select: { id: true } });
+    if (!teacher) console.log(`No Teacher with the email ${email} yet. Run npm run db:seed first, then try again.`);
+    return teacher?.id ?? null;
+  } catch (err) {
+    console.log(`Could not find the Teacher: ${dbProblem(err)}.`);
+    return null;
+  }
+}
+
 async function main(): Promise<void> {
   const args = readArgs(process.argv.slice(2));
   if (args.problems.length) {
     console.log(`${USAGE}\nProblem: ${args.problems.join("; ")}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const ownerId = await seedTeacherId();
+  if (!ownerId) {
     process.exitCode = 1;
     return;
   }
@@ -57,7 +86,6 @@ async function main(): Promise<void> {
     console.log(`Read ${lesson.fileType}: ${lesson.unitCount} ${lesson.unitLabel}(s), ${lesson.wordCount} words, level ${lesson.textLevel}`);
 
     // Same path as the addresses: create the lesson in the store, then make its questions.
-    const ownerId = currentTeacherId();
     const stored = createLesson({
       ownerId,
       fileName,
@@ -151,4 +179,4 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+main().finally(() => prisma.$disconnect());

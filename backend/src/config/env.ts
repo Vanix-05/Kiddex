@@ -20,10 +20,27 @@ const wholeNumber = (fallback: number) =>
     z.coerce.number({ error: "must be a whole number" }).int("must be a whole number").positive("must be above 0").default(fallback),
   );
 
+// Neon addresses: required. The message names the setting only, never the value.
+const neonAddress = z.preprocess(
+  blankToUndefined,
+  z.string({ error: "is missing. Copy it from Neon: Connect button" }),
+);
+
 export const AI_PROVIDERS = ["gemini", "groq"] as const;
 export type AiProviderName = (typeof AI_PROVIDERS)[number];
 
 const schema = z.object({
+  // Pooled address (has -pooler). The running server uses this one.
+  DATABASE_URL: neonAddress,
+  // Direct address (no -pooler). Only Prisma migrations use it (prisma.config.ts).
+  DIRECT_URL: neonAddress,
+  // Signs Teacher login tokens. Required, at least 32 characters.
+  JWT_SECRET: z.preprocess(
+    blankToUndefined,
+    z
+      .string({ error: "is missing. Make one with: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\"" })
+      .min(32, "must be at least 32 characters. Make a new one with: node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\""),
+  ),
   PORT: wholeNumber(3000),
   FRONTEND_URL: z.preprocess(
     blankToUndefined,
@@ -66,6 +83,10 @@ if (!parsed.success) {
 }
 
 export const env = {
+  /** Never print or log this: it holds the database password. */
+  databaseUrl: parsed.data.DATABASE_URL,
+  /** Never print or log this: anyone with it can make Teacher logins. */
+  jwtSecret: parsed.data.JWT_SECRET,
   port: parsed.data.PORT,
   frontendUrl: parsed.data.FRONTEND_URL.replace(/\/+$/, ""),
   geminiApiKey: parsed.data.GEMINI_API_KEY,

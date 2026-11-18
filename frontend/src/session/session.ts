@@ -5,11 +5,22 @@ import type { BuddyId } from '../setup/quizData'
 
 export type Role = 'student' | 'teacher'
 
-export const isRole = (r: unknown): r is Role => r === 'student' || r === 'teacher'
+/** Shown above the Teacher Login form when the backend ended the login. */
+export const LOGIN_ENDED_NOTICE = 'Your login ended. Please log in again.'
+
+/** What Teacher Login may get in its location state. */
+export interface TeacherLoginState {
+  notice?: string
+}
+
+export const isRole =(r: unknown): r is Role => r === 'student' || r === 'teacher'
 
 export interface User {
+  /** A Teacher's email, or a Student's School ID. */
   username: string
   role: Role
+  /** A Teacher's name from the backend, e.g. "Mr. Gucci". */
+  name?: string
 }
 
 export interface SessionState {
@@ -39,6 +50,7 @@ export interface SetupResult {
 }
 
 export interface SessionContextValue extends SessionState {
+  /** Real login (backend). Throws an Error with a friendly message on failure. */
   logInTeacher: (email: string, password: string) => Promise<User>
   /** New Student flow (School ID + one-time code + new PIN code): logs them in
       with no buddy yet, so the first-time setup (quiz) comes next. Fake for now. */
