@@ -118,7 +118,7 @@ export function QuestionEditor({ title, number, form, problems, onChange, onSave
           <span className={styles.fLabel} id={`${ids}-choices`}>
             {blank ? 'Words' : 'Choices'} <span className={styles.fHint}>· tap the round mark for the right answer</span>
           </span>
-          <div className={blank ? `${styles.choiceBoxes} ${styles.choiceBoxes3}` : styles.choiceBoxes}>
+          <div className={styles.choiceBoxes}>
             {form.choices.map((c, i) => {
               const right = i === form.rightIndex
               return (
