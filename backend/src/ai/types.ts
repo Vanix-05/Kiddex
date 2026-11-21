@@ -12,6 +12,8 @@ export interface AiRequest {
   lists: ListCounts;
   /** Most words of lesson text to send (a provider may send fewer). */
   maxLessonWords: number;
+  /** Answer length cap in tokens (MAX_OUTPUT_TOKENS when missing). */
+  maxOutputTokens?: number;
 }
 
 /** The lesson text a provider actually sent, and the estimated request size in tokens. */
@@ -23,8 +25,11 @@ export interface AiProvider {
   name: AiProviderName;
   model: string;
   hasKey: boolean;
-  /** Before a top-up request: wait this many seconds after this provider's last answer. */
-  gapAfterAnswerSeconds?: number;
+  /**
+   * Only for a provider with a per-minute token budget (Groq): the estimated size of this
+   * request in tokens, the same estimate the provider uses to fit the lesson text.
+   */
+  estimateTokens?(request: AiRequest): number;
   /**
    * Sends the request and returns the parsed JSON answer (an object) and the lesson text sent.
    * Throws an AiError (busy, rate_limited, timeout, bad_key, bad_answer). Never retries by itself.

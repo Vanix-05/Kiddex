@@ -1,6 +1,7 @@
 // `npm run test-checks`: runs hand-made cards through checkCards with a made-up lesson and
 // prints PASS or FAIL for each rule. Makes NO AI call.
-import { toRawCards } from "../ai/answerShape";
+import { gameRequestOrder, toRawCards } from "../ai/answerShape";
+import { noteTokenBudget, tokenWaitSeconds } from "../ai/providerHealth";
 import { createCardChecker, keepBest, type RejectReason } from "../lessons/checkCards";
 import type { QuestionCard, TemplateId } from "../content/questionCard";
 
@@ -125,6 +126,26 @@ try {
   );
 } catch (err) {
   check("answer missing the matchUp list -> 0 pairs, no crash", false, `crashed: ${String(err)}`);
+}
+
+// 11. Groq's token budget: wait only when the next request does not fit, and only until the reset.
+{
+  const now = 1_000_000;
+  noteTokenBudget("groq", 5000, 20, now); // 5,000 tokens left, full again in 20 s
+  const enough = tokenWaitSeconds("groq", 4000, now);
+  const notEnough = tokenWaitSeconds("groq", 6000, now + 5000); // 15 s left, plus 1
+  const afterReset = tokenWaitSeconds("groq", 6000, now + 21_000);
+  check(
+    "tokenWaitSeconds: 0 when enough, seconds to reset + 1 when not, 0 after reset",
+    enough === 0 && notEnough === 16 && afterReset === 0,
+    `enough ${enough}, not enough ${notEnough}, after reset ${afterReset}`,
+  );
+}
+
+// 12. One request per game: Match Up goes first.
+{
+  const order = gameRequestOrder(["quiz-show", "match-up"]).join(",");
+  check("game request order for quiz-show + match-up -> match-up, quiz-show", order === "match-up,quiz-show", order);
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks PASS");

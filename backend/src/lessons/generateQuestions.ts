@@ -1,11 +1,13 @@
-// Makes question cards from a read lesson file: asks the AI for one list per picked game
-// (with a few extra items), checks every card, tops up a game that is not playable (that game
-// only), keeps the best `target` cards per game, and builds the summary.
+// Makes question cards from a read lesson file: asks the AI for each picked game in its OWN
+// request, one after the other (Match Up, then Fill the Blank, then Quiz Show; each with a few
+// extra items and the other game's cards as "already have"), checks every card, tops up a game
+// that is not playable (that game only), keeps the best `target` cards per game, and builds the summary.
 // Used through makeLessonQuestions.ts (POST /api/lessons/:lessonId/generate and `npm run make-questions`).
 import { env, type AiProviderName } from "../config/env";
-import { toRawCards, type ListCounts } from "../ai/answerShape";
+import { gameRequestOrder, toRawCards, type ListCounts } from "../ai/answerShape";
 import { generateWithFallback, type AiAnswer } from "../ai/generateWithFallback";
 import { buildQuestionPrompt } from "../ai/questionPrompt";
+import type { SentLesson } from "../ai/types";
 import { MIN_CARDS, TEMPLATE_FOR_TYPE, type QuestionCard, type TemplateId } from "../content/questionCard";
 import { createCardChecker, devMarkEvery, GAME_ORDER, keepBest, sortCards, type RejectReason } from "./checkCards";
 import type { Lesson } from "../store/lessonStore";
@@ -15,6 +17,7 @@ import {
   GROQ_MAX_LESSON_WORDS,
   LOW_TEXT_TARGET_FACTOR,
   MAX_JOB_SECONDS,
+  MAX_OUTPUT_TOKENS_PER_GAME,
   MAX_WORDS_TO_AI,
   TARGET_CARDS,
 } from "./limits";
@@ -55,7 +58,15 @@ export interface GameNumbers {
   rejected: number;
 }
 
-type AnswerInfo = Omit<AiAnswer, "json" | "lesson"> & { estimatedTokens: number };
+export type AnswerInfo = Omit<AiAnswer, "json" | "lesson"> & { game: TemplateId; estimatedTokens: number };
+
+/** One game's first request: how many items were asked, how many were good, and who answered. */
+export interface GameRequestInfo {
+  game: TemplateId;
+  asked: number;
+  good: number;
+  failed?: string;
+}
 
 export interface TopUpInfo {
   game: TemplateId;
@@ -67,7 +78,10 @@ export interface TopUpInfo {
 
 /** Details for the server console and the test command only, never the browser. */
 export interface GenerateRunInfo {
-  answer: AnswerInfo;
+  /** One per game request that got an answer, in request order (top-ups are in `topUps`). */
+  answers: AnswerInfo[];
+  /** One per game request, answered or not, in request order. */
+  requests: GameRequestInfo[];
   totalSeconds: number;
   perGame: Partial<Record<TemplateId, GameNumbers>>;
   rejectedReasons: Partial<Record<RejectReason, number>>;
@@ -80,9 +94,14 @@ export interface GenerateResult {
   run: GenerateRunInfo;
 }
 
-function answerInfo(answer: AiAnswer): AnswerInfo {
+function answerInfo(answer: AiAnswer, game: TemplateId): AnswerInfo {
   const { json: _json, lesson, ...rest } = answer;
-  return { ...rest, estimatedTokens: lesson.estimatedTokens };
+  return { game, ...rest, estimatedTokens: lesson.estimatedTokens };
+}
+
+/** The cards we have as short lines for "already have" (pairs as "left = right"). */
+function promptsOf(cards: QuestionCard[]): string[] {
+  return cards.map((card) => (card.type === "matching_pair" ? `${card.prompt} = ${card.answer}` : card.prompt));
 }
 
 export async function generateQuestions(input: GenerateInput): Promise<GenerateResult> {
@@ -112,21 +131,46 @@ export async function generateQuestions(input: GenerateInput): Promise<GenerateR
     onWait: (seconds: number) => input.onStep?.(seconds > 0 ? "waiting" : "writing"),
   };
 
-  // Round 1: one list per picked game.
-  input.onStep?.("writing");
-  const answer = await generateWithFallback(
-    {
-      instructions: buildQuestionPrompt({ ...promptBase, lists: asks }),
-      lesson,
-      lists: asks,
-      maxLessonWords: MAX_WORDS_TO_AI,
-    },
-    fallback,
-  );
-  input.onStep?.("checking");
-  const first = toRawCards(answer.json, games);
-  Object.assign(received, first.received);
-  checker.add(first.cards);
+  // Every lesson text sent (first requests and top-ups), for textWasCut / lastUnitUsed.
+  const sentLessons: SentLesson[] = [];
+
+  // One request per picked game: that game's list only, with the other game's cards as "already have".
+  const answers: AnswerInfo[] = [];
+  const requests: GameRequestInfo[] = [];
+  let lastError: unknown;
+  for (const game of gameRequestOrder(games)) {
+    const lists: ListCounts = { [game]: asks[game] };
+    const alreadyHave = promptsOf(checker.cards().filter((card) => TEMPLATE_FOR_TYPE[card.type] !== game));
+    const info: GameRequestInfo = { game, asked: asks[game] ?? 0, good: 0 };
+    requests.push(info);
+
+    input.onStep?.("writing");
+    try {
+      const answer = await generateWithFallback(
+        {
+          instructions: buildQuestionPrompt({ ...promptBase, lists, alreadyHave }),
+          lesson,
+          lists,
+          maxLessonWords: MAX_WORDS_TO_AI,
+          maxOutputTokens: MAX_OUTPUT_TOKENS_PER_GAME[game],
+        },
+        fallback,
+      );
+      input.onStep?.("checking");
+      const got = toRawCards(answer.json, [game]);
+      received[game] = (received[game] ?? 0) + (got.received[game] ?? 0);
+      info.good = checker.add(got.cards);
+      answers.push(answerInfo(answer, game));
+      sentLessons.push(answer.lesson);
+    } catch (err) {
+      // Keep going with the next game; the top-up below may still save this one.
+      lastError = err;
+      info.failed = "no AI answered";
+      console.warn(`[questions] request for ${game} failed, going on with the next game`);
+    }
+  }
+  // No AI answered at all: fail the same way as before (AI busy), without top-ups.
+  if (!answers.length) throw lastError;
 
   // Top-up: only a game that is not playable yet, that game's list only, with the short lesson text.
   const topUps: TopUpInfo[] = [];
@@ -138,10 +182,7 @@ export async function generateQuestions(input: GenerateInput): Promise<GenerateR
     const topUp: TopUpInfo = { game, asked: ask, good: 0 };
     topUps.push(topUp);
     const lists: ListCounts = { [game]: ask };
-    const alreadyHave = checker
-      .cards()
-      .filter((card) => TEMPLATE_FOR_TYPE[card.type] === game)
-      .map((card) => (card.type === "matching_pair" ? `${card.prompt} = ${card.answer}` : card.prompt));
+    const alreadyHave = promptsOf(checker.cards().filter((card) => TEMPLATE_FOR_TYPE[card.type] === game));
 
     input.onStep?.("writing");
     try {
@@ -151,14 +192,16 @@ export async function generateQuestions(input: GenerateInput): Promise<GenerateR
           lesson,
           lists,
           maxLessonWords: GROQ_MAX_LESSON_WORDS,
+          maxOutputTokens: MAX_OUTPUT_TOKENS_PER_GAME[game],
         },
-        { ...fallback, isTopUp: true },
+        fallback,
       );
       input.onStep?.("checking");
       const extraCards = toRawCards(more.json, [game]);
       received[game] = (received[game] ?? 0) + (extraCards.received[game] ?? 0);
       topUp.good = checker.add(extraCards.cards);
-      topUp.answer = answerInfo(more);
+      topUp.answer = answerInfo(more, game);
+      sentLessons.push(more.lesson);
     } catch {
       // Keep what we have; that game shows enough: false.
       topUp.failed = "no AI answered the top-up";
@@ -185,13 +228,15 @@ export async function generateQuestions(input: GenerateInput): Promise<GenerateR
   }
 
   const cards = devMarkEvery(sortCards(kept), env.devMarkEvery);
+  // Cut if ANY request's text was cut; the last page used is the smallest one among those.
+  const cutLessons = sentLessons.filter((sent) => sent.textWasCut);
   const summary: GenerateSummary = {
     games: {},
     flagged: cards.filter((card) => card.flag).length,
     rejected: Object.values(checker.rejected()).reduce((sum, n) => sum + (n ?? 0), 0),
     extra: Object.values(perGame).reduce((sum, numbers) => sum + (numbers?.extra ?? 0), 0),
-    textWasCut: answer.lesson.textWasCut,
-    lastUnitUsed: answer.lesson.textWasCut ? answer.lesson.lastUnitUsed : null,
+    textWasCut: cutLessons.length > 0,
+    lastUnitUsed: cutLessons.length ? Math.min(...cutLessons.map((sent) => sent.lastUnitUsed)) : null,
   };
   for (const game of GAME_ORDER.filter((g) => games.includes(g))) {
     const count = perGame[game]?.kept ?? 0;
@@ -199,7 +244,8 @@ export async function generateQuestions(input: GenerateInput): Promise<GenerateR
   }
 
   const run: GenerateRunInfo = {
-    answer: answerInfo(answer),
+    answers,
+    requests,
     totalSeconds: Math.round((Date.now() - startedAt) / 100) / 10,
     perGame,
     rejectedReasons: checker.rejected(),

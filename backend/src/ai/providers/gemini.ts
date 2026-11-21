@@ -1,6 +1,6 @@
 // Google Gemini provider (@google/genai). JSON output held to our answer shape with a
 // responseSchema (one required list per game, with minItems), temperature 0.3,
-// answer capped at MAX_OUTPUT_TOKENS, no automatic retries. Lesson text up to MAX_WORDS_TO_AI.
+// answer capped at the request's own maxOutputTokens (MAX_OUTPUT_TOKENS when missing), no automatic retries. Lesson text up to MAX_WORDS_TO_AI.
 import { GoogleGenAI } from "@google/genai";
 import { env } from "../../config/env";
 import { lessonTextForAi } from "../../lessons/lessonForAi";
@@ -23,7 +23,8 @@ export const gemini: AiProvider = {
     const ai = client;
 
     const lesson = lessonTextForAi(request.lesson, Math.min(request.maxLessonWords, MAX_WORDS_TO_AI));
-    const estimatedTokens = estimateRequestTokens(request.instructions, lesson.text);
+    const maxOutputTokens = request.maxOutputTokens ?? MAX_OUTPUT_TOKENS;
+    const estimatedTokens = estimateRequestTokens(request.instructions, lesson.text, maxOutputTokens);
     console.log(`[ai] gemini request estimate: ${estimatedTokens} tokens`);
 
     const response = await withTimeout(timeoutMs, (signal) =>
@@ -35,7 +36,7 @@ export const gemini: AiProvider = {
           responseMimeType: "application/json",
           responseSchema: geminiSchema(request.lists),
           temperature: 0.3,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          maxOutputTokens,
           abortSignal: signal,
         },
       }),

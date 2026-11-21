@@ -11,9 +11,10 @@ export const ASK_EXTRA_FACTOR = 1.35;        // ask the AI for 35% more than we 
 export const MAX_WORDS_TO_AI = 6000;         // longer lessons are cut to this many words
 
 export const MAX_RATE_LIMIT_WAIT_S = 65;     // longest wait when an AI says "too many requests"
-export const MAX_JOB_SECONDS = 180;          // one question job never runs longer than this
+export const MAX_JOB_SECONDS = 240;          // one question job never runs longer than this
 
 export const GROQ_TOKENS_PER_MINUTE = 8000;   // Groq free plan; change if we upgrade
 export const GROQ_MAX_LESSON_WORDS = 2500;    // lesson text sent to Groq is cut to this
-export const MAX_OUTPUT_TOKENS = 3500;        // answer length cap for every provider
-export const GROQ_GAP_AFTER_ANSWER_S = 60;    // before a Groq top-up: wait this long after its last answer
+export const MAX_OUTPUT_TOKENS = 3500;        // answer length cap when a request has no cap of its own
+// answer length cap for ONE game's list (items asked × about 140 tokens, plus room)
+export const MAX_OUTPUT_TOKENS_PER_GAME = { 'quiz-show': 2400, 'match-up': 1200, 'fill-blank': 1800 } as const;

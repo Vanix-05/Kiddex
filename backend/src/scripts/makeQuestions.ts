@@ -124,11 +124,19 @@ async function main(): Promise<void> {
     console.log(`Stored:       ${cards.length} questions, positions 1-${cards.length}`);
 
     console.log("");
-    console.log(`Answered by:  ${run.answer.provider} (${run.answer.model}), ${run.answer.seconds} s for the answer`);
+    const waitText = (a: { waits: number[]; waitReasons: string[] }) =>
+      a.waits.map((s, i) => `${s} s (${a.waitReasons[i] ?? "?"})`).join(", ") || "none";
+    for (const request of run.requests) {
+      const a = run.answers.find((answer) => answer.game === request.game);
+      console.log(
+        `Request:      ${request.game}: asked ${request.asked}, good ${request.good}` +
+          (a
+            ? `, ${a.provider} (${a.model}) in ${a.seconds} s (total ${a.totalSeconds} s), about ${a.estimatedTokens} tokens, ` +
+              `waits ${waitText(a)}${a.usedBackup ? `, backup because the first AI: ${a.backupReason ?? "failed"}` : ""}`
+            : ` (${request.failed ?? "failed"})`),
+      );
+    }
     console.log(`Total time:   ${run.totalSeconds} s`);
-    console.log(`Request size: about ${run.answer.estimatedTokens} tokens (estimate)`);
-    console.log(`Waits:        ${run.answer.waits.length ? run.answer.waits.map((s) => `${s} s`).join(", ") : "none"}`);
-    console.log(`Backup used:  ${run.answer.usedBackup ? `yes, because the first AI: ${run.answer.backupReason ?? "failed"}` : "no"}`);
     for (const [game, info] of Object.entries(summary.games)) {
       const n = run.perGame[game as TemplateId]!;
       console.log(
@@ -151,7 +159,7 @@ async function main(): Promise<void> {
         `Top-up:       ${up.game}: asked ${up.asked}, good ${up.good}` +
           (up.answer
             ? `, answered by ${up.answer.provider} in ${up.answer.seconds} s (total ${up.answer.totalSeconds} s), ` +
-              `about ${up.answer.estimatedTokens} tokens, waits ${up.answer.waits.map((s) => `${s} s`).join(", ") || "none"}`
+              `about ${up.answer.estimatedTokens} tokens, waits ${waitText(up.answer)}`
             : "") +
           (up.failed ? ` (${up.failed})` : ""),
       );

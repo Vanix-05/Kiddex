@@ -8,14 +8,18 @@
 //   - If the last provider fails in another way but an earlier one was only rate limited,
 //     that earlier one is now the only one left that works: wait what is left of its
 //     wait time and try it ONE more time.
-//   - Top-up requests to Groq first wait until 60 s have passed since its last answer.
+//   - Before calling a provider with a per-minute token budget (Groq), this request's size is
+//     estimated and checked against the budget its last answer reported (tokenWaitSeconds).
+//     Enough left → call now. Not enough → if the next provider in line was not down in the
+//     last 2 minutes, try that one first (this one moves to the back of the line); otherwise
+//     wait until the budget is full again (at most MAX_RATE_LIMIT_WAIT_S), then call.
 //   - Nothing starts or waits past the job's deadline (MAX_JOB_SECONDS).
 // Which provider answered is for the server console and the test command only, never the browser.
 import { env, type AiProviderName } from "../config/env";
 import { lessonErrors } from "../lessons/lessonErrors";
 import { MAX_RATE_LIMIT_WAIT_S } from "../lessons/limits";
 import { AiError, type AiErrorKind } from "./aiError";
-import { markDown, markOk, secondsSinceAnswer, wasRecentlyDown } from "./providerHealth";
+import { markDown, markOk, tokenWaitSeconds, wasRecentlyDown } from "./providerHealth";
 import { gemini } from "./providers/gemini";
 import { groq } from "./providers/groq";
 import type { AiProvider, AiRequest, SentLesson } from "./types";
@@ -41,8 +45,6 @@ export interface FallbackOptions {
   deadline?: number;
   /** Called when we start waiting (seconds) and when we stop (0). */
   onWait?: (seconds: number) => void;
-  /** A top-up request: a provider with a per-minute budget waits its gap after its last answer. */
-  isTopUp?: boolean;
 }
 
 export interface AiAnswer {
@@ -61,11 +63,14 @@ export interface AiAnswer {
   backupReason?: string;
   /** Each wait we made, in seconds. */
   waits: number[];
+  /** Why we made each wait (same order as `waits`). */
+  waitReasons: string[];
 }
 
-const REASON: Record<AiErrorKind | "no_key" | "recently_down", string> = {
+const REASON: Record<AiErrorKind | "no_key" | "recently_down" | "budget_low", string> = {
   no_key: "no key in .env",
   recently_down: "it was busy in the last 2 minutes",
+  budget_low: "its per-minute token budget was too low for this request",
   busy: "it was busy",
   rate_limited: "it said too many requests",
   timeout: "it was too slow",
@@ -96,18 +101,10 @@ export async function generateWithFallback(
 
   const startedAt = Date.now();
   const waits: number[] = [];
+  const waitReasons: string[] = [];
 
   /** One call. Returns the answer, or the AiError after logging it. */
   async function tryOnce(provider: AiProvider, timeoutMs: number): Promise<AiAnswer | AiError> {
-    // Top-up to a provider with a per-minute budget (Groq): wait until its gap after the last answer has passed.
-    const since = secondsSinceAnswer(provider.name);
-    if (options.isTopUp && provider.gapAfterAnswerSeconds && since !== undefined && since < provider.gapAfterAnswerSeconds) {
-      const gap = Math.ceil(provider.gapAfterAnswerSeconds - since);
-      if (!(await waitFor(gap, provider, `${provider.name} answered ${Math.floor(since)} s ago`))) {
-        return new AiError("timeout", "job time limit reached");
-      }
-    }
-
     const timeLeft = deadline - Date.now();
     if (timeLeft < MIN_CALL_MS) {
       console.warn(`[ai] job time limit reached, not calling ${provider.name}`);
@@ -128,6 +125,7 @@ export async function generateWithFallback(
         usedBackup,
         ...(usedBackup && backupReason ? { backupReason } : {}),
         waits,
+        waitReasons,
       };
       console.log(
         `[ai] ${provider.name} answered in ${answer.seconds} s (total ${answer.totalSeconds} s)` +
@@ -156,6 +154,7 @@ export async function generateWithFallback(
       await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
       options.onWait?.(0);
       waits.push(seconds);
+      waitReasons.push(`${provider.name}: ${why}`);
     }
     return true;
   }
@@ -166,9 +165,43 @@ export async function generateWithFallback(
   // Earlier providers that were only rate limited, with when they failed.
   const rateLimited: { provider: AiProvider; error: AiError; failedAt: number }[] = [];
 
-  for (const [index, provider] of line.entries()) {
-    const isLast = index === line.length - 1;
+  // The line as a queue: a provider whose token budget is too low may move to the back once.
+  const queue = [...line];
+  const movedBack = new Set<AiProviderName>();
+
+  /**
+   * For a provider with a per-minute token budget: "call" when this request fits (after a wait
+   * if needed), "later" when it moved to the back of the line, "skip" when the wait would pass
+   * the job time limit.
+   */
+  async function checkBudget(provider: AiProvider, index: number): Promise<"call" | "later" | "skip"> {
+    if (!provider.estimateTokens) return "call";
+    const needed = provider.estimateTokens(request);
+    const seconds = Math.min(tokenWaitSeconds(provider.name, needed), MAX_RATE_LIMIT_WAIT_S);
+    if (seconds === 0) return "call";
+
+    const next = queue[index + 1];
+    if (next && next !== provider && !wasRecentlyDown(next.name) && !movedBack.has(provider.name)) {
+      console.log(
+        `[ai] ${provider.name} budget too low for about ${needed} tokens (full again in ${seconds} s), trying ${next.name} first`,
+      );
+      movedBack.add(provider.name);
+      queue.push(provider);
+      if (provider.name === order[0] && !backupReason) backupReason = REASON.budget_low;
+      return "later";
+    }
+    const waited = await waitFor(seconds, provider, `token budget too low for about ${needed} tokens`);
+    return waited ? "call" : "skip";
+  }
+
+  for (let index = 0; index < queue.length; index++) {
+    const provider = queue[index]!;
+    const isLast = index === queue.length - 1;
     const timeoutMs = isLast && line.length > 1 ? LAST_PROVIDER_TIMEOUT_MS : env.aiTimeoutMs;
+
+    const budget = await checkBudget(provider, index);
+    if (budget === "later") continue;
+    if (budget === "skip") continue;
 
     const first = await tryOnce(provider, timeoutMs);
     if (!(first instanceof AiError)) return first;
@@ -181,7 +214,8 @@ export async function generateWithFallback(
     // Last provider: one more try after a rate-limited or busy answer.
     if (first.kind === "rate_limited" || first.kind === "busy") {
       const seconds = first.kind === "rate_limited" ? waitSecondsFor(first) : BUSY_RETRY_WAIT_S;
-      if (await waitFor(seconds, provider)) {
+      const why = first.kind === "rate_limited" ? "it said too many requests" : "it was busy";
+      if (await waitFor(seconds, provider, why)) {
         const second = await tryOnce(provider, timeoutMs);
         if (!(second instanceof AiError)) return second;
       }
@@ -193,7 +227,7 @@ export async function generateWithFallback(
   const pending = rateLimited[0];
   if (pending) {
     const leftMs = waitSecondsFor(pending.error) * 1000 - (Date.now() - pending.failedAt);
-    if (await waitFor(Math.max(0, Math.ceil(leftMs / 1000)), pending.provider)) {
+    if (await waitFor(Math.max(0, Math.ceil(leftMs / 1000)), pending.provider, "it said too many requests")) {
       const again = await tryOnce(pending.provider, env.aiTimeoutMs);
       if (!(again instanceof AiError)) return again;
     }

@@ -28,6 +28,14 @@ export function pickedInWriteOrder(counts: ListCounts): TemplateId[] {
 }
 
 /**
+ * The order of the one-game AI requests: Match Up first (the list the AI most often skipped
+ * when asked for two at once), then Fill the Blank, then Quiz Show. Only the picked games.
+ */
+export function gameRequestOrder(games: TemplateId[]): TemplateId[] {
+  return WRITE_ORDER.filter((game) => games.includes(game));
+}
+
+/**
  * Turns the AI's answer into raw cards with `type` set from their list.
  * A missing, empty or broken list simply gives 0 cards for that game (never a crash).
  */
