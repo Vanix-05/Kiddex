@@ -96,9 +96,9 @@ export interface LobbyViewer {
  * The mini games the Lobby opens itself: only the mission's Start (the next
  * unfinished mission game). Everything else goes through All games.
  */
-export type LobbyGameId = 'quiz-show' | 'match-up'
+export type LobbyGameId = 'quiz-show' | 'match-up' | 'fill-blank'
 export type LobbyGameFrom = 'mission'
-const isLobbyGame = (g: string): g is LobbyGameId => g === 'quiz-show' || g === 'match-up'
+const isLobbyGame = (g: string): g is LobbyGameId => g === 'quiz-show' || g === 'match-up' || g === 'fill-blank'
 
 export function MainLobby({
   student,

@@ -176,6 +176,10 @@
   background: var(--color-game-match);
 }
 
+.iconBlank {
+  background: var(--color-game-blank);
+}
+
 .chipName {
   font: 600 max(22px, calc(15px / var(--s))) / 1 var(--font-display);
   color: var(--color-text);

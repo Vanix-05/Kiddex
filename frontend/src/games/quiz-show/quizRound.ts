@@ -1,4 +1,6 @@
 // A Quiz Show round as plain data, changed only by these pure functions.
+// Fill the Blank plays the same round (one card at a time, pick one of the
+// choices); only its round size and its Buddy Help differ (see fill-blank/blankRound.ts).
 import type { QuestionCard } from '../../content/questionCard'
 import { afterAnswer, canSpend, spendHelp, startHelp, type HelpEvent, type HelpState } from '../buddyHelp'
 import { decideDuringRound, nextCard } from '../difficulty'
@@ -13,14 +15,21 @@ export interface QuizQuestion {
   level: Level
   picked: string | null
   right: boolean | null
-  /** Buddy Help: the wrong choice the buddy knocked away (it can't be picked). */
+  /** Buddy Help (Quiz Show): the wrong choice the buddy knocked away (it can't be picked). */
   removed: string | null
+  /** Buddy Help (Fill the Blank): the buddy whispered the first letter. */
+  hinted: boolean
   /** When it appeared, and how long the answer took. */
   shownAt: number
   ms: number
 }
 
+/** The games that play this kind of round. */
+export type QuizGame = 'quiz-show' | 'fill-blank'
+
 export interface QuizRound {
+  /** Which game: sets the round size and what Buddy Help does. */
+  game: QuizGame
   /** Cards not asked yet. */
   pool: QuestionCard[]
   total: number
@@ -42,38 +51,45 @@ function ask(round: QuizRound, now: number, random: () => number): QuizRound {
   const card = nextCard(round.pool, round.level, random)
   if (!card) return round
   logLevel(`question ${round.asked.length + 1}: a ${card.level} card (level ${round.level})`, card.prompt)
-  const question: QuizQuestion = { card, choices: shuffle(card.choices, random), level: card.level, picked: null, right: null, removed: null, shownAt: now, ms: 0 }
+  const question: QuizQuestion = { card, choices: shuffle(card.choices, random), level: card.level, picked: null, right: null, removed: null, hinted: false, shownAt: now, ms: 0 }
   return { ...round, pool: round.pool.filter((c) => c !== card), asked: [...round.asked, question], helpEvent: null }
 }
 
-/** A new round: up to 8 cards (fewer if the lesson has fewer), the first one asked. */
-export function startQuiz(cards: readonly QuestionCard[], level: Level, now: number, random = Math.random): QuizRound {
-  const total = Math.min(GAMES['quiz-show'].roundSize, cards.length)
-  return ask({ pool: [...cards], total, startLevel: level, level, asked: [], startedAt: now, help: startHelp(), helpEvent: null }, now, random)
+/** A new round: up to the game's round size (fewer if the lesson has fewer cards), the first one asked. */
+export function startQuiz(cards: readonly QuestionCard[], level: Level, now: number, random = Math.random, game: QuizGame = 'quiz-show'): QuizRound {
+  const total = Math.min(GAMES[game].roundSize, cards.length)
+  return ask({ game, pool: [...cards], total, startLevel: level, level, asked: [], startedAt: now, help: startHelp(), helpEvent: null }, now, random)
 }
 
 export const current = (round: QuizRound) => round.asked[round.asked.length - 1]
 
 /** Was this question answered with the buddy's help? */
-export const wasHelped = (q: QuizQuestion) => q.removed !== null
+export const wasHelped = (q: QuizQuestion) => q.removed !== null || q.hinted
 
 /**
  * Can the buddy help on the current question? Once per question, only before
- * it's answered, and only while it leaves at least 2 choices to pick from.
+ * it's answered. Quiz Show: only while knocking one away leaves at least 2
+ * choices. Fill the Blank: the first-letter hint always works.
  */
 export function helpBlocked(round: QuizRound): 'none-left' | 'used' | 'two-choices' | 'answered' | null {
   const q = current(round)
   if (!q || q.picked !== null) return 'answered'
   if (wasHelped(q)) return 'used'
-  if (q.choices.length <= 2) return 'two-choices'
+  if (round.game === 'quiz-show' && q.choices.length <= 2) return 'two-choices'
   if (!canSpend(round.help)) return 'none-left'
   return null
 }
 
-/** Buddy Help: one random wrong choice is knocked away, and the help is spent. */
+/**
+ * Buddy Help, and the help is spent. Quiz Show: one random wrong choice is
+ * knocked away. Fill the Blank: the buddy whispers the answer's first letter.
+ */
 export function takeBuddyHelp(round: QuizRound, random = Math.random): QuizRound {
   if (helpBlocked(round)) return round
   const q = current(round)
+  if (round.game === 'fill-blank') {
+    return { ...round, help: spendHelp(round.help), asked: [...round.asked.slice(0, -1), { ...q, hinted: true }] }
+  }
   const wrong = q.choices.filter((c) => !isRight(q.card, c))
   if (!wrong.length) return round
   const removed = wrong[Math.floor(random() * wrong.length)]
@@ -116,8 +132,8 @@ export type QuizDemo = 'question' | 'right' | 'wrong' | 'results' | 'help-ready'
  * a new help just earned. help-none: help used on question 1, so 0 left.
  * results: 7 of 8 right, one of them with help.
  */
-export function demoQuiz(cards: readonly QuestionCard[], level: Level, last: QuizDemo, now: number) {
-  let r = startQuiz(cards, level, now)
+export function demoQuiz(cards: readonly QuestionCard[], level: Level, last: QuizDemo, now: number, game: QuizGame = 'quiz-show') {
+  let r = startQuiz(cards, level, now, Math.random, game)
   const play = (rightAnswer: boolean) => {
     const q = current(r)
     const wrong = q.choices.find((c) => !isRight(q.card, c) && c !== q.removed) ?? q.choices[0]

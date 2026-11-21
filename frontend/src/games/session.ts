@@ -8,7 +8,7 @@ import type { AnswerRecord, GameId, GameResult } from './types'
 export const GAMES: Record<GameId, { name: string; type: QuestionCard['type']; roundSize: number; built: boolean }> = {
   'quiz-show': { name: 'Quiz Show', type: 'multiple_choice', roundSize: 8, built: true },
   'match-up': { name: 'Match Up', type: 'matching_pair', roundSize: 5, built: true },
-  'fill-blank': { name: 'Fill the Blank', type: 'fill_blank', roundSize: 6, built: false },
+  'fill-blank': { name: 'Fill the Blank', type: 'fill_blank', roundSize: 8, built: true },
 }
 
 export { MISSION_GAMES } from './mission'

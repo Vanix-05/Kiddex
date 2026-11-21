@@ -1,5 +1,6 @@
 // Every mini game, for the All games page. Add a new game here (with its card
 // picture) and the page lists it; nothing else on the page needs to change.
+import blankThumb from '../assets/games/thumbs/fill-blank.webp'
 import matchThumb from '../assets/games/thumbs/match-up.webp'
 import quizThumb from '../assets/games/thumbs/quiz-show.webp'
 import { MIN_CARDS, TEMPLATE_FOR_TYPE, type CardType } from '../content/questionCard'
@@ -20,6 +21,7 @@ export interface CatalogGame {
 export const CATALOG: readonly CatalogGame[] = [
   { id: 'quiz-show', name: 'Quiz Show', line: 'Pick the best answer', cardType: 'multiple_choice', thumb: quizThumb },
   { id: 'match-up', name: 'Match Up', line: 'Tie each one to its partner', cardType: 'matching_pair', thumb: matchThumb },
+  { id: 'fill-blank', name: 'Fill the Blank', line: 'Tap the word that fits', cardType: 'fill_blank', thumb: blankThumb },
 ]
 
 export const catalogGame = (id: GameId) => CATALOG.find((g) => g.id === id)

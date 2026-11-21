@@ -36,7 +36,7 @@ export function ResultsBoard({
 }) {
   const { right, total, helped, xpGained, xpBefore, streakDays, nextGame } = summary
   const stars = starsFor(right, total)
-  const title = game === 'match-up' ? `All tied up, ${name}!` : `Great show, ${name}!`
+  const title = game === 'match-up' ? `All tied up, ${name}!` : game === 'fill-blank' ? `All filled in, ${name}!` : `Great show, ${name}!`
   const after = xpBefore.xp + xpGained
   const next = xpBefore.level + 1
   const xpLine = after >= xpBefore.goal ? `Level ${next} reached!` : `${xpBefore.goal - after} more to Level ${next}`

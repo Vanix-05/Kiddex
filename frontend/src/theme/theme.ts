@@ -200,13 +200,18 @@ export const theme = {
     lobbyXpStripe: '#7DBB6C',
     lobbyKeyEdge: '#C8B39C', // bottom edge of a keyboard key
 
-    // Mini games (src/games). Quiz Show is purple, Match Up is teal.
+    // Mini games (src/games). Quiz Show is purple, Match Up is teal, Fill the Blank is green.
     gameQuiz: '#7F74D6', // chip square, board frame, podium
     gameQuizEdge: '#5D53B0',
     gameQuizSoft: '#E8E5FA', // board header row
     gameMatch: '#3FB3A0',
     gameMatchEdge: '#2A8C7C',
     gameMatchSoft: '#D3F1EA',
+    // Fill the Blank is green: the chip square and the classroom chalkboard.
+    gameBlank: '#3E8C5F', // chip square (white pencil 4.4:1), number chip ring
+    gameBlankEdge: '#2B6B47',
+    gameChalkboard: '#3D7258', // the board inside the wooden frame
+    gameChalkDot: '#477E62', // the chalkboard's soft dotted texture
     gameBulb: '#FFE07A', // marquee bulbs, footlights
     gameBulbEdge: '#E0B23C',
     // Answer letters: A orange, B green, C purple, D blue (white letters, large bold)

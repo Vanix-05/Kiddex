@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { QuestionCard } from '../content/questionCard'
+import { FillBlank } from './fill-blank/FillBlank'
 import { MatchUp } from './match-up/MatchUp'
 import { QuizShow } from './quiz-show/QuizShow'
 import { GAMES } from './session'
@@ -68,7 +69,7 @@ export function GameRoute({
 }
 
 /**
- * The game itself (Quiz Show or Match Up), the same for a Student, the dev
+ * The game itself (Quiz Show, Match Up or Fill the Blank), the same for a Student, the dev
  * pages and a Teacher preview (`preview`: nothing is saved, see roundEnd.ts).
  */
 export function GameScreen({
@@ -98,7 +99,9 @@ export function GameScreen({
   const props = { player, lesson, cards, lessonCanPlay, demo, preview, leaveTo, onLeave, onPlayGame }
   // A new key per game and lesson: a fresh round when the URL changes.
   const key = `${gameId}:${lesson.id}:${demo ?? ''}:${preview ? 'preview' : ''}`
-  return gameId === 'match-up' ? <MatchUp key={key} {...props} /> : <QuizShow key={key} {...props} />
+  if (gameId === 'match-up') return <MatchUp key={key} {...props} />
+  if (gameId === 'fill-blank') return <FillBlank key={key} {...props} />
+  return <QuizShow key={key} {...props} />
 }
 
 /** The friendly "isn't ready yet" card, with one button back. */

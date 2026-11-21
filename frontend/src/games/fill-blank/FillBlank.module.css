@@ -1,0 +1,368 @@
+/* Fill the Blank: a green chalkboard in a wooden frame, a cream sentence card
+   with the slot, and the word tiles. Design px (see useStage.ts). */
+
+.frame {
+  position: relative;
+  border: 4px solid var(--color-card-border);
+  border-radius: 30px;
+  background: var(--color-wood-frame);
+  box-shadow:
+    inset 0 0 0 6px color-mix(in srgb, var(--color-wood-frame-dark) 45%, transparent),
+    0 8px 0 var(--color-game-shadow);
+}
+
+.chalk {
+  position: absolute;
+  inset: 18px;
+  border-radius: 18px;
+  background-color: var(--color-game-chalkboard);
+  background-image: radial-gradient(circle, var(--color-game-chalk-dot) 1.4px, transparent 2px);
+  background-size: 14px 14px;
+  box-shadow: inset 0 0 0 3px var(--color-card-border);
+}
+
+.play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 18px 22px;
+}
+
+/* ---------- Board header ---------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: 56px;
+  padding: 0 18px 0 12px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 14px;
+  background: var(--color-input-bg);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 3px solid var(--color-game-blank);
+  border-radius: 50%;
+  background: var(--color-input-bg);
+  font: 600 max(17px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-game-blank-edge);
+}
+
+.ask {
+  flex: 1;
+  min-width: 0;
+  font: 600 max(18px, calc(15px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text);
+}
+
+.from {
+  font: 500 max(15px, calc(15px / var(--s))) / 1 var(--font-body);
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
+/* "Mochi helped" in the board header (the same look as Quiz Show's). */
+.helpedTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 3px 11px 3px 9px;
+  border: 2px solid var(--color-button-border);
+  border-radius: 10px;
+  background: var(--color-warn-bg);
+  font: 600 max(15px, calc(14px / var(--s))) / 1.2 var(--font-display);
+  color: var(--color-link);
+  white-space: nowrap;
+}
+
+/* ---------- The sentence ---------- */
+
+.card {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 210px;
+  padding: 10px 36px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+}
+
+.sentence {
+  margin: 0;
+  font: 600 max(34px, calc(15px / var(--s))) / 1.65 var(--font-display);
+  color: var(--color-text);
+  text-align: center;
+  overflow-wrap: break-word;
+}
+
+/* The word before the slot, the slot and the "." after it never break apart. */
+.join {
+  white-space: nowrap;
+}
+
+.slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  max-width: 100%;
+  height: 62px;
+  margin: 0 4px;
+  padding: 0 18px;
+  border: 3px dashed var(--color-text-subtle);
+  border-radius: 14px;
+  background: var(--color-card-bg);
+  vertical-align: middle;
+  line-height: 1;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+
+.slotEmpty {
+  color: var(--color-text-subtle);
+}
+
+/* Buddy Help: orange, with the first letter and "…". */
+.slotHint {
+  border-color: var(--color-button-border);
+  background: var(--color-warn-bg);
+}
+
+.slotHintText {
+  color: var(--color-link);
+}
+
+.hintDots {
+  opacity: 0.55;
+}
+
+.slotRight {
+  border-style: solid;
+  border-color: var(--color-game-right);
+  background: var(--color-game-right-bg);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-game-right) 28%, transparent);
+}
+
+.slotWrong {
+  border-style: solid;
+  border-color: var(--color-game-wrong);
+  background: var(--color-game-wrong-bg);
+}
+
+.slotWord {
+  display: inline-block;
+}
+
+/* ---------- The words ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  flex: none;
+  margin-top: auto;
+}
+
+.tile,
+.spot {
+  position: relative;
+  height: max(92px, calc(44px / var(--s)));
+  border-radius: 20px;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0 12px;
+  border: 3px solid var(--color-card-border);
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 var(--color-game-shadow);
+  font: 600 max(32px, calc(15px / var(--s))) / 1.05 var(--font-display);
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    opacity 200ms ease;
+}
+
+.word {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.tile:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--color-lobby-chip);
+}
+
+.tile:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--color-game-shadow);
+}
+
+.tile:focus-visible {
+  outline: 4px solid var(--color-focus-ring);
+  outline-offset: 4px;
+}
+
+.tile:disabled {
+  cursor: default;
+  color: var(--color-text);
+}
+
+/* Long words: a little smaller, so they stay inside their tile and the slot. */
+.small {
+  font-size: max(26px, calc(13px / var(--s)));
+}
+
+.smaller {
+  font-size: max(21px, calc(12px / var(--s)));
+}
+
+/* The tapped word's place: an empty dashed spot. */
+.spot {
+  border: 3px dashed color-mix(in srgb, var(--color-input-bg) 60%, transparent);
+}
+
+.faded {
+  opacity: 0.55;
+}
+
+.rightShown {
+  border-color: var(--color-game-right);
+  background: var(--color-game-right-bg);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--color-game-right) 28%, transparent),
+    0 5px 0 var(--color-game-shadow);
+}
+
+.rightTag {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--color-game-right-pill);
+  font: 600 max(15px, calc(14px / var(--s))) / 1 var(--font-display);
+  color: var(--color-text-on-dark);
+  white-space: nowrap;
+}
+
+/* ---------- Results: a cream sheet on the chalkboard ---------- */
+
+.sheet {
+  position: absolute;
+  inset: 22px 18px 18px;
+  padding-top: 38px;
+  border: 3px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow: 0 4px 0 var(--color-game-shadow);
+}
+
+/* ---------- Short windows (phones held sideways) ---------- */
+
+:global([data-short]) .frame {
+  border-radius: 24px;
+}
+
+:global([data-short]) .chalk {
+  inset: 10px;
+  border-radius: 14px;
+}
+
+:global([data-short]) .play {
+  gap: 8px;
+  padding: 6px 10px 10px;
+}
+
+:global([data-short]) .head {
+  height: 36px;
+  gap: 8px;
+  padding: 0 10px 0 6px;
+  border-radius: 11px;
+}
+
+:global([data-short]) .num {
+  width: 28px;
+  height: 28px;
+}
+
+:global([data-short]) .ask {
+  font-size: max(16px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .card {
+  max-height: none;
+  padding: 4px 16px;
+  border-radius: 14px;
+}
+
+:global([data-short]) .sentence {
+  font-size: max(24px, calc(15px / var(--s)));
+  line-height: 1.55;
+}
+
+:global([data-short]) .slot {
+  min-width: 140px;
+  height: 42px;
+  padding: 0 10px;
+  border-radius: 11px;
+}
+
+:global([data-short]) .tiles {
+  gap: 8px;
+}
+
+:global([data-short]) .tile,
+:global([data-short]) .spot {
+  height: max(54px, calc(44px / var(--s)));
+  border-radius: 14px;
+}
+
+:global([data-short]) .tile {
+  font-size: max(22px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .small {
+  font-size: max(19px, calc(13px / var(--s)));
+}
+
+:global([data-short]) .smaller {
+  font-size: max(16px, calc(12px / var(--s)));
+}
+
+:global([data-short]) .rightTag {
+  top: -12px;
+  padding: 4px 8px;
+}
+
+:global([data-short]) .sheet {
+  inset: 8px;
+  padding-top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .slot {
+    transition: none;
+  }
+}

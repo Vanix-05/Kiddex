@@ -60,9 +60,14 @@ describe('previewGames: what "Preview as a student" offers', () => {
     expect(previewGames([...many(2, 'multiple_choice'), ...many(5, 'multiple_choice', 'draft')])).toEqual([])
   })
 
-  it('never Fill the Blank (not built yet), even with enough sentences', () => {
-    expect(previewGames(many(6, 'fill_blank'))).toEqual([])
-    expect(canPreview(many(6, 'fill_blank'), 'fill-blank')).toBe(false)
+  it('Fill the Blank (built now) with at least 3 approved sentences', () => {
+    expect(previewGames(many(3, 'fill_blank'))).toEqual(['fill-blank'])
+    expect(canPreview(many(2, 'fill_blank'), 'fill-blank')).toBe(false)
+    expect(previewGames([...many(3, 'multiple_choice'), ...many(4, 'matching_pair'), ...many(3, 'fill_blank')])).toEqual([
+      'quiz-show',
+      'match-up',
+      'fill-blank',
+    ])
   })
 
   it('nothing for a lesson with no approved questions', () => {

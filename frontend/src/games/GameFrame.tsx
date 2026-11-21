@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { Mic, Pause, PawPrint } from 'lucide-react'
+import { Mic, Pause, PawPrint, PencilLine } from 'lucide-react'
 import { Companion } from '../companions/Companion'
 import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras } from '../setup/customizeData'
 import { STREAK_FOR_HELP } from './buddyHelp'
@@ -73,11 +73,18 @@ export interface GameFrameProps {
   onLeave: () => void
 }
 
-/** The game's icon square: Quiz Show a mic, Match Up a piece of yarn. */
+/** The game's icon square: Quiz Show a mic (purple), Match Up a piece of yarn (teal), Fill the Blank a pencil (green). */
 export function GameIcon({ game, size = 22 }: { game: GameId; size?: number }) {
+  const look = game === 'match-up' ? styles.iconMatch : game === 'fill-blank' ? styles.iconBlank : styles.iconQuiz
   return (
-    <span className={`${styles.icon} ${game === 'match-up' ? styles.iconMatch : styles.iconQuiz}`} aria-hidden="true">
-      {game === 'match-up' ? <YarnIcon size={size} /> : <Mic size={size} strokeWidth={2.4} />}
+    <span className={`${styles.icon} ${look}`} aria-hidden="true">
+      {game === 'match-up' ? (
+        <YarnIcon size={size} />
+      ) : game === 'fill-blank' ? (
+        <PencilLine size={size} strokeWidth={2.4} />
+      ) : (
+        <Mic size={size} strokeWidth={2.4} />
+      )}
     </span>
   )
 }
