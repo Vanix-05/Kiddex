@@ -218,10 +218,90 @@
   box-shadow: none;
 }
 
-.try {
+/* ---------- Preview as a student ---------- */
+
+.tryWrap {
+  position: relative;
   align-self: flex-start;
   margin-top: 22px;
+}
+
+.try {
   font-size: 16px;
+}
+
+/* No game has enough approved questions yet. */
+.tryNote {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Two games: a small list opens above the button (it sits at the bottom of the page). */
+.tryMenu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  z-index: 5;
+  width: 340px;
+  padding: 10px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 16px;
+  background: var(--color-input-bg);
+  box-shadow:
+    0 5px 0 rgba(74, 52, 38, 0.25),
+    0 16px 30px rgba(30, 14, 6, 0.22);
+}
+
+.tryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tryRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--color-card-bg);
+}
+
+.tryThumb {
+  flex: none;
+  width: 72px;
+  height: 45px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.tryText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--color-planner-ink);
+}
+
+.tryText strong {
+  font: 600 16px/1.1 var(--font-display);
+}
+
+.tryText small {
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.tryPlay {
+  flex: none;
+  height: 36px;
+  padding: 0 12px;
 }
 
 /* ---------- Review pack form ---------- */

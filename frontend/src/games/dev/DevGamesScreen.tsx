@@ -1,20 +1,13 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { GameRoute } from '../GameRoute'
+import { SAMPLE_PLAYER as ANA } from '../samplePlayer'
 import { GAMES, isGameId } from '../session'
-import { DEMO_STATES, type DemoState, type Player } from '../types'
+import { DEMO_STATES, type DemoState } from '../types'
 import styles from './DevGamesScreen.module.css'
 
 // Dev only (not in production builds): every mini game screen at a glance,
 // with a sample Student (the same Ana as /dev/lobby). Nothing is saved
 // from a ?state= screen; a plain play-through saves like the real game.
-
-const ANA: Player = {
-  name: 'Ana',
-  avatar: 'girl',
-  buddy: 'fox',
-  buddyName: 'Mochi',
-  look: { hair: 'ginger', shirt: 'mint', youExtra: 'flower', buddyColor: 'purple', buddyExtra: 'scarf' },
-}
 
 const STATES: { game: string; state?: DemoState; label: string }[] = [
   { game: 'quiz-show', label: 'Quiz Show: play a round' },

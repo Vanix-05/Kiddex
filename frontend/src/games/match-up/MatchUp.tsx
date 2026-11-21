@@ -3,11 +3,10 @@ import { STREAK_FOR_HELP, streakLine } from '../buddyHelp'
 import { FeedbackStrip } from '../FeedbackStrip'
 import { GameFrame, GameIcon, ProgressPill, type DotState } from '../GameFrame'
 import { MissionPill, ResultsBoard } from '../ResultsScreen'
-import { useRoundEnd, type RoundSummary } from '../roundEnd'
+import { useRoundEnd, useStartLevel, type RoundSummary } from '../roundEnd'
 import { MatchCornerScene } from '../scenes/MatchCornerScene'
 import { decisionLine, makeResult } from '../session'
 import type { GameProps } from '../types'
-import { useGameProgress } from '../useGameProgress'
 import { slotsFor, useCalmMotion, useStageFit } from '../useStage'
 import {
   cardOf,
@@ -71,11 +70,12 @@ interface Drag {
  * coral with a hint until Okay. Right only counts on the first try.
  * The Student's buddy guides; Buddy Help makes the picked card's partner glow.
  */
-export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, onLeave, onPlayGame }: GameProps) {
+export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, leaveTo, onLeave, onPlayGame }: GameProps) {
   const stage = useStageFit()
   const calm = useCalmMotion()
-  const { levelFor } = useGameProgress()
-  const endRound = useRoundEnd('match-up', lessonCanPlay)
+  // A Teacher preview starts on easy and saves nothing (roundEnd.ts).
+  const levelFor = useStartLevel(preview)
+  const endRound = useRoundEnd('match-up', lessonCanPlay, preview)
   const topic = cards[0]?.topic ?? lesson.name
 
   const [round, setRound] = useState<MatchRound>(() =>
@@ -212,6 +212,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
     calm,
     scene: <MatchCornerScene />,
     player,
+    preview,
     onRestart: restart,
     onLeave,
   }
@@ -222,7 +223,9 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
       <GameFrame
         {...common}
         mode="results"
-        progress={<MissionPill games={summary.mission.games} done={summary.mission.done} next={summary.nextGame} />}
+        progress={
+          summary.mission.games.length > 0 ? <MissionPill games={summary.mission.games} done={summary.mission.done} next={summary.nextGame} /> : null
+        }
         tallBoard
         confetti={confetti}
         buddyLine={decisionLine(summary.decision, summary.right, summary.total)}
@@ -234,6 +237,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, leaveTo, o
             <ResultsBoard
               game="match-up"
               leaveTo={leaveTo}
+              preview={preview}
               name={player.name}
               buddyName={player.buddyName}
               summary={summary}

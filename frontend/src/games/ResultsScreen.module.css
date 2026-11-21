@@ -456,3 +456,22 @@
     padding: 6px 14px;
   }
 }
+
+/* ---------- Teacher preview ---------- */
+
+/* Only "7 of 8 correct": one card in the middle. */
+.statsOne {
+  grid-template-columns: minmax(0, 300px);
+  justify-content: center;
+}
+
+/* "In a real game, the Student would get 45 XP." (instead of the XP stat, streak and bar) */
+.previewXp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  font: 500 max(18px, calc(15px / var(--s))) / 1.3 var(--font-body);
+  color: var(--color-text-subtle);
+}

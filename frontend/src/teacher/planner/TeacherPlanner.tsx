@@ -22,9 +22,6 @@ import { SceneBackground } from '../../components/SceneBackground/SceneBackgroun
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import { enterFullscreen, exitFullscreen, useIsFullscreen } from '../fullscreen'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { teacherQueryClient } from '../api/queryClient'
-import { TeacherDataProvider } from '../data/TeacherDataProvider'
 import { sectionLabel, useSection, useTeacher } from '../data/useTeacherData'
 import type { SectionIcon } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
@@ -148,15 +145,12 @@ const SWIPE_MIN = 60
 type WindowState = 'hidden' | 'open' | 'closing'
 type Popup = 'newSection' | 'addStudent' | 'logOut' | null
 
-/** The Teacher Dashboard: an open hardcover planner on the island scene. */
+/**
+ * The Teacher Dashboard: an open hardcover planner on the island scene.
+ * Its data providers are in TeacherShell (the router puts it around every Teacher route).
+ */
 export function TeacherPlanner() {
-  return (
-    <QueryClientProvider client={teacherQueryClient}>
-      <TeacherDataProvider>
-        <Planner />
-      </TeacherDataProvider>
-    </QueryClientProvider>
-  )
+  return <Planner />
 }
 
 function Planner() {

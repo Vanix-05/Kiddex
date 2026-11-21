@@ -4,11 +4,10 @@ import { STREAK_FOR_HELP, streakLine } from '../buddyHelp'
 import { FeedbackStrip } from '../FeedbackStrip'
 import { GameFrame, ProgressPill, type DotState } from '../GameFrame'
 import { MissionPill, ResultsBoard } from '../ResultsScreen'
-import { useRoundEnd, type RoundSummary } from '../roundEnd'
+import { useRoundEnd, useStartLevel, type RoundSummary } from '../roundEnd'
 import { StageScene } from '../scenes/StageScene'
 import { decisionLine, makeResult } from '../session'
 import type { GameProps } from '../types'
-import { useGameProgress } from '../useGameProgress'
 import { slotsFor, useCalmMotion, useStageFit } from '../useStage'
 import { MarqueeBoard } from './MarqueeBoard'
 import {
@@ -36,11 +35,12 @@ const LETTERS = ['A', 'B', 'C', 'D'] as const
  * Keys: 1–4 or A–D pick, Enter = Next / Got it, H = Buddy Help (GameFrame).
  */
 const QUIZ_DEMOS: readonly QuizDemo[] = ['question', 'right', 'wrong', 'results', 'help-used', 'help-earned', 'help-none']
-export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, onLeave, onPlayGame }: GameProps) {
+export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, preview, leaveTo, onLeave, onPlayGame }: GameProps) {
   const stage = useStageFit()
   const calm = useCalmMotion()
-  const { levelFor } = useGameProgress()
-  const endRound = useRoundEnd('quiz-show', lessonCanPlay)
+  // A Teacher preview starts on easy and saves nothing (roundEnd.ts).
+  const levelFor = useStartLevel(preview)
+  const endRound = useRoundEnd('quiz-show', lessonCanPlay, preview)
   const topic = cards[0]?.topic ?? lesson.name
 
   const [round, setRound] = useState(() => {
@@ -143,6 +143,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
     calm,
     scene: <StageScene />,
     player,
+    preview,
     onRestart: restart,
     onLeave,
   }
@@ -153,7 +154,9 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
       <GameFrame
         {...common}
         mode="results"
-        progress={<MissionPill games={summary.mission.games} done={summary.mission.done} next={summary.nextGame} />}
+        progress={
+          summary.mission.games.length > 0 ? <MissionPill games={summary.mission.games} done={summary.mission.done} next={summary.nextGame} /> : null
+        }
         tallBoard
         spotlight
         confetti={confetti}
@@ -166,6 +169,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, leaveTo, 
             <ResultsBoard
               game="quiz-show"
               leaveTo={leaveTo}
+              preview={preview}
               name={player.name}
               buddyName={player.buddyName}
               summary={summary}

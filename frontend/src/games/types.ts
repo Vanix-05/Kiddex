@@ -104,6 +104,12 @@ export interface GameProps {
   lessonCanPlay: (game: GameId) => boolean
   /** Dev only: start at this moment; nothing is saved. */
   demo?: DemoState
+  /**
+   * A Teacher preview: the round starts on easy, nothing is saved (no XP,
+   * stars, level or mission), a "nothing is saved" ribbon shows, and Results
+   * say what XP a Student would get instead of the XP bar and streak.
+   */
+  preview?: boolean
   /** Where onLeave goes, for the Results button without a next game ("Back to games"). */
   leaveTo: 'lobby' | 'games'
   onLeave: () => void

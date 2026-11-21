@@ -14,9 +14,12 @@ export function ResultsBoard({
   lookAgain,
   compact,
   leaveTo = 'lobby',
+  preview,
   onPlayAgain,
   onNext,
 }: {
+  /** A Teacher preview: no XP stat, streak or XP bar; one line says what a Student would get. */
+  preview?: boolean
   game: GameId
   name: string
   /** The buddy's name, for "1 with Mochi's help". */
@@ -56,17 +59,26 @@ export function ResultsBoard({
       <h1 className={styles.title}>{title}</h1>
       <p className={styles.line}>{nextStarLine(right, total)}</p>
 
-      <div className={styles.stats}>
+      <div className={preview ? `${styles.stats} ${styles.statsOne}` : styles.stats}>
         <Stat
           icon={<Target size={24} strokeWidth={2.4} />}
           big={`${right} of ${total}`}
           small="correct"
           note={helped > 0 ? `${helped} with ${buddyName}’s help` : undefined}
         />
-        <Stat icon={<Zap size={24} strokeWidth={2.4} />} big={`+${xpGained} XP`} small={xpLine} />
-        <Stat icon={<Flame size={24} strokeWidth={2.4} />} big={`${streakDays} ${streakDays === 1 ? 'day' : 'days'}`} small="in a row" />
+        {!preview && (
+          <>
+            <Stat icon={<Zap size={24} strokeWidth={2.4} />} big={`+${xpGained} XP`} small={xpLine} />
+            <Stat icon={<Flame size={24} strokeWidth={2.4} />} big={`${streakDays} ${streakDays === 1 ? 'day' : 'days'}`} small="in a row" />
+          </>
+        )}
       </div>
 
+      {preview ? (
+        <p className={styles.previewXp}>
+          <Zap size={20} strokeWidth={2.4} aria-hidden="true" /> In a real game, the Student would get {xpGained} XP.
+        </p>
+      ) : (
       <div className={styles.xpRow}>
         <span className={styles.lv}>Lv {xpBefore.level}</span>
         <span
@@ -85,6 +97,7 @@ export function ResultsBoard({
         </span>
         <span className={styles.lv}>Lv {next}</span>
       </div>
+      )}
 
       {again.length > 0 && (
         <section className={styles.again}>

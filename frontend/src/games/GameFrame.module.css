@@ -129,8 +129,32 @@
 }
 
 .chip {
+  position: relative;
   gap: 12px;
   padding: 0 22px 0 9px;
+}
+
+/* Teacher preview: a small ribbon hanging from the game chip (top center), in
+   the planner's maroon and gold. It stays clear of Pause and the progress dots. */
+.previewRibbon {
+  position: absolute;
+  top: calc(100% - 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 14px 4px;
+  border: 2.5px solid var(--color-story-cover-edge);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  background: var(--color-story-cover);
+  font: 600 max(14px, calc(12px / var(--s))) / 1.1 var(--font-display);
+  color: var(--color-story-gold-text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.root[data-short] .previewRibbon {
+  padding: 2px 10px 3px;
+  font-size: max(12px, calc(11px / var(--s)));
 }
 
 .icon {

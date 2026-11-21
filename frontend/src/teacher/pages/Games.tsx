@@ -1,7 +1,9 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, CalendarDays, ChartNoAxesColumn, Check, Package, Pencil, Play } from 'lucide-react'
+import { MIN_CARDS } from '../../content/questionCard'
 import { paths } from '../../routes/paths'
+import { previewGames, previewPath } from '../preview/previewCards'
 import { sectionLabel, useLesson, useLessonGames, useLessons, useReviewPackDefaults, useSection, useStudents } from '../data/useTeacherData'
 import type { TemplateId } from '../data/types'
 import { GAME_ICON, GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
@@ -140,17 +142,91 @@ export function GamesLeft({ lessonId, live }: PageProps) {
         </p>
       )}
 
+      <PreviewButton lessonId={lesson.id} games={previewGames(lesson.questions)} approved={games.approved} live={live} />
+    </PageBody>
+  )
+}
+
+/**
+ * "Preview as a student": the Teacher plays the approved questions full screen,
+ * nothing saved. One playable game opens right away; two open a small list to pick
+ * from; none: the button is off, with what to approve first.
+ */
+function PreviewButton({
+  lessonId,
+  games,
+  approved,
+  live,
+}: {
+  lessonId: string
+  games: TemplateId[]
+  approved: Record<TemplateId, number>
+  live: boolean
+}) {
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const wrap = useRef<HTMLDivElement>(null)
+  const listId = useId()
+  const tab = live ? undefined : -1
+  // The list shows only while this page is the open one (not while it turns away).
+  const shown = open && live && games.length > 1
+
+  // Escape or a click outside closes the list.
+  useEffect(() => {
+    if (!shown) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    const onDown = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onDown)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onDown)
+    }
+  }, [shown])
+
+  const play = (g: TemplateId) => navigate(previewPath(lessonId, g))
+
+  return (
+    <div className={styles.tryWrap} ref={wrap}>
       <Btn
         className={styles.try}
         icon={<Play size={18} aria-hidden="true" />}
         tabIndex={tab}
-        onClick={() => {
-          // TODO: open the games as a student would see them.
-        }}
+        disabled={games.length === 0}
+        aria-expanded={games.length > 1 ? shown : undefined}
+        aria-controls={games.length > 1 ? listId : undefined}
+        onClick={() => (games.length === 1 ? play(games[0]) : setOpen((o) => !o))}
       >
-        Try it as a student
+        Preview as a student
       </Btn>
-    </PageBody>
+      {games.length === 0 && (
+        <p className={styles.tryNote}>
+          Approve at least {MIN_CARDS['quiz-show']} questions (or {MIN_CARDS['match-up']} pairs) to try a game.
+        </p>
+      )}
+      {shown && (
+        <div className={styles.tryMenu} id={listId} role="group" aria-label="Pick a game to preview">
+          <ul className={styles.tryList}>
+            {games.map((g) => (
+              <li key={g} className={styles.tryRow}>
+                <img src={gameThumbs[g]} alt="" className={styles.tryThumb} draggable={false} />
+                <span className={styles.tryText}>
+                  <strong>{GAME_INFO[g].name}</strong>
+                  <small>{countOf(approved[g], g)} approved</small>
+                </span>
+                <Btn variant="primary" className={styles.tryPlay} icon={<Play size={16} aria-hidden="true" />} onClick={() => play(g)}>
+                  Play
+                </Btn>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   )
 }
 

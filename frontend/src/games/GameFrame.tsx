@@ -67,6 +67,8 @@ export interface GameFrameProps {
   kidLine?: string
   /** Buddy Help (play only). Tapping the buddy does the same as the button; so does H. */
   help?: BuddyHelpProps
+  /** A Teacher preview: a "Preview · nothing is saved" ribbon under the game chip. */
+  preview?: boolean
   onRestart: () => void
   onLeave: () => void
 }
@@ -194,6 +196,7 @@ export function GameFrame(props: GameFrameProps) {
             <span className={styles.chipName}>{GAMES[game].name}</span>
             <span className={styles.chipLine} aria-hidden="true" />
             <span className={styles.chipLesson}>{lessonName}</span>
+            {props.preview && <span className={styles.previewRibbon}>Preview · nothing is saved</span>}
           </div>
 
           <div className={styles.progress}>{progress}</div>

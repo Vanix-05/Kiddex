@@ -10,6 +10,8 @@ import { SetupBook } from '../screens/Setup/SetupBook'
 import { CustomizeScreen } from '../screens/Customize/CustomizeScreen'
 import { LazyDevLobbyScreen, LazyLobbyScreen } from '../screens/Lobby/LazyLobby'
 import { TeacherPlanner } from '../teacher/planner/TeacherPlanner'
+import { TeacherShell } from '../teacher/data/TeacherShell'
+import { LazyTeacherPreviewScreen } from '../teacher/preview/LazyPreview'
 import { LazyPlayScreen } from '../games/LazyPlay'
 import { LazyAllGamesScreen } from '../games/allGames/LazyAllGames'
 
@@ -59,21 +61,31 @@ export const router = createBrowserRouter([
 
   // Teacher Dashboard: one planner. It draws the pages itself (so it can flip
   // between them); these child routes only list the URLs it knows.
+  // TeacherShell holds the Teacher data for the planner AND the game preview,
+  // so a preview and back keeps what the Teacher has in memory.
   {
     element: <RequireRole role="teacher" />,
     children: [
       {
-        path: paths.teacher.home,
-        element: <TeacherPlanner />,
+        element: <TeacherShell />,
         children: [
-          { index: true, element: null },
-          { path: 'lessons', element: null },
-          { path: 'lessons/:id/making', element: null },
-          { path: 'lessons/:id/check', element: null },
-          { path: 'lessons/:id/games', element: null },
-          { path: 'students', element: null },
-          { path: 'progress', element: null },
-          { path: 'lobby', element: null },
+          {
+            path: paths.teacher.home,
+            element: <TeacherPlanner />,
+            children: [
+              { index: true, element: null },
+              { path: 'lessons', element: null },
+              { path: 'lessons/:id/making', element: null },
+              { path: 'lessons/:id/check', element: null },
+              { path: 'lessons/:id/games', element: null },
+              { path: 'students', element: null },
+              { path: 'progress', element: null },
+              { path: 'lobby', element: null },
+            ],
+          },
+          // Preview as a student: a game with the lesson's approved questions, full
+          // screen like /play (outside the planner book). Its own download. Nothing is saved.
+          { path: `${paths.teacher.lessons}/:id/preview/:gameId`, element: <LazyTeacherPreviewScreen /> },
         ],
       },
     ],
