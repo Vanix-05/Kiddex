@@ -5,8 +5,9 @@ import { LobbyIcon } from './icons'
 import styles from './ui.module.css'
 
 /**
- * A classmate's Buddy card: the kid and their buddy, names, level and badges.
- * No scores. Wave, or ask them to walk with you (a Student only: the
+ * A classmate's Buddy card: the kid and their buddy, the buddy's name and kind,
+ * level and badges. It only talks about the buddy: Students have no names in
+ * KIDDEX (brief 4.1), and a School ID is never shown. No scores. Wave, or ask them to walk with you (a Student only: the
  * Teacher's view shows the card without them).
  */
 export function BuddyCard({
@@ -29,16 +30,15 @@ export function BuddyCard({
   onClose: () => void
 }) {
   const kind = companionRegistry[classmate.buddy].name
+  const title = `${classmate.buddyName} the ${kind}`
   return (
-    <LobbyCard label={`${classmate.name}'s Buddy card`} onClose={onClose}>
+    <LobbyCard label={`${title}, a classmate's buddy`} onClose={onClose}>
       <div className={styles.duo}>
-        <img src={kidUrl} alt={classmate.name} draggable={false} />
-        <img src={buddyUrl} alt={`${classmate.buddyName} the ${kind}`} draggable={false} />
+        <img src={kidUrl} alt="A classmate" draggable={false} />
+        <img src={buddyUrl} alt={title} draggable={false} />
       </div>
-      <h2 className={styles.cardTitle}>{classmate.name}</h2>
-      <p className={styles.sub}>
-        with {classmate.buddyName} the {kind} · Lv {classmate.level}
-      </p>
+      <h2 className={styles.cardTitle}>{title}</h2>
+      <p className={styles.sub}>A classmate's buddy · Lv {classmate.level}</p>
       <div className={styles.badges}>
         <span className={styles.badge}>
           <LobbyIcon name="medal" size={16} /> {classmate.badges} badges

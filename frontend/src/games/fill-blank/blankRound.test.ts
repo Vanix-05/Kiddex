@@ -59,7 +59,7 @@ describe('Buddy Help: the first letter', () => {
   })
 
   it('the buddy’s line', () => {
-    expect(hintLine('denominator', 'Ana')).toBe('Psst… it starts with d! Now you pick, Ana.')
+    expect(hintLine('denominator')).toBe('Psst… it starts with d! Now you pick.')
   })
 
   it('long words get a smaller size', () => {

@@ -69,6 +69,7 @@ const toSection = (s: ServerSection): Section => ({
   name: s.name,
   color: SECTION_COLORS.includes(s.color as SectionColor) ? (s.color as SectionColor) : 'yellow',
   icon: SECTION_ICONS.includes(s.icon as SectionIcon) ? (s.icon as SectionIcon) : 'flower',
+  registeredCount: s.registeredCount,
 })
 
 /** lastPlayed, mastery, streak and needsHelp stay empty until games save progress. */

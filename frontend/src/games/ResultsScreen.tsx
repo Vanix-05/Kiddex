@@ -8,7 +8,6 @@ import styles from './ResultsScreen.module.css'
 /** The Results board's contents, shared by every game (each game puts it in its own board frame). */
 export function ResultsBoard({
   game,
-  name,
   buddyName,
   summary,
   lookAgain,
@@ -21,7 +20,6 @@ export function ResultsBoard({
   /** A Teacher preview: no XP stat, streak or XP bar; one line says what a Student would get. */
   preview?: boolean
   game: GameId
-  name: string
   /** The buddy's name, for "1 with Mochi's help". */
   buddyName: string
   /** With no next game, the button goes back here. */
@@ -36,7 +34,7 @@ export function ResultsBoard({
 }) {
   const { right, total, helped, xpGained, xpBefore, streakDays, nextGame } = summary
   const stars = starsFor(right, total)
-  const title = game === 'match-up' ? `All tied up, ${name}!` : game === 'fill-blank' ? `All filled in, ${name}!` : `Great show, ${name}!`
+  const title = game === 'match-up' ? 'All tied up!' : game === 'fill-blank' ? 'All filled in!' : 'Great show!'
   const after = xpBefore.xp + xpGained
   const next = xpBefore.level + 1
   const xpLine = after >= xpBefore.goal ? `Level ${next} reached!` : `${xpBefore.goal - after} more to Level ${next}`

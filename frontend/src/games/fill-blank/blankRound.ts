@@ -64,7 +64,7 @@ export function firstLetter(answer: string): string {
 export const letterHint = (answer: string) => `${firstLetter(answer)}…`
 
 /** The buddy's line after Buddy Help. */
-export const hintLine = (answer: string, name: string) => `Psst… it starts with ${firstLetter(answer)}! Now you pick, ${name}.`
+export const hintLine = (answer: string) => `Psst… it starts with ${firstLetter(answer)}! Now you pick.`
 
 /** Long words get a smaller size so they stay inside their tile (and the slot). */
 export function wordSize(word: string): 'normal' | 'small' | 'smaller' {

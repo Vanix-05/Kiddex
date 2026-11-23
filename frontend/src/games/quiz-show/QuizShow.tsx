@@ -170,7 +170,6 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, preview, 
               game="quiz-show"
               leaveTo={leaveTo}
               preview={preview}
-              name={player.name}
               buddyName={player.buddyName}
               summary={summary}
               compact={stage.short}
@@ -192,7 +191,6 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, preview, 
   })
   const right = answered && q.right
   const wrong = answered && !q.right
-  const name = player.name
 
   // The buddy says every line (Ollie isn't in the games).
   const buddyLine = right
@@ -202,12 +200,12 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, preview, 
         ? '3 in a row! Great job!'
         : `What a star! That is ${rightSoFar} right so far.`
     : wrong
-      ? `Good try, ${name}! Now we know this one.`
+      ? 'Good try! Now we know this one.'
       : q.removed
-        ? `Sniff, sniff… it is not ${LETTERS[q.choices.indexOf(q.removed)]}! Now you pick, ${name}.`
+        ? `Sniff, sniff… it is not ${LETTERS[q.choices.indexOf(q.removed)]}! Now you pick.`
         : round.help.helps > 0
-          ? `Take your time, ${name}. Tap me if you get stuck!`
-          : `Take your time, ${name}. There is no timer.`
+          ? 'Take your time. Tap me if you get stuck!'
+          : 'Take your time. There is no timer.'
 
   // Buddy Help: once per question, before it's answered; never down to fewer than 2 choices.
   const blocked = helpBlocked(round)

@@ -18,6 +18,8 @@ export interface Section {
   name: string
   color: SectionColor
   icon: SectionIcon
+  /** Students who made their PIN code (from GET /api/sections). */
+  registeredCount: number
 }
 
 export interface Teacher {

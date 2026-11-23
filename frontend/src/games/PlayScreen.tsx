@@ -18,8 +18,7 @@ export function PlayScreen() {
   if (!isGameId(gameId) || !GAMES[gameId].built) return <Navigate to={paths.lobby} replace />
   if (!avatar || !isBuddyId(companionId)) return <Navigate to={paths.setup.quiz} replace />
 
-  // Students have no names in KIDDEX: the buddy's name stands in.
-  const buddy = buddyName ?? companionRegistry[companionId].name
-  const player = { name: buddy, avatar, buddy: companionId, buddyName: buddy, look }
+  // No Student name: Students have none in KIDDEX (lines spoken to them use no name).
+  const player = { avatar, buddy: companionId, buddyName: buddyName ?? companionRegistry[companionId].name, look }
   return <GameRoute gameId={gameId} player={player} base={paths.play} lobby={paths.lobby} games={paths.games} />
 }

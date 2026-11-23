@@ -1,11 +1,10 @@
 import type { Player } from './types'
 
 /**
- * The sample Student of the dev games page (/dev/games): Ana, a girl with a
- * purple fox called Mochi. The Teacher preview plays with the same look, named "Preview".
+ * The sample Student of the dev games page (/dev/games): a girl with a purple
+ * fox called Mochi (no name: Students have none). The Teacher preview plays with the same look.
  */
 export const SAMPLE_PLAYER: Player = {
-  name: 'Ana',
   avatar: 'girl',
   buddy: 'fox',
   buddyName: 'Mochi',
@@ -13,4 +12,4 @@ export const SAMPLE_PLAYER: Player = {
 }
 
 /** The fixed player of a Teacher preview. */
-export const PREVIEW_PLAYER: Player = { ...SAMPLE_PLAYER, name: 'Preview' }
+export const PREVIEW_PLAYER: Player = { ...SAMPLE_PLAYER }

@@ -6,7 +6,7 @@ import { DEMO_STATES, type DemoState } from '../types'
 import styles from './DevGamesScreen.module.css'
 
 // Dev only (not in production builds): every mini game screen at a glance,
-// with a sample Student (the same Ana as /dev/lobby). Nothing is saved
+// with a sample Student (the same look as /dev/lobby). Nothing is saved
 // from a ?state= screen; a plain play-through saves like the real game.
 
 const STATES: { game: string; state?: DemoState; label: string }[] = [
@@ -51,7 +51,7 @@ export function DevGamesScreen() {
   return (
     <main className={styles.page}>
       <h1>Mini games (dev)</h1>
-      <p>Sample Student: Ana, a girl with a purple fox. Add &amp;lesson=mixed to use the Mixed Numbers cards.</p>
+      <p>Sample Student: a girl with a purple fox called Mochi. Add &amp;lesson=mixed to use the Mixed Numbers cards.</p>
       <ul>
         {STATES.map((s) => (
           <li key={s.label}>

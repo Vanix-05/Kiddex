@@ -190,7 +190,6 @@ export function FillBlank({ player, lesson, cards, lessonCanPlay, demo, preview,
               game="fill-blank"
               leaveTo={leaveTo}
               preview={preview}
-              name={player.name}
               buddyName={player.buddyName}
               summary={summary}
               compact={stage.short}
@@ -212,7 +211,6 @@ export function FillBlank({ player, lesson, cards, lessonCanPlay, demo, preview,
   })
   const right = answered && q.right
   const wrongPick = answered && !q.right
-  const name = player.name
 
   // The buddy says every line (Ollie isn't in the games).
   const buddyLine = right
@@ -222,12 +220,12 @@ export function FillBlank({ player, lesson, cards, lessonCanPlay, demo, preview,
         ? '3 in a row! Great job!'
         : `You filled it in! That is ${rightSoFar} right so far.`
     : wrongPick
-      ? `Good try, ${name}! Now we know this one.`
+      ? 'Good try! Now we know this one.'
       : q.hinted
-        ? hintLine(q.card.answer, name)
+        ? hintLine(q.card.answer)
         : round.help.helps > 0
           ? 'Tap the word that fits. Tap me if you get stuck!'
-          : `Tap the word that fits. Take your time, ${name}.`
+          : 'Tap the word that fits. Take your time.'
 
   // Buddy Help: once per sentence, before it's answered.
   const blocked = helpBlocked(round)

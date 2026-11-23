@@ -238,7 +238,6 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, l
               game="match-up"
               leaveTo={leaveTo}
               preview={preview}
-              name={player.name}
               buddyName={player.buddyName}
               summary={summary}
               compact={stage.short}
@@ -267,7 +266,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, l
 
   // The buddy says every line (Ollie isn't in the games).
   const buddyLine = miss
-    ? `So close, ${player.name}! Look at the hint, then pick again.`
+    ? 'So close! Look at the hint, then pick again.'
     : hinted
       ? 'Look! It’s this one.'
       : picked
@@ -282,7 +281,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, l
                 ? '3 in a row! Great job!'
                 : lastTie
                   ? `You tied them! ${n - round.tied.length} to go.`
-                  : `Tie each one to its partner, ${player.name}. Tap a card to start.`
+                  : 'Tie each one to its partner. Tap a card to start.'
 
   const blocked = matchHelpBlocked(round)
   const help = {

@@ -14,7 +14,6 @@ import {
   useReviewPackDefaults,
   useSection,
   useSectionAssignments,
-  useStudents,
 } from '../data/useTeacherData'
 import type { TemplateId } from '../data/types'
 import { GAME_ICON, GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
@@ -247,7 +246,6 @@ export function GamesRight({ lessonId, live }: PageProps) {
   const { lesson, games, inPack } = usePackGames(lessonId)
   const { assignLesson } = useLessons()
   const { sections, active } = useSection()
-  const students = useStudents()
   const { dueLabel } = useReviewPackDefaults()
   // Already assigned to this section: the page starts with the saved name and due date
   // (and the saved games, through the lesson).
@@ -270,7 +268,6 @@ export function GamesRight({ lessonId, live }: PageProps) {
   }
   const choices = dueChoices(dueLabel, saved?.dueDate)
   const section = sections.find((s) => s.id === sectionId) ?? active
-  const registered = students.filter((s) => s.registered).length
   const tab = live ? undefined : -1
 
   // After "Assigned!", turn back to Home.
@@ -353,7 +350,7 @@ export function GamesRight({ lessonId, live }: PageProps) {
           <select className={styles.select} value={sectionId} tabIndex={tab} onChange={(e) => setSectionId(e.target.value)}>
             {sections.map((s) => (
               <option key={s.id} value={s.id}>
-                {sectionLabel(s)} · {registered}
+                {sectionLabel(s)} · {s.registeredCount}
               </option>
             ))}
           </select>

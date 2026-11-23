@@ -41,9 +41,11 @@ export interface GameResult {
   helpsUsed: number
 }
 
-/** The Student playing: their name, rig and buddy in their Customize look. */
+/**
+ * The Student playing: their rig and buddy in their Customize look. No name:
+ * Students have none in KIDDEX (brief 4.1), so lines spoken to them use no name.
+ */
 export interface Player {
-  name: string
   avatar: Avatar
   buddy: BuddyId
   buddyName: string
