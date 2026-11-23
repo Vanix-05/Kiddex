@@ -1,7 +1,16 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, CalendarDays, ChartNoAxesColumn, Check, Gamepad2, Package, User, Users, type LucideIcon } from 'lucide-react'
 import { paths } from '../../routes/paths'
-import { useClassSummary, useLessons, useSection, useStudents, useTeacher, useTodos, type ShownTodo } from '../data/useTeacherData'
+import {
+  useClassSummary,
+  useLessons,
+  useSection,
+  useStudents,
+  useStudentsLoad,
+  useTeacher,
+  useTodos,
+  type ShownTodo,
+} from '../data/useTeacherData'
 import type { TodoTarget } from '../data/types'
 import { lessonStepPath, studentsPath, type PageProps } from '../planner/pages'
 import { usePlannerActions } from '../planner/plannerActions'
@@ -12,9 +21,11 @@ import styles from './Home.module.css'
 
 export function HomeLeft({ live }: PageProps) {
   const teacher = useTeacher()
-  const { active, label } = useSection()
+  const { active, label, loading: sectionsLoading } = useSection()
   const summary = useClassSummary()
-  const students = useStudents()
+  const { students, loading: studentsLoading } = useStudentsLoad()
+  // After a refresh: wait for the sections and Students before choosing what to show.
+  const loading = sectionsLoading || studentsLoading
   // No section or no students yet: the first steps instead of To do.
   const isNew = !active || students.length === 0
 
@@ -30,6 +41,8 @@ export function HomeLeft({ live }: PageProps) {
             Grade {active.grade} – {active.name}
             <span className="visually-hidden"> ({label})</span>
           </>
+        ) : sectionsLoading ? (
+          'Loading your planner…'
         ) : (
           'Your planner is brand new'
         )}
@@ -37,7 +50,7 @@ export function HomeLeft({ live }: PageProps) {
 
       {active && <Stats />}
 
-      {isNew ? (
+      {loading ? null : isNew ? (
         <>
           <GetStarted live={live} />
           {/* A new Teacher's first upload still gets its "Check the questions" row. */}
@@ -207,7 +220,7 @@ function GetStarted({ live }: { live: boolean }) {
     },
     {
       title: 'Add your students',
-      detail: 'Type their names and School IDs.',
+      detail: 'Add them by School ID.',
       action: 'Add students',
       onClick: addStudent,
       done: students.length > 0,

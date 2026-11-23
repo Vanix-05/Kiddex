@@ -14,17 +14,29 @@ import {
   type TextLevel,
   type UploadPhase,
 } from '../api/lessonsApi'
+import { sectionKeys, sectionsApi, type ServerSection, type ServerStudent } from '../api/sectionsApi'
 import { toScreenLesson } from './lessonMapping'
 import { useTeacherStore } from './teacherDataContext'
-import type { Lesson, LessonNote, QuestionCard, Section, TeacherData, TemplateId, TodoItem } from './types'
+import type {
+  BuddyHead,
+  Lesson,
+  LessonNote,
+  QuestionCard,
+  Section,
+  SectionColor,
+  SectionIcon,
+  Student,
+  TeacherData,
+  TemplateId,
+  TodoItem,
+} from './types'
 
 /**
  * The only way Teacher screens read and change data.
  *
- * Lessons and their questions come from the backend (React Query). Sections,
- * students, To dos and stats are still kept in memory (TeacherDataProvider):
- * they start empty and a refresh clears them. The screens don't need to change
- * when those get their own addresses too.
+ * Lessons, their questions, sections and Students come from the backend (React
+ * Query). To dos, stats and the open section tab are still kept in memory
+ * (TeacherDataProvider): they start empty and a refresh clears them.
  */
 
 /** "4 – Sampaguita" */
@@ -32,78 +44,158 @@ export const sectionLabel = (s: Section) => `${s.grade} – ${s.name}`
 
 const nowLabel = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 
-/** The open section, or undefined before the Teacher makes one. */
-const activeSection = (d: TeacherData): Section | undefined => d.sections.find((s) => s.id === d.activeSectionId) ?? d.sections[0]
-
 export function useTeacher() {
   return useTeacherStore().data.teacher
 }
 
-/** Each new section takes the next tab color and icon. */
-const SECTION_LOOKS: Pick<Section, 'color' | 'icon'>[] = [
-  { color: 'yellow', icon: 'flower' },
-  { color: 'pink', icon: 'tulip' },
-  { color: 'coral', icon: 'rose' },
-]
+// ---------- Sections and Students (from the backend) ----------
 
 export const SECTION_GRADES = [3, 4, 5, 6] as const
 
-/** `active` is undefined until the Teacher makes their first section. */
+const SECTION_COLORS: SectionColor[] = ['yellow', 'pink', 'coral']
+const SECTION_ICONS: SectionIcon[] = ['flower', 'tulip', 'rose']
+const BUDDY_HEADS: BuddyHead[] = ['axolotl', 'dog', 'fox', 'kitty', 'monkey', 'otter', 'raccoon', 'ram']
+
+const toSection = (s: ServerSection): Section => ({
+  id: s.id,
+  grade: s.grade,
+  name: s.name,
+  color: SECTION_COLORS.includes(s.color as SectionColor) ? (s.color as SectionColor) : 'yellow',
+  icon: SECTION_ICONS.includes(s.icon as SectionIcon) ? (s.icon as SectionIcon) : 'flower',
+})
+
+/** lastPlayed, mastery, streak and needsHelp stay empty until games save progress. */
+export const toStudent = (s: ServerStudent): Student => ({
+  id: s.id,
+  schoolId: s.schoolId,
+  registered: s.registered,
+  oneTimeCode: s.oneTimeCode ?? undefined,
+  buddy: BUDDY_HEADS.includes(s.buddy as BuddyHead) ? (s.buddy as BuddyHead) : undefined,
+  buddyName: s.buddyName ?? undefined,
+})
+
+/**
+ * My sections (the tabs) and the open one. `active` is undefined until the
+ * Teacher makes their first section (or while the list is loading). The open
+ * tab is screen only: after a refresh the first section opens.
+ */
 export function useSection() {
   const { data, update } = useTeacherStore()
-  const active = activeSection(data)
+  const queryClient = useQueryClient()
+  const query = useQuery({ queryKey: sectionKeys.list, queryFn: sectionsApi.list })
+  const sections = useMemo(() => (query.data ?? []).map(toSection), [query.data])
+  const active = sections.find((s) => s.id === data.activeSectionId) ?? sections[0]
   const setActive = useCallback((id: string) => update((d) => ({ ...d, activeSectionId: id })), [update])
 
-  /** Adds a section (e.g. Grade 4, "Sampaguita") and opens it. */
+  /**
+   * Saves a section (e.g. Grade 4, "Sampaguita") and opens its tab. Throws an
+   * ApiError with the server's friendly message (e.g. 409 SECTION_TAKEN).
+   */
   const addSection = useCallback(
-    (grade: number, name: string) =>
-      update((d) => {
-        const id = `sec-${Date.now().toString(36)}`
-        const section: Section = { id, grade, name: name.trim(), ...SECTION_LOOKS[d.sections.length % SECTION_LOOKS.length] }
-        return { ...d, sections: [...d.sections, section], activeSectionId: id }
-      }),
-    [update],
+    async (grade: number, name: string) => {
+      const section = await sectionsApi.create(grade, name.trim())
+      queryClient.setQueryData<ServerSection[]>(sectionKeys.list, (old) => [...(old ?? []).filter((s) => s.id !== section.id), section])
+      void queryClient.invalidateQueries({ queryKey: sectionKeys.list })
+      update((d) => ({ ...d, activeSectionId: section.id }))
+    },
+    [queryClient, update],
   )
 
-  return { sections: data.sections, active, label: active ? sectionLabel(active) : '', setActive, addSection }
+  const retry = useCallback(() => void query.refetch(), [query])
+
+  return {
+    sections,
+    active,
+    label: active ? sectionLabel(active) : '',
+    setActive,
+    addSection,
+    /** The first load (no list yet). */
+    loading: query.isPending,
+    /** The list could not be loaded (and there is none to show). */
+    error: query.data ? null : query.error,
+    retry,
+  }
 }
 
-/** A 6-digit one-time code for a login card, e.g. "482-915". */
-const oneTimeCode = () => {
-  const n = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')
-  return `${n.slice(0, 3)}-${n.slice(3)}`
+/** The open section's Students (School ID order), with loading and error for My Students. */
+export function useStudentsLoad() {
+  const { active } = useSection()
+  const sectionId = active?.id ?? ''
+  const query = useQuery({
+    queryKey: sectionKeys.students(sectionId),
+    queryFn: () => sectionsApi.students(sectionId),
+    enabled: !!sectionId,
+  })
+  const students = useMemo(() => (query.data ?? []).map(toStudent), [query.data])
+  const retry = useCallback(() => void query.refetch(), [query])
+  return { students, loading: !!sectionId && query.isPending, error: query.data ? null : query.error, retry }
 }
 
+/** The open section's Students (empty while loading). */
 export function useStudents() {
-  return useTeacherStore().data.students
+  return useStudentsLoad().students
 }
 
-/** Adds a student by name and School ID. They get a one-time code for their login card. */
-export function useAddStudent() {
+/**
+ * Adds Students to a section by School ID (no names). The server makes a one-time
+ * code for each; the answer is kept for "Login codes are ready!" in My Students.
+ * Throws an ApiError with the server's friendly message (e.g. 409 SECTION_FULL).
+ */
+export function useAddStudents() {
   const { update } = useTeacherStore()
+  const queryClient = useQueryClient()
   return useCallback(
-    (name: string, schoolId: string) =>
-      update((d) => ({
-        ...d,
-        students: [
-          ...d.students,
-          // TODO: the backend makes the student and their one-time code.
-          { id: `s-${Date.now().toString(36)}`, name: name.trim(), schoolId: schoolId.trim(), registered: false, oneTimeCode: oneTimeCode() },
-        ],
-      })),
-    [update],
+    async (sectionId: string, schoolIds: string[]) => {
+      const answer = await sectionsApi.addStudents(sectionId, schoolIds)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: sectionKeys.students(sectionId) }),
+        queryClient.invalidateQueries({ queryKey: sectionKeys.list }),
+      ])
+      if (answer.added.length > 0) {
+        update((d) => ({ ...d, justAdded: { sectionId, added: answer.added.map(toStudent), skipped: answer.skipped } }))
+      }
+      return answer
+    },
+    [queryClient, update],
   )
+}
+
+/**
+ * "New code" for one Student: the server makes a new one-time code; their PIN
+ * code stops working, their buddy and progress are kept. Returns the Student
+ * with the new code. Throws an ApiError with the server's friendly message.
+ */
+export function useNewCode() {
+  const queryClient = useQueryClient()
+  return useCallback(
+    async (studentId: string) => {
+      const student = toStudent(await sectionsApi.newCode(studentId))
+      // Every section list and count (the row is "Not yet" again).
+      void queryClient.invalidateQueries({ queryKey: sectionKeys.list })
+      return student
+    },
+    [queryClient],
+  )
+}
+
+/** "Login codes are ready!": the Students just added to the open section (null = show the list). */
+export function useJustAdded() {
+  const { data, update } = useTeacherStore()
+  const { active } = useSection()
+  const justAdded = data.justAdded && data.justAdded.sectionId === active?.id ? data.justAdded : null
+  const clear = useCallback(() => update((d) => (d.justAdded ? { ...d, justAdded: null } : d)), [update])
+  return { justAdded, clear }
 }
 
 /** Numbers for Home: stats, weakest topics, the week chart and Ollie's note. */
 export function useClassSummary() {
   const { data } = useTeacherStore()
-  const registered = data.students.filter((s) => s.registered).length
+  const students = useStudents()
   return {
     todayLabel: data.todayLabel,
     weekSubject: data.weekSubject,
-    registered,
-    total: data.students.length,
+    registered: students.filter((s) => s.registered).length,
+    total: students.length,
     stats: data.stats,
     weakTopics: data.weakTopics,
     week: data.week,

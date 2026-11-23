@@ -356,25 +356,26 @@
   color: var(--color-text-muted);
 }
 
-/* Column widths (stage px) from the reference. */
+/* Column widths (stage px) from the reference (1-my-students); the actions
+   column takes the rest. */
 .table thead th:nth-child(1) {
-  width: 270px;
+  width: 196px;
   padding-left: 10px;
 }
 .table thead th:nth-child(2) {
-  width: 115px;
+  width: 120px;
 }
 .table thead th:nth-child(3) {
-  width: 158px;
+  width: 150px;
 }
 .table thead th:nth-child(4) {
-  width: 126px;
+  width: 120px;
 }
 .table thead th:nth-child(5) {
-  width: 203px;
+  width: 230px;
 }
 .table thead th:nth-child(6) {
-  width: 82px;
+  width: 64px;
 }
 
 .row {
@@ -410,9 +411,16 @@
   background: none;
 }
 
-.schoolId {
+.who {
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
+}
+
+/* The buddy's name. */
+.buddy {
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loginChip {
@@ -531,6 +539,223 @@
   font-size: 18px;
 }
 
+/* ---------- One-time code: Show / Hide ---------- */
+
+.codeDots {
+  min-width: 70px;
+  font: 700 17px/1 var(--font-display);
+  letter-spacing: 0.06em;
+  color: var(--color-planner-ink);
+}
+
+.codeChip {
+  min-width: 86px;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.showPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border: 2px solid var(--color-planner-ink);
+  border-radius: var(--radius-pill);
+  background: white;
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.showPill:hover {
+  background: var(--color-neutral-bg);
+}
+
+/* ---------- Actions ---------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  padding-right: 4px;
+}
+
+/* New code: a quiet grey link next to the orange Open. */
+.quietLink {
+  color: var(--color-text-subtle);
+}
+
+/* ---------- Footer ---------- */
+
+.footNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Loading / error ---------- */
+
+.loading {
+  margin: 28px 0 0;
+  font-size: 17px;
+  color: var(--color-text-subtle);
+}
+
+.loadError {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-danger-text);
+}
+
+.loadError p {
+  margin: 0;
+}
+
+/* ---------- Login codes are ready! (3-codes-ready) ---------- */
+
+.readyTitle {
+  outline: none;
+}
+
+.ready {
+  display: flex;
+  gap: 36px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 26px;
+}
+
+/* The new Students: scrolls inside when there are many (45 at most). */
+.readyList {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.readyTable {
+  margin-top: 0;
+}
+
+.readyTable thead th:nth-child(1) {
+  width: 210px;
+}
+.readyTable thead th:nth-child(2) {
+  width: 192px;
+}
+.readyTable thead th:nth-child(3) {
+  width: 150px;
+}
+
+.readyRow {
+  height: 59px;
+}
+
+.readyRow .who {
+  height: 59px;
+}
+
+.bigCode {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 19px;
+}
+
+.cardCell {
+  text-align: right !important;
+}
+
+.skippedNote {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-danger-text) 10%, white);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-danger-text);
+}
+
+.skippedNote p {
+  margin: 0;
+}
+
+/* What happens next */
+.next {
+  flex: none;
+  align-self: flex-start;
+  width: 358px;
+  padding: 22px 24px 24px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 18px;
+  background: white;
+}
+
+.nextTitle {
+  margin: 0;
+  font: 600 22px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.steps {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15.5px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.stepNumber {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--color-button-border);
+  border-radius: 50%;
+  background: var(--color-warn-bg);
+  font: 700 16px/1 var(--font-display);
+  color: var(--color-warn-text);
+}
+
+.tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 12px 14px 12px 10px;
+  border-radius: 14px;
+  background: var(--color-sticky-yellow);
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.tip p {
+  margin: 0;
+}
+
+.tipOllie {
+  flex: none;
+  width: 62px;
+  pointer-events: none;
+  user-select: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .closePop {
     animation: none;
@@ -560,5 +785,27 @@
   /* The box and the field inside it are both 44px or more. */
   .search {
     height: 71px;
+  }
+
+  .showPill {
+    min-height: 67px;
+    padding: 0 18px;
+  }
+
+  /* Login codes are ready!: "What happens next" goes under the table, and
+     both scroll together inside the window. */
+  .ready {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .readyList {
+    flex: none;
+    overflow: visible;
+  }
+
+  .next {
+    align-self: stretch;
+    width: auto;
   }
 }

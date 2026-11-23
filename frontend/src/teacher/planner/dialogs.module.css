@@ -224,3 +224,18 @@
     animation: none;
   }
 }
+
+/* Add students: a wider card. */
+.cardWide {
+  width: min(600px, 100%);
+}
+
+.save:disabled,
+.save:disabled:hover {
+  border-color: var(--color-neutral-line);
+  background: var(--color-button-disabled-bg);
+  box-shadow: none;
+  color: var(--color-button-disabled-text);
+  cursor: not-allowed;
+  translate: none;
+}

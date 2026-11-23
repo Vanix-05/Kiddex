@@ -1,0 +1,159 @@
+/*
+ * Login cards (mockup 4-print-login-cards). Sized in mm and pt so the preview
+ * and the paper match: A4 portrait, 10 mm margins, 8 cards per page (2 × 4)
+ * with dashed cut lines. School ID and code are 22pt / 21pt.
+ */
+
+/* ---------- Printing: only the sheets go on paper ---------- */
+
+@media screen {
+  :global(.kiddex-print-root) {
+    display: none;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  :global(html),
+  :global(body) {
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* Hide the whole app; show only the sheets. */
+  :global(body > *:not(.kiddex-print-root)) {
+    display: none !important;
+  }
+
+  :global(.kiddex-print-root) {
+    display: block;
+  }
+}
+
+.printRoot {
+  /* The yellow code chip prints in color. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+  color: #3e2a1e;
+}
+
+/* ---------- One page: 190 × 277 mm inside the margins ---------- */
+
+.page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(4, 1fr);
+  width: 190mm;
+  /* A hair under 277 mm, so rounding never adds a blank page. */
+  height: 276mm;
+  border-top: 0.35mm dashed #b8a283;
+  border-left: 0.35mm dashed #b8a283;
+  background: white;
+  break-after: page;
+  page-break-after: always;
+  break-inside: avoid;
+}
+
+.page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.card,
+.empty {
+  border-right: 0.35mm dashed #b8a283;
+  border-bottom: 0.35mm dashed #b8a283;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: 5mm 6mm;
+  color: #3e2a1e;
+}
+
+.brand {
+  font: 700 20pt / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--color-logo-orange);
+}
+
+.meta {
+  margin-top: 1.6mm;
+  font: 500 8pt / 1.2 var(--font-body);
+  color: #6b5442;
+}
+
+.label {
+  margin-top: 3mm;
+  font: 700 6.5pt / 1 var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #4a3626;
+}
+
+.schoolId {
+  margin-top: 0.8mm;
+  font: 700 22pt / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.code {
+  margin-top: 1mm;
+  padding: 0.6mm 2.4mm;
+  border-radius: 1.6mm;
+  background: var(--color-code-yellow);
+  font: 700 21pt / 1.1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+.tip {
+  position: absolute;
+  right: 24mm;
+  bottom: 4mm;
+  max-width: 30mm;
+  font: 500 7pt / 1.3 var(--font-body);
+  text-align: right;
+  color: #6b5442;
+}
+
+.ollie {
+  position: absolute;
+  right: 3mm;
+  bottom: 1.5mm;
+  width: 19mm;
+}
+
+/* ---------- The preview (Print login cards view) ---------- */
+
+/* The A4 sheet (794 × 1123 px) shown at 0.58: 460 × 651 stage px. */
+.previewBox {
+  flex: none;
+  width: 460px;
+  height: 651px;
+}
+
+.paper {
+  width: 210mm;
+  height: 297mm;
+  padding: 10mm;
+  background: white;
+  box-shadow: 0 4px 18px rgba(60, 40, 25, 0.22);
+  transform: scale(0.58);
+  transform-origin: top left;
+}
+
+/* Empty places are striped in the preview only (no ink on paper). */
+.paper .empty {
+  background: repeating-linear-gradient(135deg, #f6ecda 0 4mm, transparent 4mm 8mm);
+}

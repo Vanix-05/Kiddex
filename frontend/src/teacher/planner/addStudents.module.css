@@ -1,0 +1,258 @@
+/* Add students popup (mockup 2-add-students). Screen px, like the other
+   planner popups (dialogs.module.css); the card is 600px wide. */
+
+/* One at a time | Paste a list */
+.switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 16px;
+  background: var(--color-card-bg);
+}
+
+.switchButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: 2.5px solid transparent;
+  border-radius: 12px;
+  background: none;
+  font: 600 17px / 1 var(--font-display);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.switchButton:hover {
+  color: var(--color-text);
+}
+
+.switchButton[aria-pressed='true'] {
+  border-color: var(--color-planner-ink);
+  background: var(--color-text-on-dark);
+  color: var(--color-planner-ink);
+}
+
+/* ---------- One at a time ---------- */
+
+.one {
+  margin-top: 16px;
+}
+
+.oneRow {
+  display: flex;
+  gap: 10px;
+}
+
+.addButton {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 50px;
+  padding: 0 18px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 12px;
+  background: var(--color-text-on-dark);
+  box-shadow: 0 3px 0 rgba(107, 74, 51, 0.22);
+  font: 600 17px / 1 var(--font-display);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.addButton:hover {
+  background: var(--color-card-bg);
+}
+
+.addButton:active {
+  translate: 0 3px;
+  box-shadow: none;
+}
+
+.queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queueItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 4px 0 12px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 10px;
+  background: var(--color-text-on-dark);
+  font: 600 16px / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--color-neutral-bg);
+  color: var(--color-danger-text);
+}
+
+/* ---------- Paste a list ---------- */
+
+.paste {
+  margin-top: 16px;
+}
+
+.pasteBox {
+  position: relative;
+}
+
+.pasteArea,
+.pasteMarks {
+  width: 100%;
+  height: 230px;
+  border-radius: 14px;
+}
+
+.pasteArea {
+  display: block;
+  padding: 14px 18px;
+  border: 2.5px solid var(--color-input-border);
+  background: var(--color-text-on-dark);
+  font: 500 19px / 1.55 var(--font-body);
+  color: var(--color-text);
+  resize: none;
+}
+
+.pasteArea::placeholder {
+  color: var(--color-input-placeholder);
+}
+
+.pasteArea:focus {
+  border-color: var(--color-input-border-focus);
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-input-border-focus) 25%, transparent);
+}
+
+/* The list with bad lines marked, drawn over the box while not typing. */
+.pasteMarks {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 4px 20px;
+  overflow-y: auto;
+  padding: 14px 18px;
+  border: 2.5px solid var(--color-button-border);
+  background: var(--color-text-on-dark);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-button-bg) 25%, transparent);
+  cursor: text;
+}
+
+.mark {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font: 600 19px / 1.3 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.markBad {
+  background: color-mix(in srgb, var(--color-danger-text) 14%, white);
+  color: var(--color-danger-text);
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Checks ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin-top: 14px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 4px 16px;
+  border: 2px solid;
+  border-radius: var(--radius-pill);
+  font: 600 16px / 1.2 var(--font-display);
+}
+
+.chipOk {
+  border-color: var(--color-ok-line);
+  background: var(--color-ok-bg);
+  color: var(--color-ok-text);
+}
+
+.chipBad {
+  border-color: color-mix(in srgb, var(--color-danger-text) 45%, white);
+  background: color-mix(in srgb, var(--color-danger-text) 12%, white);
+  color: var(--color-danger-text);
+}
+
+.places {
+  margin: 14px 0 0;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+.placesOver {
+  font-weight: 600;
+  color: var(--color-danger-text);
+}
+
+.serverNote {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-danger-text) 10%, white);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-danger-text);
+}
+
+.serverNote p {
+  margin: 0;
+}
+
+.make {
+  flex: 1.7;
+}
+
+/* Phone held sideways: the popup scrolls inside itself (dialogs.module.css);
+   a shorter paste box leaves room for the buttons. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .pasteArea,
+  .pasteMarks {
+    height: 150px;
+  }
+}

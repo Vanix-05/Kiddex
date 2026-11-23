@@ -22,10 +22,12 @@ import { SceneBackground } from '../../components/SceneBackground/SceneBackgroun
 import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import { enterFullscreen, exitFullscreen, useIsFullscreen } from '../fullscreen'
-import { sectionLabel, useSection, useTeacher } from '../data/useTeacherData'
-import type { SectionIcon } from '../data/types'
+import { sectionLabel, useJustAdded, useSection, useTeacher } from '../data/useTeacherData'
+import type { SectionIcon, Student } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
-import { AddStudentDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
+import { AddStudentsDialog } from './AddStudentsDialog'
+import { LogOutDialog, NewSectionDialog } from './Dialogs'
+import { NewCodeDialog } from './NewCodeDialog'
 import { LazyTeacherLobbyScreen } from '../../screens/Lobby/LazyLobby'
 import { isLobbyPath, isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
 import { PlannerActionsContext, usePlannerActions } from './plannerActions'
@@ -143,7 +145,7 @@ interface Flip {
 const SWIPE_MIN = 60
 
 type WindowState = 'hidden' | 'open' | 'closing'
-type Popup = 'newSection' | 'addStudent' | 'logOut' | null
+type Popup = 'newSection' | 'addStudent' | 'newCode' | 'logOut' | null
 
 /**
  * The Teacher Dashboard: an open hardcover planner on the island scene.
@@ -163,6 +165,7 @@ function Planner() {
   // Without one, the book shows the "Make a section first" page as usual.
   const { active: section, label: sectionName } = useSection()
   const teacher = useTeacher()
+  const { clear: clearJustAdded } = useJustAdded()
   const onLobby = isLobbyPath(location.pathname) && !!section
 
   // What the book shows. On /teacher/students it keeps the page underneath,
@@ -172,6 +175,8 @@ function Planner() {
   const [win, setWin] = useState<WindowState>(onStudents ? 'open' : 'hidden')
   const [winQuery, setWinQuery] = useState(onStudents ? location.search : '')
   const [popup, setPopup] = useState<Popup>(null)
+  // The Student of the New code popup.
+  const [codeFor, setCodeFor] = useState<Student | null>(null)
   // Phone: the page of the spread on show (page 1 = 'L', page 2 = 'R').
   const phone = usePhoneSideways()
   const [side, setSide] = useState<PageSide>('L')
@@ -263,6 +268,11 @@ function Planner() {
 
   const closeWindow = () => navigate(bookUrl)
   const close = () => setPopup(null)
+  // Students added: "Login codes are ready!" shows in My Students (opened if it isn't).
+  const studentsAdded = () => {
+    setPopup(null)
+    if (!onStudents) navigate(studentsPath())
+  }
   // Back to planner: the page the Teacher came from (Home if they came straight to the Lobby).
   const backToPlanner = () => navigate(isLobbyPath(pathOf(bookUrl)) ? paths.teacher.home : bookUrl)
 
@@ -273,7 +283,14 @@ function Planner() {
     wasOnLobby.current = onLobby
   }, [onLobby])
   // Made once (setPopup never changes), so pages using them don't re-render for nothing.
-  const [actions] = useState(() => ({ newSection: () => setPopup('newSection'), addStudent: () => setPopup('addStudent') }))
+  const [actions] = useState(() => ({
+    newSection: () => setPopup('newSection'),
+    addStudent: () => setPopup('addStudent'),
+    newCode: (student: Student) => {
+      setCodeFor(student)
+      setPopup('newCode')
+    },
+  }))
 
   const leave = () => {
     // One transition: the router changes pages in a transition, so a
@@ -379,7 +396,11 @@ function Planner() {
               closing={win === 'closing'}
               initialFilter={new URLSearchParams(winQuery).get('filter')}
               onClose={closeWindow}
-              onClosed={() => setWin('hidden')}
+              onClosed={() => {
+                setWin('hidden')
+                // Opening it again shows the normal list.
+                clearJustAdded()
+              }}
             />
           )}
         </div>
@@ -395,7 +416,8 @@ function Planner() {
 
         {popup === 'logOut' && <LogOutDialog onStay={close} onLogOut={leave} />}
         {popup === 'newSection' && <NewSectionDialog onClose={close} />}
-        {popup === 'addStudent' && <AddStudentDialog onClose={close} />}
+        {popup === 'addStudent' && <AddStudentsDialog onClose={close} onAdded={studentsAdded} />}
+        {popup === 'newCode' && codeFor && <NewCodeDialog student={codeFor} onClose={close} />}
       </div>
       </PhonePagesContext.Provider>
     </PlannerActionsContext.Provider>

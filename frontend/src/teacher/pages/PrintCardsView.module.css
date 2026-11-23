@@ -1,0 +1,142 @@
+/* Print login cards view inside My Students (mockup 4-print-login-cards). Stage px. */
+
+.view {
+  flex-direction: row;
+  gap: 40px;
+  padding-right: 34px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  max-width: 540px;
+}
+
+.box {
+  margin-top: 26px;
+  padding: 20px 22px 22px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 18px;
+  background: white;
+}
+
+.boxTitle {
+  margin: 0;
+  font: 600 19px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+/* Just added | All Not yet */
+.switch {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 3px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 14px;
+  background: var(--color-card-bg);
+}
+
+.switchButton {
+  flex: 1;
+  min-height: 42px;
+  border: 2.5px solid transparent;
+  border-radius: 11px;
+  background: none;
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.switchButton:hover {
+  color: var(--color-text);
+}
+
+.switchButton[aria-pressed='true'] {
+  border-color: var(--color-planner-ink);
+  background: var(--color-text-on-dark);
+  color: var(--color-planner-ink);
+}
+
+.boxLine {
+  margin: 14px 0 0;
+  font-size: 15.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.lock {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 22px 0 0;
+  padding-left: 4px;
+  font-size: 15.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.lock svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.buttons {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.none {
+  margin: 0 0 12px;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.buttonRow {
+  display: flex;
+  gap: 14px;
+}
+
+.back {
+  height: 52px;
+  padding: 0 22px;
+  font-size: 18px;
+}
+
+.print {
+  flex: 1;
+  height: 52px;
+  font-size: 19px;
+}
+
+.preview {
+  flex: none;
+  margin-top: 4px;
+}
+
+/* Phone held sideways: the preview goes under the options; both scroll inside the window. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .view {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .side {
+    flex: none;
+    max-width: none;
+  }
+
+  .back,
+  .print {
+    height: auto;
+    min-height: 67px;
+  }
+
+  .preview {
+    align-self: center;
+    padding-bottom: 20px;
+  }
+}

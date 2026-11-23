@@ -1,16 +1,18 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react'
-import { LogOut, Plus, UserPlus } from 'lucide-react'
-import { SECTION_GRADES, useAddStudent, useSection, useStudents } from '../data/useTeacherData'
+import { LogOut, Plus } from 'lucide-react'
+import { errorMessage } from '../api/client'
+import { SECTION_GRADES, useSection } from '../data/useTeacherData'
 import styles from './dialogs.module.css'
 
 /**
  * A small popup over the blurred dashboard. Esc or a click on the blur closes
  * it; focus goes to `initialFocus` (or the card) and back where it was after.
  */
-function Popup({
+export function Popup({
   title,
   icon,
   tone = 'orange',
+  wide = false,
   onClose,
   initialFocus,
   children,
@@ -18,6 +20,8 @@ function Popup({
   title: string
   icon: ReactNode
   tone?: 'orange' | 'maroon'
+  /** 600px instead of 440px (Add students). */
+  wide?: boolean
   onClose: () => void
   initialFocus?: RefObject<HTMLElement | null>
   children: ReactNode
@@ -51,7 +55,7 @@ function Popup({
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div ref={cardRef} className={styles.card} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
+      <div ref={cardRef} className={wide ? `${styles.card} ${styles.cardWide}` : styles.card} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <span className={tone === 'maroon' ? `${styles.ring} ${styles.ringMaroon}` : styles.ring} aria-hidden="true">
           {icon}
         </span>
@@ -82,28 +86,42 @@ export function LogOutDialog({ onStay, onLogOut }: { onStay: () => void; onLogOu
   )
 }
 
-/** New section: Grade 3 to 6 and the section's name. Saving adds its tab and opens it. */
+/** New section: Grade 3 to 6 and the section's name. Saving adds its tab and opens it (saved on the server). */
 export function NewSectionDialog({ onClose }: { onClose: () => void }) {
   const { addSection, sections } = useSection()
   const [grade, setGrade] = useState(4)
   const [name, setName] = useState('')
   const [tried, setTried] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const nameId = useId()
   const errorId = useId()
   const clean = name.trim()
   const taken = sections.some((s) => s.grade === grade && s.name.toLowerCase() === clean.toLowerCase())
-  const error = !clean ? 'Type the section’s name.' : taken ? `You already have Grade ${grade} – ${clean}.` : null
+  const error = !clean
+    ? 'Type the section’s name.'
+    : taken
+      ? `You already have Grade ${grade} – ${clean}.`
+      : serverError
 
-  const save = (e: FormEvent) => {
+  const save = async (e: FormEvent) => {
     e.preventDefault()
+    if (saving) return
     setTried(true)
     if (error) {
       nameRef.current?.focus()
       return
     }
-    addSection(grade, clean)
-    onClose()
+    setSaving(true)
+    try {
+      await addSection(grade, clean)
+      onClose()
+    } catch (err) {
+      setServerError(errorMessage(err))
+      setSaving(false)
+      nameRef.current?.focus()
+    }
   }
 
   return (
@@ -120,7 +138,10 @@ export function NewSectionDialog({ onClose }: { onClose: () => void }) {
                 role="radio"
                 aria-checked={g === grade}
                 className={g === grade ? `${styles.grade} ${styles.gradeOn}` : styles.grade}
-                onClick={() => setGrade(g)}
+                onClick={() => {
+                  setGrade(g)
+                  setServerError(null)
+                }}
               >
                 {g}
               </button>
@@ -141,7 +162,10 @@ export function NewSectionDialog({ onClose }: { onClose: () => void }) {
             autoComplete="off"
             aria-invalid={tried && !!error}
             aria-describedby={tried && error ? errorId : undefined}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+              setServerError(null)
+            }}
           />
           {tried && error && (
             <p id={errorId} className={styles.error}>
@@ -153,93 +177,8 @@ export function NewSectionDialog({ onClose }: { onClose: () => void }) {
           <button type="button" className={styles.stay} onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className={styles.save}>
-            Save section
-          </button>
-        </div>
-      </form>
-    </Popup>
-  )
-}
-
-/** Add student: name and School ID. KIDDEX makes their one-time login code. */
-export function AddStudentDialog({ onClose }: { onClose: () => void }) {
-  const addStudent = useAddStudent()
-  const students = useStudents()
-  const { label } = useSection()
-  const [name, setName] = useState('')
-  const [schoolId, setSchoolId] = useState('')
-  const [tried, setTried] = useState(false)
-  const [added, setAdded] = useState<string | null>(null)
-  const nameRef = useRef<HTMLInputElement>(null)
-  const nameId = useId()
-  const idId = useId()
-  const errorId = useId()
-  const cleanId = schoolId.trim()
-  const error = !name.trim()
-    ? 'Type the student’s name.'
-    : !cleanId
-      ? 'Type their School ID.'
-      : students.some((s) => s.schoolId === cleanId)
-        ? `School ID ${cleanId} is already in your class.`
-        : null
-
-  const save = (e: FormEvent) => {
-    e.preventDefault()
-    setTried(true)
-    if (error) return
-    addStudent(name, cleanId)
-    // Ready for the next one.
-    setAdded(name.trim())
-    setName('')
-    setSchoolId('')
-    setTried(false)
-    nameRef.current?.focus()
-  }
-
-  return (
-    <Popup title="Add a student" icon={<UserPlus size={32} strokeWidth={2.4} />} onClose={onClose} initialFocus={nameRef}>
-      <p className={styles.text}>To {label}. KIDDEX makes a one-time login code for them.</p>
-      <form className={styles.form} onSubmit={save} noValidate>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor={nameId}>
-            Name
-          </label>
-          <input
-            ref={nameRef}
-            id={nameId}
-            className={styles.input}
-            value={name}
-            maxLength={40}
-            placeholder="Ana Reyes"
-            autoComplete="off"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor={idId}>
-            School ID
-          </label>
-          <input
-            id={idId}
-            className={styles.input}
-            value={schoolId}
-            maxLength={20}
-            placeholder="2026-0144"
-            autoComplete="off"
-            inputMode="numeric"
-            onChange={(e) => setSchoolId(e.target.value)}
-          />
-        </div>
-        <p className={tried && error ? styles.error : styles.added} id={errorId} role="status">
-          {tried && error ? error : added ? `${added} was added. Add another, or close.` : ''}
-        </p>
-        <div className={styles.row}>
-          <button type="button" className={styles.stay} onClick={onClose}>
-            {added ? 'Done' : 'Cancel'}
-          </button>
-          <button type="submit" className={styles.save}>
-            Add student
+          <button type="submit" className={styles.save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save section'}
           </button>
         </div>
       </form>

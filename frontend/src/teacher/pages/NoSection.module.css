@@ -29,3 +29,18 @@
   line-height: 1.4;
   color: var(--color-text-subtle);
 }
+
+/* The sections could not be loaded. */
+.problem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-danger-text);
+}
+
+.problem p {
+  margin: 0;
+}

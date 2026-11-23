@@ -13,13 +13,12 @@ function nextFriday(today: Date) {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-/** A brand-new Teacher: no sections, students or numbers yet. Lessons come from the backend. */
+/** A brand-new Teacher: no To dos or numbers yet. Lessons, sections and Students come from the backend. */
 function emptyData(): TeacherData {
   const today = new Date()
   return {
     // The real name comes from the session (see TeacherDataProvider).
     teacher: { name: '' },
-    sections: [],
     activeSectionId: '',
     todayLabel: dayLabel(today),
     weekSubject: '',
@@ -29,7 +28,7 @@ function emptyData(): TeacherData {
     weakTopics: [],
     week: [],
     ollieNote: 'Your class’s progress will show here after the first game.',
-    students: [],
+    justAdded: null,
     lessonNotes: {},
     checkSeenEnd: [],
     nextDueLabel: nextFriday(today),
@@ -38,8 +37,8 @@ function emptyData(): TeacherData {
 
 /**
  * Holds the Teacher Dashboard's in-memory data. It starts empty; what the Teacher adds
- * (sections, students, To dos) lives in memory until a refresh. Lessons and their
- * questions come from the backend (React Query, see useTeacherData.ts). The
+ * here (To dos, the open section tab) lives in memory until a refresh. Lessons,
+ * sections and Students come from the backend (React Query, see useTeacherData.ts). The
  * Teacher's name comes from the login (the email until /api/auth/me answers).
  */
 export function TeacherDataProvider({ children }: { children: ReactNode }) {

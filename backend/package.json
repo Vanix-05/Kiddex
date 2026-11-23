@@ -11,6 +11,7 @@
     "read-file": "tsx src/scripts/readFile.ts",
     "make-questions": "tsx src/scripts/makeQuestions.ts",
     "test-checks": "tsx src/scripts/testChecks.ts",
+    "test-students": "tsx src/scripts/testStudents.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

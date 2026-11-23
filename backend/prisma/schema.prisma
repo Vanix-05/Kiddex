@@ -24,6 +24,7 @@ model Teacher {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lessons      Lesson[]
+  sections     Section[]
 }
 
 // Runs the Admin page (Teacher accounts only). Not a Teacher: no lessons.
@@ -129,4 +130,59 @@ model Question {
   updatedAt   DateTime   @updatedAt
 
   @@index([lessonId, position])
+}
+
+// ---------- Sections and Students ----------
+// Students have NO names in KIDDEX (Master Brief 4.1): only a School ID. Never add
+// a name, email or photo column here.
+
+model Section {
+  id        String    @id @default(cuid())
+  teacherId String
+  teacher   Teacher   @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  grade     Int // 3 to 6
+  name      String // 1 to 30 characters, trimmed, e.g. "Sampaguita"
+  nameKey   String // the name in lowercase: one Teacher can't have "Sampaguita" and "sampaguita" in the same grade
+  color     String // yellow | pink | coral (the tab color)
+  icon      String // flower | tulip | rose (the tab icon)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  students  Student[]
+
+  @@unique([teacherId, grade, nameKey])
+  @@index([teacherId, createdAt])
+}
+
+model Student {
+  id        String  @id @default(cuid())
+  schoolId  String  @unique // 8 digits, no dash, e.g. "20260144" (shown as "2026-0144")
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+
+  // The one-time code is NOT hashed on purpose: the Teacher must be able to see it
+  // again (Show button, printing login cards). It works only once and is set to
+  // null when the Student makes their PIN code. 6 digits, no dash. Unique, so no
+  // two Students waiting to register ever share a code.
+  // The PIN code IS hashed (bcrypt, cost 12, like passwords): nobody can see it.
+  oneTimeCode  String?   @unique
+  codeMadeAt   DateTime?
+  pinHash      String? // bcrypt hash of the 4-digit PIN code, null until the Student makes one
+  tokenVersion Int       @default(0) // goes up on "New code", so old Student logins stop working
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  registeredAt DateTime?
+  lastLoginAt  DateTime?
+
+  // Filled in by the Student's first-time setup (st-3).
+  avatar             String?
+  buddy              String?
+  buddyName          String?
+  look               Json?
+  seenIntroClip      Boolean @default(false)
+  seenBridgeCutscene Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId, schoolId])
 }

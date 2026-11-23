@@ -9,6 +9,7 @@ import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
 import { lessonsRouter } from "./routes/lessons";
 import { questionsRouter } from "./routes/questions";
+import { sectionsRouter } from "./routes/sections";
 import { errorHandler, notFound } from "./middleware/errors";
 
 export const app = express();
@@ -40,9 +41,11 @@ app.use(adminRouter);
 
 // Everything about lessons and questions needs a logged-in Teacher. This runs
 // before the routes, so a file upload without a login is never read.
-app.use(["/api/lessons", "/api/questions"], requireTeacher);
+// Sections and Students too: a Teacher only ever sees their own.
+app.use(["/api/lessons", "/api/questions", "/api/sections", "/api/students"], requireTeacher);
 app.use(lessonsRouter);
 app.use(questionsRouter);
+app.use(sectionsRouter);
 
 // These two must stay last.
 app.use(notFound);

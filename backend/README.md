@@ -75,6 +75,7 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. Add `--password "..."` to choose it instead. |
 | `npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"` | Makes an admin account for the Admin page and prints a temporary password once. Add `--password "..."` to choose it instead (testing; see "Choosing the password"). |
 | `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). Add `--password "..."` to choose it instead. |
+| `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`) and the 45-Students rule, and prints PASS or FAIL for each. Needs no database. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
 
 ## Check that it runs
@@ -205,7 +206,7 @@ Same style as the Teacher scripts: a duplicate email is refused, the temporary p
 - **Too many wrong tries:** each wrong password counts. At **5** in a row the account is locked for **5 minutes** (and the count starts again); while locked even the right password answers `429 TOO_MANY_TRIES`. A right login clears the count. An admin can clear a lock at once with `npm run reset-teacher-password`.
 - **Per computer:** the login address allows at most **20 tries per 15 minutes** from one IP address (any result), then `429 TOO_MANY_TRIES`. This count lives in memory and starts again when the server restarts. `trust proxy` is set to 1 because the real server (Render) sits behind one proxy.
 - **Turned off by an admin:** the right password answers `403 ACCOUNT_OFF` "This account is turned off. Please ask your school's KIDDEX admin." The password is checked first, so a wrong one still gets `WRONG_LOGIN`.
-- **Every `/api/lessons...` and `/api/questions...` address needs the token.** No token, a wrong or expired token, an admin token, a deleted Teacher, a reset password or a turned-off account: `401 LOGIN_NEEDED` "Please log in again.". Only `/`, `/api/ping`, `/api/health` and the two login addresses (Teacher and admin) are open.
+- **Every `/api/lessons...`, `/api/questions...`, `/api/sections...` and `/api/students...` address needs the token.** No token, a wrong or expired token, an admin token, a deleted Teacher, a reset password or a turned-off account: `401 LOGIN_NEEDED` "Please log in again.". Only `/`, `/api/ping`, `/api/health` and the two login addresses (Teacher and admin) are open.
 - The login rules are shared with the admin login (`src/auth/accountLogin.ts`).
 - **Database not reachable:** `503 DB_UNAVAILABLE` "We can't reach KIDDEX right now. Please try again in a minute." (after one more try a second later, for a database that is waking up).
 
@@ -245,6 +246,25 @@ Lesson `status`: `uploaded` → `making` → `ready` (or `failed`) → `approved
 
 **Saved in the database:** lessons and their questions are kept in the `Lesson` and `Question` tables (through `src/store/lessonStore.ts`), so they survive a restart. There is no limit on how many lessons a Teacher keeps. Every lesson belongs to the logged-in Teacher (its `ownerId` is the Teacher's id, from `src/auth/currentTeacher.ts`); another Teacher's lesson or question answers `404`.
 
+### Sections and Students
+
+Every address below needs a Teacher login token. A Teacher only ever sees and changes their **own** sections and Students: another Teacher's section answers `404 SECTION_NOT_FOUND`, the same as an unknown one.
+
+| Address | What it does |
+| --- | --- |
+| `GET /api/sections` | My sections, oldest first: `id, grade, name, color, icon, studentCount, registeredCount`. |
+| `POST /api/sections` | Body `{ "grade": 3-6, "name": 1-30 characters }`. The server picks the next tab look: yellow/flower, pink/tulip, coral/rose, then again. Same grade + name already mine (any capitals): `409 SECTION_TAKEN`. Answers `201` `{ section }`. |
+| `GET /api/sections/:sectionId/students` | The section's Students in School ID order: `id, schoolId` (`2026-0144`), `registered` (has a PIN code), `oneTimeCode` (`482-915`, only while not registered, else `null`), `buddy, buddyName, lastLoginAt, registeredAt`. Never a hash. |
+| `POST /api/sections/:sectionId/students` | Body `{ "schoolIds": [...] }` (1 to 45). Adds the good ones, each with a new one-time code, and answers `201` `{ added, skipped: [{ schoolId, reason }] }`. Reasons: `BAD_FORMAT` (not 8 digits), `DUPLICATE_IN_LIST`, `ALREADY_IN_SECTION`, `IN_ANOTHER_SECTION` (any other section, also another Teacher's; it never says whose). |
+| `POST /api/students/:studentId/new-code` | A new one-time code for one of my Students (lost card or forgotten PIN code). The PIN code is removed, `tokenVersion` goes up (any open Student login ends), wrong tries and the lock are cleared. `registeredAt`, the buddy, the setup and all progress are **kept**. Also works for a Student who has a code but no PIN code yet (the old code stops working). Answers `{ student }` (same shape as the list, with the new `oneTimeCode`). Another Teacher's Student: `404 STUDENT_NOT_FOUND`. |
+
+- **School IDs:** `2026-0144`, `20260144` or with spaces are all fine; saved as 8 digits (`20260144`), shown as `2026-0144`.
+- **One-time codes:** 6 random digits from `crypto.randomInt`, never used by another Student at the same time.
+- **At most 45 Students per section.** If the good new ones don't fit, **nothing** is added: `409 SECTION_FULL` "This section has room for N more Students.". The section row is locked during the check, so two quick clicks can't go over 45 together.
+- Adding is **one transaction**: every good School ID is added, or none.
+- There are no delete addresses for sections or Students yet (on purpose). A section with Students can't be deleted from the database, and a Teacher with sections can't either.
+- **Database not reachable:** `503 DB_UNAVAILABLE` "We can't reach your class lists right now. Please try again in a minute."
+
 ### The database tables
 
 | Table | What it holds |
@@ -252,6 +272,8 @@ Lesson `status`: `uploaded` → `making` → `ready` (or `failed`) → `approved
 | `Teacher` | One row per Teacher account (email, name, password hash, login lock). |
 | `Lesson` | One row per uploaded lesson: its owner, the file's name, type and counts, the lesson **text** (`units`, as JSON), the picked topic, subject, grade and games, and its `status`. The original file is never stored. |
 | `Question` | One row per question card of a lesson, with its `position` (order in the Check list, 1, 2, 3…), `flagChecked` and `madeBy`. Deleted together with its lesson. |
+| `Section` | One row per class section of a Teacher (grade 3–6, name, tab color and icon). `nameKey` is the name in lowercase, so one Teacher can't have the same grade + name twice in any capitals. |
+| `Student` | One row per Student: **School ID only, no name, email or photo** (Master Brief 4.1). The one-time code (not hashed, so the Teacher can show and print it; it works once and is removed when the PIN code is made), the PIN code's bcrypt hash, login lock fields, and the setup choices (buddy, look…) filled in later. |
 
 - Saving the AI's cards, adding a question, deleting one (the rest are renumbered) and Approve all each happen in **one transaction**: all or nothing.
 - "At most 2 lessons made at the same time" counts the `making` lessons in the database.

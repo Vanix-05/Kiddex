@@ -1,15 +1,23 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { ArrowRight, Check, Flame, KeyRound, Plus, Printer, Search, Users, X } from 'lucide-react'
-import { useSection, useStudents } from '../data/useTeacherData'
+import { ArrowRight, Check, Eye, Flame, KeyRound, Lock, Plus, Printer, Search, Users, X } from 'lucide-react'
+import { errorMessage } from '../api/client'
+import { MAX_STUDENTS_PER_SECTION } from '../data/schoolIds'
+import { useJustAdded, useSection, useStudentsLoad, useTeacher } from '../data/useTeacherData'
 import type { Student, StudentFilter } from '../data/types'
 import { buddyHeads } from '../assets'
 import { usePlannerActions } from '../planner/plannerActions'
 import { Bar, Btn, Chip, Pills, Title } from '../planner/ui'
+import { toLoginCards, usePrintCards } from '../print/printCards'
+import { CodesReady } from './CodesReady'
+import { PrintCardsView } from './PrintCardsView'
 import styles from './StudentsWindow.module.css'
 
 const PER_PAGE = 10
 const FILTERS: StudentFilter[] = ['all', 'registered', 'notYet', 'help']
 const isFilter = (f: string | null): f is StudentFilter => FILTERS.includes(f as StudentFilter)
+
+/** Print login cards opened from the list or from "Login codes are ready!". */
+type PrintFrom = 'list' | 'codes'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -36,6 +44,17 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
   const [filter, setFilter] = useState<StudentFilter>(isFilter(initialFilter) ? initialFilter : 'all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
+  // Rows whose one-time code is showing (by Student id). Only while the window
+  // is open: codes are hidden again when it opens next time.
+  const [shownCodes, setShownCodes] = useState<ReadonlySet<string>>(() => new Set())
+  // The Print login cards view, and where it was opened from (Back goes there).
+  const [printFrom, setPrintFrom] = useState<PrintFrom | null>(null)
+  const toggleCode = (id: string) =>
+    setShownCodes((before) => {
+      const next = new Set(before)
+      if (!next.delete(id)) next.add(id)
+      return next
+    })
 
   // A new filter from the URL (e.g. "See who" while it's open).
   const [seenFilter, setSeenFilter] = useState(initialFilter)
@@ -86,6 +105,10 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
       }}
       page={page}
       onPage={setPage}
+      shownCodes={shownCodes}
+      onToggleCode={toggleCode}
+      printFrom={printFrom}
+      onPrintView={setPrintFrom}
     />
   )
 
@@ -149,16 +172,71 @@ interface SheetContentProps {
   onSearch: (s: string) => void
   page: number
   onPage: (p: number) => void
+  /** Rows whose one-time code is showing. */
+  shownCodes: ReadonlySet<string>
+  onToggleCode: (studentId: string) => void
+  printFrom: PrintFrom | null
+  /** Opens (or with null closes) the Print login cards view. */
+  onPrintView: (from: PrintFrom | null) => void
 }
 
 const matches = (s: Student, f: StudentFilter) =>
   f === 'all' || (f === 'registered' ? s.registered : f === 'notYet' ? !s.registered : !!s.needsHelp)
 
-function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPage }: SheetContentProps) {
-  const students = useStudents()
-  const { active } = useSection()
-  const { newSection, addStudent } = usePlannerActions()
+/** "–" for a number that isn't there yet (read as "none yet"). */
+function Dash() {
+  return (
+    <span className={styles.muted}>
+      <span aria-hidden="true">–</span>
+      <span className="visually-hidden">none yet</span>
+    </span>
+  )
+}
+
+/** Loading, or the friendly error with Try again. */
+function LoadNote({ titleId, sub, error, onRetry }: { titleId?: string; sub?: string; error: unknown; onRetry: () => void }) {
+  return (
+    <div className={styles.content}>
+      <Title id={titleId}>My Students</Title>
+      {sub && <p className={styles.sub}>{sub}</p>}
+      {error ? (
+        <div className={styles.loadError} role="alert">
+          <p>{errorMessage(error)}</p>
+          <Btn onClick={onRetry}>Try again</Btn>
+        </div>
+      ) : (
+        <p className={styles.loading} role="status">
+          Loading your students…
+        </p>
+      )}
+    </div>
+  )
+}
+
+function SheetContent({
+  titleId,
+  filter,
+  onFilter,
+  search,
+  onSearch,
+  page,
+  onPage,
+  shownCodes,
+  onToggleCode,
+  printFrom,
+  onPrintView,
+}: SheetContentProps) {
+  const { students, loading, error, retry } = useStudentsLoad()
+  const { active, loading: sectionsLoading, error: sectionsError, retry: retrySections } = useSection()
+  const { justAdded, clear: backToList } = useJustAdded()
+  const { newSection, addStudent, newCode } = usePlannerActions()
+  const teacher = useTeacher()
+  const print = usePrintCards()
   const searchId = useId()
+
+  if (!active && (sectionsLoading || sectionsError)) {
+    return <LoadNote titleId={titleId} error={sectionsError} onRetry={retrySections} />
+  }
 
   // Before the first section: one friendly message and a way to make it.
   if (!active) {
@@ -180,7 +258,39 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
     )
   }
 
-  const sub = `Grade ${active.grade} – ${active.name} · ${students.length} student${students.length === 1 ? '' : 's'}`
+  // Print login cards: Back goes to where it was opened from.
+  if (printFrom) {
+    return (
+      <PrintCardsView
+        titleId={titleId}
+        section={active}
+        justAdded={printFrom === 'codes' ? justAdded : null}
+        onBack={() => onPrintView(null)}
+      />
+    )
+  }
+
+  /** Card: prints just this Student's login card (no options view). */
+  const printOne = (s: Student) => print(toLoginCards([s], active, teacher.name))
+
+  // Just added: their one-time codes, until "← My Students" or the window closes.
+  if (justAdded) {
+    return (
+      <CodesReady
+        titleId={titleId}
+        section={active}
+        justAdded={justAdded}
+        onBack={backToList}
+        onPrint={() => onPrintView('codes')}
+        onCard={printOne}
+      />
+    )
+  }
+
+  const sectionName = `Grade ${active.grade} – ${active.name}`
+  if (loading || error) return <LoadNote titleId={titleId} sub={sectionName} error={error} onRetry={retry} />
+
+  const sub = `${sectionName} · ${students.length} of ${MAX_STUDENTS_PER_SECTION} students`
 
   if (students.length === 0) {
     return (
@@ -206,13 +316,9 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
     )
   }
 
-  const q = search.trim().toLowerCase()
-  const digits = q.replace(/\D/g, '')
-  const found = students.filter(
-    (s) =>
-      matches(s, filter) &&
-      (!q || s.name.toLowerCase().includes(q) || (digits !== '' && s.schoolId.replace(/\D/g, '').includes(digits))),
-  )
+  // Search: digits only, matching any part of the School ID.
+  const digits = search.replace(/\D/g, '')
+  const found = students.filter((s) => matches(s, filter) && (!digits || s.schoolId.replace(/\D/g, '').includes(digits)))
   const pages = Math.max(1, Math.ceil(found.length / PER_PAGE))
   const current = Math.min(page, pages - 1)
   const rows = found.slice(current * PER_PAGE, current * PER_PAGE + PER_PAGE)
@@ -228,21 +334,21 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
         <div className={styles.tools}>
           <label className={styles.search} htmlFor={searchId}>
             <Search size={20} aria-hidden="true" />
-            <span className="visually-hidden">Search students</span>
+            <span className="visually-hidden">Search School ID</span>
             <input
               id={searchId}
               type="search"
+              inputMode="numeric"
               value={search}
-              placeholder="Search name or School ID"
-              onChange={(e) => onSearch(e.target.value)}
+              maxLength={12}
+              placeholder="Search School ID"
+              onChange={(e) => onSearch(e.target.value.replace(/[^\d-]/g, ''))}
             />
           </label>
           <Btn
             className={styles.toolButton}
             icon={<Printer size={20} aria-hidden="true" />}
-            onClick={() => {
-              // TODO: print login cards.
-            }}
+            onClick={() => onPrintView('list')}
           >
             Print login cards
           </Btn>
@@ -274,25 +380,32 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
       <table className={styles.table}>
         <thead>
           <tr>
-            <th scope="col">Student</th>
             <th scope="col">School ID</th>
+            <th scope="col">Buddy</th>
             <th scope="col">Login</th>
             <th scope="col">Last played</th>
             <th scope="col">Mastery</th>
             <th scope="col">Streak</th>
             <th scope="col">
-              <span className="visually-hidden">Action</span>
+              <span className="visually-hidden">Actions</span>
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map((s) => (
-            <StudentRow key={s.id} s={s} />
+            <StudentRow
+              key={s.id}
+              s={s}
+              codeShown={shownCodes.has(s.id)}
+              onToggleCode={() => onToggleCode(s.id)}
+              onNewCode={() => newCode(s)}
+              onCard={() => printOne(s)}
+            />
           ))}
           {rows.length === 0 && (
             <tr>
               <td colSpan={7} className={styles.noMatch}>
-                No students match. Try another name or School ID.
+                No students match. Try another School ID.
               </td>
             </tr>
           )}
@@ -300,11 +413,9 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
       </table>
 
       <div className={styles.foot}>
-        <span>
-          {found.length === 0
-            ? 'Showing 0'
-            : `Showing ${current * PER_PAGE + 1}–${current * PER_PAGE + rows.length} of ${found.length}`}{' '}
-          · tap a student to see their profile
+        <span className={styles.footNote}>
+          <Lock size={17} strokeWidth={2.2} aria-hidden="true" />
+          Codes stay hidden until you tap Show. You never see a Student’s PIN code.
         </span>
         {pages > 1 && (
           <nav className={styles.pages} aria-label="Pages">
@@ -327,7 +438,17 @@ function SheetContent({ titleId, filter, onFilter, search, onSearch, page, onPag
   )
 }
 
-function StudentRow({ s }: { s: Student }) {
+interface StudentRowProps {
+  s: Student
+  codeShown: boolean
+  onToggleCode: () => void
+  /** The Give a new login code popup. */
+  onNewCode: () => void
+  /** Prints this Student's login card. */
+  onCard: () => void
+}
+
+function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard }: StudentRowProps) {
   return (
     <tr className={styles.row}>
       <th scope="row" className={styles.who}>
@@ -336,9 +457,9 @@ function StudentRow({ s }: { s: Student }) {
         ) : (
           <span className={`${styles.avatar} ${styles.avatarEmpty}`} aria-hidden="true" />
         )}
-        {s.name}
+        {s.schoolId}
       </th>
-      <td className={styles.schoolId}>{s.schoolId}</td>
+      <td className={styles.buddy}>{s.buddyName ?? <Dash />}</td>
       <td>
         {s.registered ? (
           <Chip tone="ok" className={styles.loginChip} icon={<Check size={15} strokeWidth={3} aria-hidden="true" />}>
@@ -350,54 +471,85 @@ function StudentRow({ s }: { s: Student }) {
           </Chip>
         )}
       </td>
-      <td>{s.lastPlayed ?? <span aria-label="not yet">–</span>}</td>
+      <td>{s.lastPlayed ?? <Dash />}</td>
       <td>
-        {s.registered && s.mastery !== undefined ? (
-          <span className={styles.mastery}>
-            <Bar percent={s.mastery} className={styles.masteryBar} />
-            <strong>{s.mastery}%</strong>
-          </span>
+        {s.registered ? (
+          s.mastery !== undefined ? (
+            <span className={styles.mastery}>
+              <Bar percent={s.mastery} className={styles.masteryBar} />
+              <strong>{s.mastery}%</strong>
+            </span>
+          ) : (
+            <Dash />
+          )
         ) : (
           <span className={styles.code}>
-            Code <Chip tone="code">{s.oneTimeCode}</Chip>
+            Code
+            {codeShown ? (
+              <Chip tone="code" className={styles.codeChip}>
+                {s.oneTimeCode ?? '–'}
+              </Chip>
+            ) : (
+              <span className={styles.codeDots}>
+                <span aria-hidden="true">•••-•••</span>
+                <span className="visually-hidden">hidden</span>
+              </span>
+            )}
+            <button
+              type="button"
+              className={styles.showPill}
+              aria-label={`${codeShown ? 'Hide' : 'Show'} the code for ${s.schoolId}`}
+              onClick={onToggleCode}
+            >
+              {!codeShown && <Eye size={16} strokeWidth={2.2} aria-hidden="true" />}
+              {codeShown ? 'Hide' : 'Show'}
+            </button>
           </span>
         )}
       </td>
       <td>
-        {!s.registered ? (
-          <span className={styles.muted}>–</span>
-        ) : s.streak ? (
+        {s.registered && s.streak !== undefined ? (
           <span className={styles.streak}>
             <Flame size={17} aria-hidden="true" />
             <strong>{s.streak}</strong>
             <span className="visually-hidden"> day streak</span>
           </span>
         ) : (
-          <span className={styles.muted}>0</span>
+          <Dash />
         )}
       </td>
       <td>
-        {s.registered ? (
-          <Btn
-            variant="link"
-            aria-label={`Open ${s.name}`}
-            onClick={() => {
-              // TODO: open the student's profile.
-            }}
-          >
-            Open <ArrowRight size={17} aria-hidden="true" />
-          </Btn>
-        ) : (
-          <Btn
-            variant="link"
-            aria-label={`New code for ${s.name}`}
-            onClick={() => {
-              // TODO: make a new one-time code.
-            }}
-          >
-            <KeyRound size={16} aria-hidden="true" /> New code
-          </Btn>
-        )}
+        <span className={styles.actions}>
+          {s.registered ? (
+            <>
+              <Btn
+                variant="link"
+                className={styles.quietLink}
+                aria-label={`New code for ${s.schoolId}`}
+                onClick={onNewCode}
+              >
+                <KeyRound size={16} aria-hidden="true" /> New code
+              </Btn>
+              <Btn
+                variant="link"
+                aria-label={`Open ${s.schoolId}`}
+                onClick={() => {
+                  // TODO: open the Student's profile.
+                }}
+              >
+                Open <ArrowRight size={17} aria-hidden="true" />
+              </Btn>
+            </>
+          ) : (
+            <Btn
+              variant="link"
+              aria-label={`Login card for ${s.schoolId}`}
+              onClick={onCard}
+            >
+              <Printer size={16} aria-hidden="true" /> Card
+            </Btn>
+          )}
+        </span>
       </td>
     </tr>
   )

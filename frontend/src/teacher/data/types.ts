@@ -1,7 +1,7 @@
 /**
- * The shapes of the Teacher Dashboard data. Lessons and their questions come from
- * the backend (src/teacher/api); sections, students, To dos and stats are still
- * kept in memory (TeacherDataProvider) until they get their own addresses.
+ * The shapes of the Teacher Dashboard data. Lessons, sections and Students come
+ * from the backend (src/teacher/api); To dos and stats are still kept in memory
+ * (TeacherDataProvider) until they get their own addresses.
  */
 import type { QuestionCard, TemplateId } from '../../content/questionCard'
 
@@ -84,15 +84,21 @@ export interface UpcomingItem {
 
 export type StudentFilter = 'all' | 'registered' | 'notYet' | 'help'
 
+/**
+ * A Student. Students have NO names in KIDDEX (Master Brief 4.1): only a School ID.
+ * lastPlayed, mastery, streak and needsHelp stay empty until games save progress.
+ */
 export interface Student {
   id: string
-  name: string
   /** e.g. "2026-0144" */
   schoolId: string
+  /** Has made their PIN code. */
   registered: boolean
   /** Not registered yet: the one-time code on their login card, e.g. "482-915". */
   oneTimeCode?: string
   buddy?: BuddyHead
+  /** The name the Student gave their buddy, e.g. "Mochi". */
+  buddyName?: string
   /** e.g. "Today", "Nov 4" */
   lastPlayed?: string
   /** 0–100 */
@@ -151,10 +157,23 @@ export interface LessonNote {
 
 export type Level = QuestionCard['level']
 
+/** A School ID the server skipped when adding Students, and why. */
+export interface SkippedSchoolId {
+  schoolId: string
+  reason: 'BAD_FORMAT' | 'DUPLICATE_IN_LIST' | 'ALREADY_IN_SECTION' | 'IN_ANOTHER_SECTION'
+}
+
+/** The Students just added (for "Login codes are ready!"), until My Students closes. */
+export interface JustAdded {
+  sectionId: string
+  added: Student[]
+  skipped: SkippedSchoolId[]
+}
+
 /** Everything the dashboard shows. */
 export interface TeacherData {
   teacher: Teacher
-  sections: Section[]
+  /** The open section tab (screen only; sections come from the backend). "" = the first one. */
   activeSectionId: string
   /** e.g. "Thursday, November 6" */
   todayLabel: string
@@ -167,7 +186,8 @@ export interface TeacherData {
   week: DayPlays[]
   /** Ollie's note on Home. */
   ollieNote: string
-  students: Student[]
+  /** The Students just added, shown as "Login codes are ready!" in My Students. */
+  justAdded: JustAdded | null
   /** Screen-only notes on server lessons, by lesson id (review pack games, assigned). */
   lessonNotes: Record<string, LessonNote>
   /** Lessons whose Check list was read to the end once (unlocks Approve all for this session). */
