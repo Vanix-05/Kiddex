@@ -12,19 +12,21 @@ datasource db {
 }
 
 model Teacher {
-  id           String    @id @default(cuid())
-  email        String    @unique // always saved trimmed + lowercase
-  name         String // shown in the planner, e.g. "Mr. Gucci"
-  passwordHash String // bcrypt hash, never the password
-  tokenVersion Int       @default(0) // goes up when the password is reset, so old logins stop working
-  failedLogins Int       @default(0) // for the "too many wrong tries" rule
-  lockedUntil  DateTime? // same
-  lastLoginAt  DateTime?
-  active       Boolean   @default(true) // false = turned off by an admin: can't log in, lessons kept
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  lessons      Lesson[]
-  sections     Section[]
+  id                  String    @id @default(cuid())
+  email               String    @unique // always saved trimmed + lowercase
+  name                String // shown in the planner, e.g. "Mr. Gucci"
+  passwordHash        String // bcrypt hash, never the password
+  tokenVersion        Int       @default(0) // goes up when the password is reset, so old logins stop working
+  failedLogins        Int       @default(0) // for the "too many wrong tries" rule
+  lockedUntil         DateTime? // same
+  lastLoginAt         DateTime?
+  active              Boolean   @default(true) // false = turned off by an admin: can't log in, lessons kept
+  passwordIsTemporary Boolean   @default(true) // true after the admin makes or resets it; false after the Teacher picks their own
+  passwordNoteHidden  Boolean   @default(false) // the Teacher closed the sticky note (X)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lessons             Lesson[]
+  sections            Section[]
 }
 
 // Runs the Admin page (Teacher accounts only). Not a Teacher: no lessons.

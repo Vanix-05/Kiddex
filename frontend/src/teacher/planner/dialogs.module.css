@@ -239,3 +239,126 @@
   cursor: not-allowed;
   translate: none;
 }
+
+.stay:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  translate: none;
+}
+
+/* ---------- Change password ---------- */
+
+/* A password box with the eye button inside (first box only). */
+.passBox {
+  position: relative;
+}
+
+.inputWithEye {
+  padding-right: 54px;
+}
+
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  translate: 0 -50%;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.eye:hover {
+  background: var(--color-card-bg);
+  color: var(--color-text);
+}
+
+.eye[aria-pressed='true'] {
+  color: var(--color-link);
+}
+
+.hint {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.formError {
+  text-align: center;
+}
+
+/*
+ * Short screens (a phone held sideways, 844x390): two columns, 720px wide.
+ * The ring, title and intro on the left, the form on the right; 44px boxes and
+ * smaller gaps, so nothing scrolls.
+ */
+@media (max-height: 520px) {
+  .cardSplit {
+    width: min(720px, 100%);
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+    align-items: center;
+    gap: 28px;
+    padding: 18px 24px;
+    text-align: left;
+  }
+
+  .cardSplit .ring {
+    width: 56px;
+    height: 56px;
+    margin: 0 0 10px;
+  }
+
+  .cardSplit .ring svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .cardSplit .title {
+    font-size: 25px;
+  }
+
+  .cardSplit .text {
+    font-size: 16px;
+  }
+
+  .cardSplit .form {
+    margin-top: 0;
+  }
+
+  .cardSplit .field {
+    margin-bottom: 8px;
+  }
+
+  .cardSplit .label {
+    margin-bottom: 3px;
+    font-size: 15px;
+  }
+
+  .cardSplit .input {
+    min-height: 44px;
+    font-size: 17px;
+  }
+
+  .cardSplit .error,
+  .cardSplit .hint {
+    min-height: 0;
+    margin-top: 2px;
+    font-size: 14px;
+  }
+
+  .cardSplit .row {
+    margin-top: 12px;
+  }
+
+  .cardSplit .stay,
+  .cardSplit .save {
+    min-height: 46px;
+    font-size: 17px;
+  }
+}

@@ -43,7 +43,20 @@ export interface AccountChanges {
   lastLoginAt?: Date;
   passwordHash?: string;
   tokenVersion?: { increment: number };
+  /** Teachers only (see TEMPORARY_PASSWORD_FLAGS). */
+  passwordIsTemporary?: boolean;
+  passwordNoteHidden?: boolean;
 }
+
+/**
+ * Saved with every password the admin makes (new account or reset): it is
+ * temporary, and the "still temporary" sticky note shows again. Teachers only:
+ * admins don't have these fields.
+ */
+const TEMPORARY_PASSWORD_FLAGS: Record<AccountRole, Pick<AccountChanges, "passwordIsTemporary" | "passwordNoteHidden">> = {
+  teacher: { passwordIsTemporary: true, passwordNoteHidden: false },
+  admin: {},
+};
 
 interface AccountTable {
   /** "Teacher" or "admin", for messages. */
@@ -54,7 +67,9 @@ interface AccountTable {
   findForCheck(id: string): Promise<CheckedAccount | null>;
   findByEmail(email: string): Promise<AccountInfo | null>;
   update(id: string, changes: AccountChanges): Promise<AccountInfo>;
-  create(data: { name: string; email: string; passwordHash: string }): Promise<AccountInfo>;
+  create(
+    data: { name: string; email: string; passwordHash: string } & Pick<AccountChanges, "passwordIsTemporary" | "passwordNoteHidden">,
+  ): Promise<AccountInfo>;
 }
 
 const LOGIN_FIELDS = {
@@ -117,7 +132,11 @@ export async function createAccount(
   if (await table.findByEmail(data.email)) throw emailTaken(role);
   const temporaryPassword = chosenPassword ?? makeTemporaryPassword();
   try {
-    const account = await table.create({ ...data, passwordHash: await hashPassword(temporaryPassword) });
+    const account = await table.create({
+      ...data,
+      passwordHash: await hashPassword(temporaryPassword),
+      ...TEMPORARY_PASSWORD_FLAGS[role],
+    });
     return { account, temporaryPassword };
   } catch (err) {
     // Two requests at once with the same email: the database refuses the second.
@@ -142,6 +161,7 @@ export async function resetAccountPassword(
     tokenVersion: { increment: 1 },
     failedLogins: 0,
     lockedUntil: null,
+    ...TEMPORARY_PASSWORD_FLAGS[role],
   });
   return { account, temporaryPassword };
 }

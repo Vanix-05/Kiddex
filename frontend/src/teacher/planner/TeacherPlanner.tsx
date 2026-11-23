@@ -8,6 +8,7 @@ import {
   Flower,
   Flower2,
   House,
+  KeyRound,
   LogOut,
   Maximize,
   Plus,
@@ -26,7 +27,10 @@ import { sectionLabel, useJustAdded, useSection, useTeacher } from '../data/useT
 import type { SectionIcon, Student } from '../data/types'
 import { StudentsWindow } from '../pages/StudentsWindow'
 import { AddStudentsDialog } from './AddStudentsDialog'
-import { LogOutDialog, NewSectionDialog } from './Dialogs'
+import { authApi } from '../api/authApi'
+import { usePasswordFlags, useSetPasswordFlags } from '../data/usePasswordFlags'
+import { ChangePasswordDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
+import { PasswordNote } from './PasswordNote'
 import { NewCodeDialog } from './NewCodeDialog'
 import { LazyTeacherLobbyScreen } from '../../screens/Lobby/LazyLobby'
 import { isLobbyPath, isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
@@ -145,7 +149,7 @@ interface Flip {
 const SWIPE_MIN = 60
 
 type WindowState = 'hidden' | 'open' | 'closing'
-type Popup = 'newSection' | 'addStudent' | 'newCode' | 'logOut' | null
+type Popup = 'newSection' | 'addStudent' | 'newCode' | 'logOut' | 'password' | null
 
 /**
  * The Teacher Dashboard: an open hardcover planner on the island scene.
@@ -268,6 +272,35 @@ function Planner() {
 
   const closeWindow = () => navigate(bookUrl)
   const close = () => setPopup(null)
+
+  // The password flags (GET /api/auth/me): null while loading or if it failed,
+  // then no dot and no note (never blocks the page).
+  const passwordFlags = usePasswordFlags()
+  const setPasswordFlags = useSetPasswordFlags()
+  const temporary = passwordFlags?.temporary === true
+  const showNote = temporary && passwordFlags?.noteHidden === false
+  // Opening a popup makes the badge and chrome inert, which takes focus away from
+  // the button that opened it, so remember that button here and give focus back
+  // after (the key button if it's gone, like the note after a change).
+  const passwordOpener = useRef<HTMLElement | null>(null)
+  const keyButtonRef = useRef<HTMLButtonElement>(null)
+  const openPassword = () => {
+    passwordOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setPopup('password')
+  }
+  const closePassword = () => {
+    setPopup(null)
+    // After React has removed the popup and the inert.
+    requestAnimationFrame(() => {
+      const back = passwordOpener.current?.isConnected ? passwordOpener.current : keyButtonRef.current
+      back?.focus({ preventScroll: true })
+    })
+  }
+  // The note's X: hidden at once; if saving that fails, it stays hidden on this tab.
+  const hideNote = () => {
+    setPasswordFlags({ noteHidden: true })
+    authApi.hidePasswordNote().catch(() => console.warn('[planner] Could not save that the password note was closed.'))
+  }
   // Students added: "Login codes are ready!" shows in My Students (opened if it isn't).
   const studentsAdded = () => {
     setPopup(null)
@@ -391,6 +424,8 @@ function Planner() {
               </div>
             )
           )}
+          {/* Laptop: left of Full screen, outside the book (also in full screen mode). */}
+          {showNote && !phone && <PasswordNote phone={false} onChange={openPassword} onHide={hideNote} />}
           {win !== 'hidden' && (
             <StudentsWindow
               closing={win === 'closing'}
@@ -411,13 +446,27 @@ function Planner() {
           style={fitStyle}
           inert={popup && popup !== 'logOut' ? true : undefined}
         >
-          <TeacherBadge lit={popup === 'logOut'} onLogOut={() => setPopup('logOut')} />
+          <TeacherBadge
+            lit={popup === 'logOut'}
+            temporary={temporary}
+            onLogOut={() => setPopup('logOut')}
+            onPassword={openPassword}
+            keyButtonRef={keyButtonRef}
+          />
         </div>
+
+        {/* Phone: no room in the top bar, so the note sits in the screen's bottom-right corner. */}
+        {showNote && phone && (
+          <div className={styles.notePhoneLayer} inert={popup ? true : undefined}>
+            <PasswordNote phone onChange={openPassword} onHide={hideNote} />
+          </div>
+        )}
 
         {popup === 'logOut' && <LogOutDialog onStay={close} onLogOut={leave} />}
         {popup === 'newSection' && <NewSectionDialog onClose={close} />}
         {popup === 'addStudent' && <AddStudentsDialog onClose={close} onAdded={studentsAdded} />}
         {popup === 'newCode' && codeFor && <NewCodeDialog student={codeFor} onClose={close} />}
+        {popup === 'password' && <ChangePasswordDialog onClose={closePassword} />}
       </div>
       </PhonePagesContext.Provider>
     </PlannerActionsContext.Provider>
@@ -753,8 +802,24 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase()
 
-/** A Teacher ID on a lanyard, under the Lobby bookmark: the name, "Teacher" and Log out. */
-function TeacherBadge({ lit, onLogOut }: { lit: boolean; onLogOut: () => void }) {
+/**
+ * A Teacher ID on a lanyard, under the Lobby bookmark: the name, "Teacher", Log out,
+ * and a key button (Change password) on the maroon strip, with an orange dot while
+ * the password is still temporary.
+ */
+function TeacherBadge({
+  lit,
+  temporary,
+  onLogOut,
+  onPassword,
+  keyButtonRef,
+}: {
+  lit: boolean
+  temporary: boolean
+  onLogOut: () => void
+  onPassword: () => void
+  keyButtonRef: RefObject<HTMLButtonElement | null>
+}) {
   const teacher = useTeacher()
   return (
     <div className={styles.badgeWrap}>
@@ -771,6 +836,19 @@ function TeacherBadge({ lit, onLogOut }: { lit: boolean; onLogOut: () => void })
         </button>
       </div>
       <span className={styles.clip} aria-hidden="true" />
+      {/* Outside the card (which clips), so its 44px hit area isn't cut off. */}
+      <button
+        ref={keyButtonRef}
+        type="button"
+        className={styles.keyButton}
+        onClick={onPassword}
+        aria-label="Change password"
+        title="Change password"
+        aria-haspopup="dialog"
+      >
+        <KeyRound size={17} strokeWidth={2.6} aria-hidden="true" />
+        {temporary && <span className={styles.keyDot} aria-hidden="true" />}
+      </button>
     </div>
   )
 }

@@ -969,6 +969,191 @@
   outline-offset: 3px;
 }
 
+/*
+ * Change password: a small round key button on the badge's maroon strip, top
+ * right, above the avatar's corner. Outside the card (which clips), so its hit
+ * area (::before, 50 design px = 44px on a 1366x768 laptop) is never cut off.
+ */
+.keyButton {
+  position: absolute;
+  left: 91px;
+  top: 39px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--color-story-gold);
+  border-radius: 50%;
+  background: #fffaf0;
+  box-shadow: 0 2px 0 rgba(60, 30, 10, 0.3);
+  color: var(--color-story-cover);
+  cursor: pointer;
+}
+
+.keyButton::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+}
+
+.keyButton:hover {
+  background: var(--color-tint-peach);
+}
+
+/* While the password is still temporary. */
+.keyDot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fffaf0;
+  border-radius: 50%;
+  background: var(--color-button-bg);
+}
+
+/* ---------- The "still temporary" sticky note ---------- */
+
+/*
+ * Laptop: in the top bar (design px, scaled with the planner), left of Full
+ * screen and right of the section tabs (which end at x 840), above the cover
+ * (y 106). Absolutely placed, so Full screen never moves.
+ */
+.note {
+  position: absolute;
+  right: 206px;
+  top: 46px;
+  width: 330px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px 7px 14px;
+  border-radius: 3px 3px 6px 4px;
+  background: var(--color-sticky-yellow);
+  box-shadow:
+    0 2px 0 rgba(120, 90, 20, 0.18),
+    0 8px 14px rgba(60, 30, 10, 0.22);
+  rotate: -2deg;
+  color: var(--color-text);
+}
+
+/* A strip of tape on top. */
+.noteTape {
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  width: 72px;
+  height: 17px;
+  translate: -50% 0;
+  rotate: 2deg;
+  /* The same tape as Ollie's note. */
+  background: color-mix(in srgb, var(--color-tape) 85%, transparent);
+}
+
+.noteKey {
+  flex: none;
+  color: var(--color-story-cover);
+}
+
+.noteText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  font: 600 15px / 1.15 var(--font-display);
+}
+
+/* A link-style button; its hit area (::before) is taller than it looks. */
+.noteLink {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 600 15px / 1.25 var(--font-display);
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.noteLink::before {
+  content: '';
+  position: absolute;
+  inset: -11px -8px;
+}
+
+.noteLink:hover {
+  color: var(--color-story-cover);
+}
+
+.noteClose {
+  position: relative;
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.noteClose::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+
+.noteClose:hover {
+  background: rgba(120, 90, 20, 0.14);
+  color: var(--color-text);
+}
+
+/* Phone (sideways): screen px, the screen's bottom-right corner, over the page. */
+.notePhoneLayer {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+}
+
+.notePhone {
+  position: relative;
+  right: auto;
+  top: auto;
+  width: 300px;
+  padding: 10px 8px 10px 12px;
+  rotate: -1.5deg;
+}
+
+.notePhone .noteText {
+  font-size: 15px;
+}
+
+/* 44px tap targets on a phone (screen px). */
+.notePhone .noteLink {
+  min-height: 32px;
+}
+
+.notePhone .noteClose {
+  width: 36px;
+  height: 36px;
+}
+
+.notePhone .noteClose::before {
+  inset: -4px;
+}
+
 /* ---------- My Students blur ---------- */
 
 .blur {
@@ -1409,5 +1594,30 @@
     flex: none;
     height: 68px;
     font-size: 17px;
+  }
+
+  /* The key button in the same corner: 46 design px; its hit area stops short of Log out. */
+  .keyButton {
+    left: 90px;
+    top: 2px;
+    width: 46px;
+    height: 46px;
+    border-width: 3px;
+  }
+
+  .keyButton svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .keyButton::before {
+    inset: -12px -6px -8px -12px;
+    border-radius: 12px;
+  }
+
+  .keyDot {
+    width: 18px;
+    height: 18px;
+    border-width: 3px;
   }
 }
