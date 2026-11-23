@@ -43,3 +43,8 @@
 .dot {
   font-weight: 700;
 }
+
+/* On a dark background (the Admin page's maroon bar): a cream tagline. */
+.onDark .tagline {
+  color: var(--color-card-bg);
+}

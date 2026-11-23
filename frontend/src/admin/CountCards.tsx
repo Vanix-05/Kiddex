@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Backpack, BookOpen, School, UserRound, type LucideIcon } from 'lucide-react'
 import type { AdminStats } from './adminApi'
 import styles from './admin.module.css'
@@ -62,9 +63,10 @@ export function CountCards({ state, onRetry }: { state: StatsState; onRetry: () 
             ? `${value} ${label}${line ? `, ${line.charAt(0).toLowerCase()}${line.slice(1)}` : ''}`
             : `${label}: ${state.status === 'loading' ? 'loading' : 'not loaded'}`
           return (
-            <li key={label} className={styles.countCard}>
+            // --tint: the card's background is a light mix of it (admin.module.css).
+            <li key={label} className={styles.countCard} style={{ '--tint': tint } as CSSProperties}>
               <span className="visually-hidden">{spoken}</span>
-              <span className={styles.countIcon} style={{ background: tint }} aria-hidden="true">
+              <span className={styles.countIcon} aria-hidden="true">
                 <CardIcon strokeWidth={2.2} />
               </span>
               <span className={styles.countText} aria-hidden="true">

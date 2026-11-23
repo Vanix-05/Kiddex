@@ -1,28 +1,33 @@
 /*
- * The Admin page (/admin, /admin/login): plain cream page, one centered column
- * (max 1040px on /admin, 560px on the login; 16px sides on phones), Fredoka, the
- * theme colors. Works upright and sideways on phones and on laptops. Every tap
- * target is at least 44px.
+ * The Admin page (/admin): a full-width maroon top bar, then the page on a warm
+ * tan background, full width with clamp(16px, 3vw, 40px) sides. The Admin login
+ * (/admin/login) is a 560px column on the beach scene. Fredoka, the theme
+ * colors. Works upright and sideways on phones and on laptops. Every tap target
+ * is at least 44px.
  */
 
-/* The whole page is cream on /admin (also behind an overscroll). */
+/* Behind an overscroll: cream on the login, the page's tan on /admin. */
 :global(html[data-area='admin']) body {
   background: var(--color-card-bg);
 }
 
+:global(html[data-area='admin']) body:has(.page) {
+  background: var(--color-admin-page-bg);
+}
+
 .page {
   min-height: 100svh;
-  background: var(--color-card-bg);
+  background: var(--color-admin-page-bg);
   color: var(--color-text);
   font-family: var(--font-display);
   overflow-x: hidden;
 }
 
+/* The page: full width, with side padding that grows with the screen. */
 .column {
+  --side: clamp(16px, 3vw, 40px);
   width: 100%;
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 8px 16px 40px;
+  padding: 10px var(--side) 48px;
 }
 
 /* ---------- Buttons ---------- */
@@ -212,35 +217,91 @@ button.bigButton {
 
 /* ---------- Teachers ---------- */
 
+/* A full-width maroon bar with a gold line at the bottom. */
 .topBar {
+  width: 100%;
+  border-bottom: 3px solid var(--color-story-gold);
+  background: var(--color-story-cover);
+  box-shadow: 0 4px 12px rgba(63, 16, 25, 0.22);
+}
+
+.topBarInner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 12px 16px 4px;
+  /* Room above the tilted logo. */
+  padding: 16px clamp(16px, 3vw, 40px) 12px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   min-width: 0;
 }
 
 .topLogo {
-  --logo-scale: 0.42;
+  --logo-scale: 0.75;
   flex-shrink: 0;
 }
 
+/* The gold "Admin" pill with dark maroon text. */
 .brandWord {
   padding: 2px 12px;
   border-radius: var(--radius-pill);
-  background: var(--color-title-pill-bg);
+  background: var(--color-story-gold);
+  color: var(--color-story-cover-edge);
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+/* Log out: cream text on the maroon bar, a light hover. */
+.logOutButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-card-bg);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logOutButton:hover {
+  background: color-mix(in srgb, var(--color-card-bg) 14%, transparent);
+}
+
+/* The orange focus ring is hard to see on maroon: a thin cream halo sits under it. */
+.topBar :focus-visible {
+  box-shadow: 0 0 0 3px var(--color-card-bg);
+}
+
+@media (max-width: 720px) {
+  .topBarInner {
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .topLogo {
+    --logo-scale: 0.6;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .logOutButton {
+    padding: 0 8px;
+  }
 }
 
 /* ---------- Count cards (totals only) ---------- */
@@ -268,7 +329,8 @@ button.bigButton {
   padding: 18px 16px;
   border: 2px solid var(--color-input-border);
   border-radius: var(--radius-lg);
-  background: var(--color-input-bg);
+  /* A light mix of the card's own tint (--tint, set in CountCards). */
+  background: color-mix(in srgb, var(--tint) 45%, var(--color-admin-surface));
   box-shadow: 0 5px 0 rgba(107, 74, 51, 0.1);
 }
 
@@ -280,6 +342,7 @@ button.bigButton {
   height: 56px;
   border: 1.5px solid var(--color-input-border);
   border-radius: 50%;
+  background: var(--color-admin-surface);
   color: var(--color-card-border);
 }
 
@@ -381,6 +444,7 @@ button.bigButton {
 
 .pageTitle {
   min-width: 0;
+  border-radius: var(--radius-sm);
   font-size: 1.9rem;
   font-weight: 600;
   line-height: 1.2;
@@ -436,7 +500,7 @@ button.addButton {
   padding: 16px;
   border: 2px solid var(--color-input-border);
   border-radius: var(--radius-md);
-  background: var(--color-input-bg);
+  background: var(--color-admin-surface);
 }
 
 /* A turned-off account looks a bit faded (its buttons stay clear). */
@@ -477,7 +541,8 @@ button.addButton {
   line-height: 1;
 }
 
-.cardOff .letterCircle {
+.cardOff .letterCircle,
+.rowOff .letterCircle {
   border-color: var(--color-input-border);
   background: var(--color-admin-off-bg);
   color: var(--color-admin-off-text);
@@ -752,4 +817,320 @@ button.addButton {
   .loginColumn {
     padding-bottom: 140px;
   }
+}
+
+/* ---------- Toolbar: search, All / Active / Off, "Updated" ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 14px;
+  margin-top: 16px;
+}
+
+/* The search box: a pill. The orange ring goes around the whole pill. */
+.searchBox {
+  display: flex;
+  flex: 1 1 280px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 2px solid var(--color-input-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-admin-surface);
+  color: var(--color-text-subtle);
+  cursor: text;
+}
+
+.searchBox:focus-within {
+  border-color: var(--color-input-border-focus);
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-subtle);
+}
+
+/* The ring is on the pill (above), not the input inside it. */
+.searchInput:focus,
+.searchInput:focus-visible {
+  outline: none;
+}
+
+/* All / Active / Off. */
+.segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+  border: 2px solid var(--color-input-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-admin-surface);
+}
+
+.segment {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segment:hover {
+  background: color-mix(in srgb, var(--color-title-pill-bg) 35%, transparent);
+}
+
+.segmentOn,
+.segmentOn:hover {
+  background: var(--color-title-pill-bg);
+}
+
+/* "Updated just now" and the round Refresh button. */
+.updated {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-subtle);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-input-border) 35%, transparent);
+  color: var(--color-text);
+}
+
+.refreshButton:disabled {
+  cursor: progress;
+}
+
+/* "Couldn't update · Try again": the button shows its words. */
+.refreshWide {
+  padding: 0 12px;
+  border: 2px solid var(--color-input-border);
+  background: var(--color-admin-surface);
+  color: var(--color-text);
+}
+
+.spinning {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinning {
+    animation: none;
+  }
+}
+
+/* Phones: search full width, the filter under it (3 equal buttons), then "Updated". */
+@media (max-width: 720px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .searchBox {
+    flex: none;
+    width: 100%;
+  }
+
+  .segmented {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .segment {
+    padding: 0 8px;
+  }
+}
+
+/* ---------- Teacher table (laptops) / cards (phones) ---------- */
+
+.tableCard {
+  display: none;
+}
+
+@media (min-width: 860px) {
+  .tableCard {
+    display: block;
+    margin-top: 18px;
+    overflow: hidden;
+    border: 2px solid var(--color-input-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-admin-surface);
+    box-shadow: 0 5px 0 rgba(107, 74, 51, 0.1);
+  }
+
+  .cardList {
+    display: none;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+}
+
+.table thead th {
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--color-input-border);
+  background: var(--color-admin-table-head);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table thead th:nth-child(1) {
+  width: 30%;
+}
+
+.table thead th:nth-child(2) {
+  width: 18%;
+}
+
+.table thead th:nth-child(3) {
+  width: 9%;
+}
+
+.table thead th:nth-child(4) {
+  width: 9%;
+}
+
+.table tbody tr + tr {
+  border-top: 1px solid var(--color-admin-row-line);
+}
+
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-admin-table-head) 70%, var(--color-admin-surface));
+}
+
+.table tbody th,
+.table tbody td {
+  padding: 10px 16px;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.whoCell {
+  font-weight: 400;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.letterCircle.rowCircle {
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+}
+
+.whoText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowName {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.rowEmail {
+  color: var(--color-text-subtle);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+/* A turned-off account looks faded, like the Off cards (its buttons stay clear). */
+.rowOff .whoCell,
+.rowOff .fadeCell {
+  opacity: 0.65;
+}
+
+.table tbody .actionsCell {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* Look 40px tall; the hit area (::before) is 44px. */
+.secondaryButton.rowButton {
+  position: relative;
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.95rem;
+}
+
+.rowButton::before {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
 }

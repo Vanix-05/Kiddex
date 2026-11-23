@@ -1,5 +1,5 @@
-import { BookOpen, Clock, KeyRound, LogOut, Plus, Power } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
+import { BookOpen, Clock, KeyRound, LogOut, Plus, Power, RefreshCw, Search } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObject } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button/Button'
 import { KiddexLogo } from '../components/KiddexLogo/KiddexLogo'
@@ -13,6 +13,8 @@ import { clearAdminToken, getAdminToken } from './adminToken'
 import { CountCards, type StatsState } from './CountCards'
 import { lastLoginText } from './lastLogin'
 import { nameInitial } from './nameInitial'
+import { filterCounts, filterTeachers, type TeacherFilter } from './teacherFilter'
+import { updatedText } from './updatedText'
 import styles from './admin.module.css'
 
 type Popup =
@@ -24,10 +26,17 @@ type Popup =
 
 type ListState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; teachers: AdminTeacher[] }
 
+/** Coming back to the tab (or the window) refreshes the page, at most this often. */
+const AUTO_REFRESH_MS = 30_000
+/** How often "Updated 5 min ago" is worked out again. */
+const CLOCK_MS = 30_000
+
 /**
- * The Admin page (/admin): 4 count cards (totals only), then every Teacher
- * account as a card, + Add Teacher, Reset password and Turn off / Turn on.
- * It manages Teacher accounts only. Without an admin token it goes to Admin Login.
+ * The Admin page (/admin): a maroon top bar, 4 count cards (totals only), then
+ * every Teacher account with search and an All / Active / Off filter: a table
+ * on laptops, cards on phones. + Add Teacher, Reset password and Turn off /
+ * Turn on. It refreshes quietly when the admin comes back to the tab. It
+ * manages Teacher accounts only. Without an admin token it goes to Admin Login.
  */
 export function AdminTeachersPage() {
   const [hasToken] = useState(() => Boolean(getAdminToken()))
@@ -43,8 +52,27 @@ function TeachersScreen() {
   /** The Teacher whose Turn on is running (no confirm for Turn on). */
   const [turningOn, setTurningOn] = useState<string | null>(null)
   const [pageError, setPageError] = useState('')
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<TeacherFilter>('all')
+  // "Updated just now": when the list last came from the server (or was changed here).
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshFailed, setRefreshFailed] = useState(false)
   // The button that opened the current popup: it gets focus back when the popup closes.
   const opener = useRef<HTMLElement | null>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  /** Goes up with every change made here, so an older refresh answer never undoes it. */
+  const changes = useRef(0)
+  /** When the last load or refresh started (for the 30 seconds rule). */
+  const lastTry = useRef(0)
+  const refreshRunning = useRef(false)
+  const popupOpen = useRef(false)
+
+  useEffect(() => {
+    popupOpen.current = popup !== null
+  }, [popup])
 
   // The backend ended the admin login: back to Admin Login with a quiet notice.
   useEffect(() => {
@@ -54,14 +82,25 @@ function TeachersScreen() {
     return () => setAdminLoginEndedHandler(null)
   }, [navigate])
 
+  /** "Updated just now" (after a load, a refresh, or a change made here). */
+  const stampUpdated = useCallback(() => {
+    const t = Date.now()
+    setLastUpdated(t)
+    setNow(t)
+    setRefreshFailed(false)
+  }, [])
+
+  /** The first load (and Try again after an error): shows the loading cards. */
   const load = useCallback(async () => {
+    lastTry.current = Date.now()
     setList({ status: 'loading' })
     try {
       setList({ status: 'ready', teachers: await adminApi.teachers() })
+      stampUpdated()
     } catch (err) {
       setList({ status: 'error', message: errorMessage(err) })
     }
-  }, [])
+  }, [stampUpdated])
 
   /** The totals: separate from the list, so a failure here never blocks the Teachers. */
   const loadStats = useCallback(async () => {
@@ -73,12 +112,54 @@ function TeachersScreen() {
     }
   }, [])
 
+  /**
+   * A quiet refresh of the list and the totals: what's on screen stays until the
+   * new answers arrive. If it fails, the old data stays and the line says so.
+   */
+  const refresh = useCallback(async () => {
+    if (refreshRunning.current) return
+    refreshRunning.current = true
+    lastTry.current = Date.now()
+    setRefreshing(true)
+    const changesBefore = changes.current
+    const [teachers, totals] = await Promise.allSettled([adminApi.teachers(), adminApi.stats()])
+    refreshRunning.current = false
+    setRefreshing(false)
+    // Something was changed here meanwhile: that is newer than these answers.
+    if (changes.current !== changesBefore) return
+    if (teachers.status === 'fulfilled') setList({ status: 'ready', teachers: teachers.value })
+    if (totals.status === 'fulfilled') setStats({ status: 'ready', stats: totals.value })
+    if (teachers.status === 'fulfilled' && totals.status === 'fulfilled') stampUpdated()
+    else setRefreshFailed(true)
+  }, [stampUpdated])
+
   useEffect(() => {
     // Runs the first load of both; they only set state after the answers come back.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
     void loadStats()
   }, [load, loadStats])
+
+  // Back to the tab or the window: refresh quietly (at most every 30 seconds, never under a popup).
+  useEffect(() => {
+    const comeBack = () => {
+      if (document.visibilityState !== 'visible' || popupOpen.current) return
+      if (Date.now() - lastTry.current < AUTO_REFRESH_MS) return
+      void refresh()
+    }
+    document.addEventListener('visibilitychange', comeBack)
+    window.addEventListener('focus', comeBack)
+    return () => {
+      document.removeEventListener('visibilitychange', comeBack)
+      window.removeEventListener('focus', comeBack)
+    }
+  }, [refresh])
+
+  // "Updated 5 min ago" moves on by itself.
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), CLOCK_MS)
+    return () => window.clearInterval(timer)
+  }, [])
 
   /** Keeps the Teachers numbers right after Add Teacher or Turn off / on. */
   const adjustTeacherStats = (teachers: number, activeTeachers: number) =>
@@ -103,14 +184,18 @@ function TeachersScreen() {
 
   const close = () => {
     setPopup(null)
-    // After React has removed the popup.
+    // After React has removed the popup. If the button is gone (its row left
+    // the Active / Off filter), the Teachers title gets focus instead.
     requestAnimationFrame(() => {
       if (opener.current?.isConnected) opener.current.focus()
+      else titleRef.current?.focus()
     })
   }
 
   /** Puts a changed or new Teacher into the list (new ones at the top). */
-  const putTeacher = (teacher: AdminTeacher) =>
+  const putTeacher = (teacher: AdminTeacher) => {
+    changes.current += 1
+    stampUpdated()
     setList((current) => {
       if (current.status !== 'ready') return current
       const exists = current.teachers.some((t) => t.id === teacher.id)
@@ -119,6 +204,7 @@ function TeachersScreen() {
         teachers: exists ? current.teachers.map((t) => (t.id === teacher.id ? teacher : t)) : [teacher, ...current.teachers],
       }
     })
+  }
 
   const turnOn = async (teacher: AdminTeacher) => {
     setPageError('')
@@ -139,25 +225,43 @@ function TeachersScreen() {
     navigate(paths.admin.login, { replace: true })
   }
 
-  const count = list.status === 'ready' ? list.teachers.length : null
+  const clearSearch = () => {
+    setSearch('')
+    setFilter('all')
+    searchRef.current?.focus()
+  }
+
+  const teachers = list.status === 'ready' ? list.teachers : []
+  const count = list.status === 'ready' ? teachers.length : null
+  const shown = filterTeachers(teachers, search, filter)
+  const query = search.trim()
+  const narrowed = query !== '' || filter !== 'all'
+  const actions = (teacher: AdminTeacher) => ({
+    busy: turningOn === teacher.id,
+    onReset: (e: MouseEvent<HTMLButtonElement>) => open({ kind: 'reset', teacher }, e),
+    onTurnOff: (e: MouseEvent<HTMLButtonElement>) => open({ kind: 'off', teacher }, e),
+    onTurnOn: () => void turnOn(teacher),
+  })
 
   return (
     <div className={styles.page}>
       <header className={styles.topBar}>
-        <div className={styles.brand}>
-          <KiddexLogo size="sm" className={styles.topLogo} />
-          <span className={styles.brandWord}>Admin</span>
+        <div className={styles.topBarInner}>
+          <div className={styles.brand}>
+            <KiddexLogo size="sm" onDark className={styles.topLogo} />
+            <span className={styles.brandWord}>Admin</span>
+          </div>
+          <button type="button" className={styles.logOutButton} onClick={(e) => open({ kind: 'logOut' }, e)}>
+            <LogOut size={20} aria-hidden="true" /> Log out
+          </button>
         </div>
-        <button type="button" className={styles.ghostButton} onClick={(e) => open({ kind: 'logOut' }, e)}>
-          <LogOut size={20} aria-hidden="true" /> Log out
-        </button>
       </header>
 
       <main className={styles.column}>
         <CountCards state={stats} onRetry={() => void loadStats()} />
 
         <div className={styles.titleRow}>
-          <h1 className={styles.pageTitle}>
+          <h1 ref={titleRef} className={styles.pageTitle} tabIndex={-1}>
             Teachers{count !== null && <span className={styles.count}> · {count}</span>}
           </h1>
           <Button className={`${styles.bigButton} ${styles.addButton}`} onClick={(e) => open({ kind: 'add' }, e)}>
@@ -166,6 +270,21 @@ function TeachersScreen() {
             </span>
           </Button>
         </div>
+
+        {list.status === 'ready' && teachers.length > 0 && (
+          <Toolbar
+            search={search}
+            onSearch={setSearch}
+            searchRef={searchRef}
+            filter={filter}
+            onFilter={setFilter}
+            counts={filterCounts(teachers)}
+            updated={lastUpdated === null ? '' : updatedText(lastUpdated, now)}
+            refreshing={refreshing}
+            failed={refreshFailed}
+            onRefresh={() => void refresh()}
+          />
+        )}
 
         {pageError && (
           <p className={styles.pageError} role="alert">
@@ -195,23 +314,60 @@ function TeachersScreen() {
           </div>
         )}
 
-        {list.status === 'ready' && list.teachers.length === 0 && (
+        {list.status === 'ready' && teachers.length === 0 && (
           <p className={styles.listMessage}>No Teachers yet. Tap + Add Teacher to make the first account.</p>
         )}
 
-        {list.status === 'ready' && list.teachers.length > 0 && (
-          <ul className={styles.cards}>
-            {list.teachers.map((teacher) => (
-              <TeacherCard
-                key={teacher.id}
-                teacher={teacher}
-                busy={turningOn === teacher.id}
-                onReset={(e) => open({ kind: 'reset', teacher }, e)}
-                onTurnOff={(e) => open({ kind: 'off', teacher }, e)}
-                onTurnOn={() => void turnOn(teacher)}
-              />
-            ))}
-          </ul>
+        {/* How many show, for screen readers (only while searching or filtering). */}
+        <p className="visually-hidden" role="status">
+          {list.status === 'ready' && narrowed ? `${shown.length} of ${teachers.length} Teachers shown.` : ''}
+        </p>
+
+        {list.status === 'ready' && teachers.length > 0 && shown.length === 0 && (
+          <div className={styles.listMessage}>
+            <p>
+              {query
+                ? `No Teachers match "${query}".`
+                : filter === 'off'
+                  ? 'No Teachers are turned off.'
+                  : 'No Teachers are active.'}
+            </p>
+            <button type="button" className={styles.secondaryButton} onClick={clearSearch}>
+              {query ? 'Clear search' : 'Show all'}
+            </button>
+          </div>
+        )}
+
+        {shown.length > 0 && (
+          <>
+            {/* Laptops (860px and wider): a table. */}
+            <div className={styles.tableCard}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">Teacher</th>
+                    <th scope="col">Last login</th>
+                    <th scope="col">Lessons</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((teacher) => (
+                    <TeacherRow key={teacher.id} teacher={teacher} {...actions(teacher)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Phones and narrow screens: cards. */}
+            <ul className={`${styles.cards} ${styles.cardList}`}>
+              {shown.map((teacher) => (
+                <TeacherCard key={teacher.id} teacher={teacher} {...actions(teacher)} />
+              ))}
+            </ul>
+          </>
         )}
       </main>
 
@@ -265,7 +421,157 @@ function TeachersScreen() {
   )
 }
 
-// ---------- One Teacher ----------
+// ---------- Search, filter, "Updated" ----------
+
+const FILTERS: { value: TeacherFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'off', label: 'Off' },
+]
+
+function Toolbar({
+  search,
+  onSearch,
+  searchRef,
+  filter,
+  onFilter,
+  counts,
+  updated,
+  refreshing,
+  failed,
+  onRefresh,
+}: {
+  search: string
+  onSearch: (value: string) => void
+  searchRef: RefObject<HTMLInputElement | null>
+  filter: TeacherFilter
+  onFilter: (value: TeacherFilter) => void
+  counts: Record<TeacherFilter, number>
+  updated: string
+  refreshing: boolean
+  failed: boolean
+  onRefresh: () => void
+}) {
+  const radios = useRef<(HTMLButtonElement | null)[]>([])
+
+  /** Arrow keys move between All / Active / Off (one Tab stop for the group). */
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (!step) return
+    e.preventDefault()
+    const at = FILTERS.findIndex((f) => f.value === filter)
+    const next = (at + step + FILTERS.length) % FILTERS.length
+    onFilter(FILTERS[next]!.value)
+    radios.current[next]?.focus()
+  }
+
+  return (
+    <div className={styles.toolbar}>
+      <label className={styles.searchBox}>
+        <Search size={20} aria-hidden="true" />
+        <input
+          ref={searchRef}
+          type="search"
+          className={styles.searchInput}
+          placeholder="Search name or email"
+          aria-label="Search Teachers"
+          autoComplete="off"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+        />
+      </label>
+      <div className={styles.segmented} role="radiogroup" aria-label="Show Teachers" onKeyDown={onKeyDown}>
+        {FILTERS.map(({ value, label }, i) => (
+          <button
+            key={value}
+            ref={(el) => {
+              radios.current[i] = el
+            }}
+            type="button"
+            role="radio"
+            aria-checked={filter === value}
+            tabIndex={filter === value ? 0 : -1}
+            className={filter === value ? `${styles.segment} ${styles.segmentOn}` : styles.segment}
+            onClick={() => onFilter(value)}
+          >
+            {label} {counts[value]}
+          </button>
+        ))}
+      </div>
+      <div className={styles.updated}>
+        {/* The refresh failed: the old list stays, and the button says Try again. */}
+        {failed ? <span role="status">Couldn’t update ·</span> : <span>{updated}</span>}
+        <button
+          type="button"
+          className={failed ? `${styles.refreshButton} ${styles.refreshWide}` : styles.refreshButton}
+          aria-label={failed ? undefined : 'Refresh'}
+          title="Refresh"
+          onClick={onRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw size={18} strokeWidth={2.4} className={refreshing ? styles.spinning : undefined} aria-hidden="true" />
+          {failed && 'Try again'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------- One Teacher (table row, laptops) ----------
+
+function TeacherRow({
+  teacher,
+  busy,
+  onReset,
+  onTurnOff,
+  onTurnOn,
+}: {
+  teacher: AdminTeacher
+  busy: boolean
+  onReset: (event: MouseEvent<HTMLButtonElement>) => void
+  onTurnOff: (event: MouseEvent<HTMLButtonElement>) => void
+  onTurnOn: () => void
+}) {
+  return (
+    <tr className={teacher.active ? undefined : styles.rowOff}>
+      <th scope="row" className={styles.whoCell}>
+        <span className={styles.who}>
+          <span className={`${styles.letterCircle} ${styles.rowCircle}`} aria-hidden="true">
+            {nameInitial(teacher.name)}
+          </span>
+          <span className={styles.whoText}>
+            <span className={styles.rowName}>{teacher.name}</span>
+            <span className={styles.rowEmail}>{teacher.email}</span>
+          </span>
+        </span>
+      </th>
+      <td className={styles.fadeCell}>{lastLoginText(teacher.lastLoginAt)}</td>
+      <td className={styles.fadeCell}>{teacher.lessonCount}</td>
+      <td className={styles.fadeCell}>
+        <span className={teacher.active ? styles.badgeOn : styles.badgeOff}>{teacher.active ? 'Active' : 'Off'}</span>
+      </td>
+      <td className={styles.actionsCell}>
+        <div className={styles.rowActions}>
+          <button type="button" className={`${styles.secondaryButton} ${styles.rowButton}`} onClick={onReset}>
+            <KeyRound size={16} aria-hidden="true" /> Reset password
+          </button>
+          {teacher.active ? (
+            <button type="button" className={`${styles.secondaryButton} ${styles.rowButton} ${styles.dangerButton}`} onClick={onTurnOff}>
+              <Power size={16} aria-hidden="true" /> Turn off
+            </button>
+          ) : (
+            <button type="button" className={`${styles.secondaryButton} ${styles.rowButton}`} onClick={onTurnOn} disabled={busy}>
+              <Power size={16} aria-hidden="true" /> {busy ? 'Turning on…' : 'Turn on'}
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+// ---------- One Teacher (card, phones) ----------
+
 
 function TeacherCard({
   teacher,

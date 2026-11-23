@@ -272,13 +272,17 @@ export const theme = {
     pairPurpleYarn: '#8073D9',
     yarnPicked: '#EE9A45', // the yarn hanging from a picked card
 
-    // Admin page (/admin): cream page (cardBg), cards (inputBg), text and buttons reuse the tokens above.
+    // Admin page (/admin): maroon top bar (storyCover, storyGold), tan page, light surfaces; text and buttons reuse the tokens above.
     adminActiveBg: '#D6EEDC', // "Active" badge
     adminActiveText: '#2B6E41', // 5.4:1 on adminActiveBg
     adminOffBg: '#ECE3D6', // "Off" badge
     adminOffText: '#5C4636', // 7.0:1 on adminOffBg
     adminScrim: 'rgba(74, 52, 38, 0.45)', // behind a popup
     adminSkeleton: '#EFE4D3', // loading placeholder bars
+    adminPageBg: '#F5E9D6', // the warm tan page behind the cards and table
+    adminSurface: '#FFFDF8', // cards, the table, search and filter
+    adminTableHead: '#F8EEDD', // the table's header row
+    adminRowLine: '#EFE2CD', // thin lines between table rows
   },
 
   fonts: {
