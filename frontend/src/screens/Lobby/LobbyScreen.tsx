@@ -22,14 +22,16 @@ export function LobbyScreen({ onReady }: { onReady?: () => void }) {
 
   // No character or buddy yet: the first-time setup comes first.
   if (!avatar || !isBuddyId(companionId)) return <Navigate to={paths.setup.quiz} replace />
+  // Students have no names in KIDDEX: the top bar and name tag show the buddy's name.
+  const buddy = buddyName ?? companionRegistry[companionId].name
 
   return (
     <MainLobby
       student={{
-        name: data.student.name,
+        name: buddy,
         avatar,
         buddy: companionId,
-        buddyName: buddyName ?? companionRegistry[companionId].name,
+        buddyName: buddy,
         look,
       }}
       data={data}

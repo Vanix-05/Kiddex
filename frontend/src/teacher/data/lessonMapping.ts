@@ -3,10 +3,12 @@
  * status, title, "3 pages" / "about 3 pages" / "14 slides", "uploaded Nov 3", PDF/DOC/PPT.
  */
 import type { ServerFileType, ServerLessonItem, ServerLessonStatus, ServerUnitLabel } from '../api/lessonsApi'
+import type { ServerAssignment } from '../api/sectionsApi'
+import { dueNote } from './dueDates'
 import type { FileType, Lesson, LessonNote, LessonStatus } from './types'
 
-/** Backend status → screen status. "assigned" is screen-only for now (a LessonNote). */
-export function screenStatus(status: ServerLessonStatus, note?: LessonNote): LessonStatus {
+/** Backend status → screen status. "assigned" = approved and given to the open section. */
+export function screenStatus(status: ServerLessonStatus, assigned = false): LessonStatus {
   switch (status) {
     case 'uploaded':
       return 'draft'
@@ -17,7 +19,7 @@ export function screenStatus(status: ServerLessonStatus, note?: LessonNote): Les
     case 'failed':
       return 'failed'
     case 'approved':
-      return note?.assignedNote ? 'assigned' : 'ready'
+      return assigned ? 'assigned' : 'ready'
   }
 }
 
@@ -48,8 +50,17 @@ export function uploadedText(createdAt: string, now = Date.now()): string {
 export const fileSizeText = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
 
-/** A lesson from GET /api/lessons (or the same fields of one lesson) as the screens show it. */
-export function toScreenLesson(item: ServerLessonItem & { sizeBytes?: number; grade?: number | null }, note?: LessonNote): Lesson {
+/**
+ * A lesson from GET /api/lessons (or the same fields of one lesson) as the screens show it.
+ * `assignment`: the open section's review pack of this lesson, if it has one. Its games
+ * are the pack's starting games (until the Teacher switches some on the Games page).
+ */
+export function toScreenLesson(
+  item: ServerLessonItem & { sizeBytes?: number; grade?: number | null },
+  note?: LessonNote,
+  assignment?: ServerAssignment,
+): Lesson {
+  const assigned = item.status === 'approved' && !!assignment
   return {
     id: item.id,
     title: lessonTitle(item.topic, item.fileName),
@@ -60,9 +71,9 @@ export function toScreenLesson(item: ServerLessonItem & { sizeBytes?: number; gr
     uploaded: uploadedText(item.createdAt),
     topic: item.topic ?? '',
     subject: item.subject ?? '',
-    games: note?.games ?? item.games,
-    status: screenStatus(item.status, note),
-    assignedNote: note?.assignedNote,
+    games: note?.games ?? assignment?.games ?? item.games,
+    status: screenStatus(item.status, assigned),
+    assignedNote: assigned ? dueNote(assignment.dueDate) : undefined,
     wordCount: item.wordCount,
     grade: item.grade ?? undefined,
   }

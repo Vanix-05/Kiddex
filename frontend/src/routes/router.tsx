@@ -49,7 +49,13 @@ export const router = createBrowserRouter([
           { path: paths.setup.pet, element: <Navigate to={paths.setup.quiz} replace /> },
         ],
       },
-      // After setup (outside SetupFrame, which sends anyone with a buddy away).
+    ],
+  },
+  // After setup (outside SetupFrame, which sends anyone with a buddy away). A
+  // Student with no buddy yet is sent to the setup storybook first.
+  {
+    element: <RequireRole role="student" afterSetup />,
+    children: [
       { path: paths.customize, element: <CustomizeScreen /> },
       // Its own download, with Pixi (screens/Lobby/preloadLobby.ts).
       { path: paths.lobby, element: <LazyLobbyScreen /> },

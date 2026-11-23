@@ -29,7 +29,8 @@ export function Hud({
   onEmote,
   children,
 }: {
-  student: StudentProgress
+  /** `name`: the buddy's name (Students have no names in KIDDEX). */
+  student: StudentProgress & { name: string }
   /** The Student's picture; the card shows the head. */
   headUrl: string
   mission: Mission

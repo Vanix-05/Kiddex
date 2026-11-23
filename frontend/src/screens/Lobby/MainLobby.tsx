@@ -410,7 +410,7 @@ export function MainLobby({
             </ViewerHud>
           ) : (
             <Hud
-              student={{ ...data.student, name: student?.name ?? data.student.name, stars: data.student.stars + bonusStars }}
+              student={{ ...data.student, name: student?.name ?? '', stars: data.student.stars + bonusStars }}
               headUrl={cast.me?.kid.url ?? ''}
               mission={mission}
               classmatesHere={classmates.length}

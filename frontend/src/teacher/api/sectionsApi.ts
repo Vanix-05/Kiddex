@@ -3,6 +3,7 @@
  * Screens don't call these directly: they use the hooks in src/teacher/data/useTeacherData.ts.
  * Students have NO names in KIDDEX: only a School ID.
  */
+import type { TemplateId } from '../../content/questionCard'
 import { api } from './client'
 
 // ---------- Shapes the backend sends ----------
@@ -40,6 +41,24 @@ export interface AddStudentsAnswer {
   skipped: { schoolId: string; reason: SkipReason }[]
 }
 
+/** A review pack given to a section (GET /api/sections/:id/assignments). */
+export interface ServerAssignment {
+  id: string
+  lessonId: string
+  name: string
+  games: TemplateId[]
+  /** "2026-11-27", or null. */
+  dueDate: string | null
+  createdAt: string
+}
+
+export interface AssignInput {
+  name: string
+  games: TemplateId[]
+  /** "2026-11-27", or null. */
+  dueDate: string | null
+}
+
 // ---------- Calls ----------
 
 const enc = encodeURIComponent
@@ -51,6 +70,13 @@ export const sectionsApi = {
   students: (sectionId: string) => api<ServerStudent[]>(`/api/sections/${enc(sectionId)}/students`),
   addStudents: (sectionId: string, schoolIds: string[]) =>
     api<AddStudentsAnswer>(`/api/sections/${enc(sectionId)}/students`, { method: 'POST', body: { schoolIds } }),
+  assignments: (sectionId: string) => api<ServerAssignment[]>(`/api/sections/${enc(sectionId)}/assignments`),
+  /** Gives the lesson to the section as a review pack, or updates the pack given before. */
+  assign: (sectionId: string, lessonId: string, input: AssignInput) =>
+    api<{ assignment: ServerAssignment }>(`/api/sections/${enc(sectionId)}/assignments/${enc(lessonId)}`, {
+      method: 'PUT',
+      body: input,
+    }).then((a) => a.assignment),
   /** A new one-time code (lost card or forgotten PIN code). Their buddy and progress are kept. */
   newCode: (studentId: string) =>
     api<{ student: ServerStudent }>(`/api/students/${enc(studentId)}/new-code`, { method: 'POST' }).then((a) => a.student),
@@ -60,4 +86,5 @@ export const sectionsApi = {
 export const sectionKeys = {
   list: ['sections'] as const,
   students: (sectionId: string) => ['sections', sectionId, 'students'] as const,
+  assignments: (sectionId: string) => ['sections', sectionId, 'assignments'] as const,
 }

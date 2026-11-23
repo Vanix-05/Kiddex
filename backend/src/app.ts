@@ -5,6 +5,7 @@ import cors from "cors";
 import { env } from "./config/env";
 import { requireTeacher } from "./auth/requireTeacher";
 import { adminRouter } from "./routes/admin";
+import { assignmentsRouter } from "./routes/assignments";
 import { authRouter } from "./routes/auth";
 import { healthRouter } from "./routes/health";
 import { lessonsRouter } from "./routes/lessons";
@@ -49,6 +50,7 @@ app.use(["/api/lessons", "/api/questions", "/api/sections", "/api/students"], re
 app.use(lessonsRouter);
 app.use(questionsRouter);
 app.use(sectionsRouter);
+app.use(assignmentsRouter);
 
 // These two must stay last.
 app.use(notFound);

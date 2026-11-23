@@ -286,6 +286,20 @@ Every address below needs a Teacher login token. A Teacher only ever sees and ch
 - There are no delete addresses for sections or Students yet (on purpose). A section with Students can't be deleted from the database, and a Teacher with sections can't either.
 - **Database not reachable:** `503 DB_UNAVAILABLE` "We can't reach your class lists right now. Please try again in a minute."
 
+### Assignments (review packs)
+
+Both need a Teacher login token, and only work on the Teacher's own sections and lessons (anything else: `404 SECTION_NOT_FOUND` / `404 LESSON_NOT_FOUND`).
+
+| Address | What it does |
+| --- | --- |
+| `GET /api/sections/:sectionId/assignments` | This section's assignments, newest first: `id, lessonId, name, games, dueDate` (`YYYY-MM-DD` or null), `createdAt`. |
+| `PUT /api/sections/:sectionId/assignments/:lessonId` | Body `{ "name": 1-60 characters, "games": 1-3 of quiz-show, match-up, fill-blank, "dueDate": "2026-11-27" or null }`. Creates the assignment, or updates it if this lesson was given to this section before. Answers `{ assignment }`. |
+
+- The lesson must be approved: else `409 LESSON_NOT_READY` "Check and approve the questions first.".
+- Each game needs enough **approved** questions (`MIN_CARDS` in `src/content/questionCard.ts`, the same numbers as the frontend: Quiz Show 3, Match Up 4, Fill the Blank 3): else `409 GAME_NOT_READY`, naming the game.
+- The due date is a date only, saved as noon Philippine time, so it never slips a day.
+- A section with no Students yet can still get an assignment. What Students see from it comes later (roadmap step 7).
+
 ### The database tables
 
 | Table | What it holds |
@@ -294,6 +308,7 @@ Every address below needs a Teacher login token. A Teacher only ever sees and ch
 | `Lesson` | One row per uploaded lesson: its owner, the file's name, type and counts, the lesson **text** (`units`, as JSON), the picked topic, subject, grade and games, and its `status`. The original file is never stored. |
 | `Question` | One row per question card of a lesson, with its `position` (order in the Check list, 1, 2, 3…), `flagChecked` and `madeBy`. Deleted together with its lesson. |
 | `Section` | One row per class section of a Teacher (grade 3–6, name, tab color and icon). `nameKey` is the name in lowercase, so one Teacher can't have the same grade + name twice in any capitals. |
+| `Assignment` | A review pack: one approved lesson given to one section (pack name, games, due date). One per lesson + section; assigning again updates it. Deleted with its lesson or section. |
 | `Student` | One row per Student: **School ID only, no name, email or photo** (Master Brief 4.1). The one-time code (not hashed, so the Teacher can show and print it; it works once and is removed when the PIN code is made), the PIN code's bcrypt hash, login lock fields, and the setup choices (buddy, look…) filled in later. |
 
 - Saving the AI's cards, adding a question, deleting one (the rest are renumbered) and Approve all each happen in **one transaction**: all or nothing.

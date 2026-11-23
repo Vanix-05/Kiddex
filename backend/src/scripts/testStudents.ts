@@ -11,6 +11,7 @@ import { hashPassword } from "../auth/passwords";
 import { makeStudentToken, makeTeacherToken, readAdminToken, readStudentToken, readTeacherToken } from "../auth/tokens";
 import { AVATARS, BUDDY_IDS, LOOK_ITEMS, MAX_NICKNAME } from "../content/studentSetup";
 import { AppError } from "../middleware/AppError";
+import { dueDateFromText, dueDateText } from "../sections/dueDate";
 import { MAX_STUDENTS_PER_SECTION } from "../sections/limits";
 import { newCodeChanges } from "../sections/newCode";
 import { makeOneTimeCode, makeUniqueCodes, showOneTimeCode } from "../sections/oneTimeCode";
@@ -115,6 +116,12 @@ async function main() {
     return new Set(candidates.filter((c) => c === oldCode));
   });
   check("new code: never the same as the old code", renewed !== oldCode && /^\d{6}$/.test(renewed) && rounds === 2);
+
+  // ---------- Due dates (assignments) ----------
+  const due = dueDateFromText("2026-11-27");
+  check("due date: saved as noon Philippine time (04:00 UTC)", due?.toISOString() === "2026-11-27T04:00:00.000Z");
+  check("due date: read back as the same day", !!due && dueDateText(due) === "2026-11-27");
+  check("due date: a day that doesn't exist is refused", dueDateFromText("2026-02-30") === null && dueDateFromText("27/11/2026") === null);
 
   await loginChecks();
   await tokenChecks();

@@ -4,9 +4,11 @@ import type { Avatar } from '../../setup/avatar'
 import type { Look } from '../../setup/customizeData'
 import type { BuddyId } from '../../setup/quizData'
 
+/**
+ * The Student's progress. Students have NO names in KIDDEX (brief 4.1, 4.14): their
+ * card and name tag show their buddy's name (from the session).
+ */
 export interface StudentProgress {
-  /** The Student's first name, for their card and name tag. */
-  name: string
   level: number
   xp: number
   /** XP that fills the bar (reaching the next level). */
@@ -17,6 +19,7 @@ export interface StudentProgress {
 
 export interface Classmate {
   id: string
+  /** What their name tag shows: their BUDDY's name (Students have no names in KIDDEX). */
   name: string
   avatar: Avatar
   look: Look

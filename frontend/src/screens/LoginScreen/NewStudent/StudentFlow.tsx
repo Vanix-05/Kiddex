@@ -268,42 +268,41 @@ export function StudentFlow({ onClose }: { onClose: () => void }) {
 
   /**
    * Done!: the PIN code is saved and the Student logged in first; only then do
-   * Ollie and the writing fade into the paper, and the setup storybook opens
-   * (or the Lobby, for a Student who already has a buddy and got a New code).
+   * Ollie and the writing fade into the paper. Then the route rules decide
+   * (RequireRole): the setup storybook for a Student with no buddy yet, the
+   * Lobby for one who already has a buddy and got a New code.
    */
   const finish = async () => {
     if (!still || blocked) return
-    let hasBuddy = false
     const ok = await askServer(3, async () => {
-      hasBuddy = (await logInNewStudent(schoolId, oneTimeCode, pin)).hasBuddy
+      await logInNewStudent(schoolId, oneTimeCode, pin)
     })
     if (!ok) return
     setFinishing(true)
-    after(FINISH_MS, () => navigate(hasBuddy ? paths.lobby : paths.setup.quiz))
+    after(FINISH_MS, () => navigate(paths.lobby))
   }
 
   /**
    * Returning Student "Log in": the server checks the School ID + PIN code
    * BEFORE the padlock opens. Then the Lobby opens behind the loading video
-   * (screens/Lobby/LazyLobby.tsx), or the setup storybook for a Student who
-   * made a PIN code but closed the tab before picking a buddy.
+   * (screens/Lobby/LazyLobby.tsx). A Student who made a PIN code but closed the
+   * tab before picking a buddy is sent to the setup storybook by RequireRole.
    */
   const logIn = async () => {
     if (!still || loggingIn || blocked) return
     if (!/^\d{8}$/.test(schoolId) || !/^\d{4}$/.test(loginPin)) return
     // Start the Lobby's download now; the video starts in a moment.
     void preloadLobby()
-    let hasBuddy = false
     const ok = await askServer(
       2,
       async () => {
-        hasBuddy = (await logInReturningStudent(schoolId, loginPin)).hasBuddy
+        await logInReturningStudent(schoolId, loginPin)
       },
       () => setLoginPin(''),
     )
     if (!ok) return
     setLoggingIn(true) // the padlock opens
-    after(reducedMotion() ? 0 : PADLOCK_MS, () => navigate(hasBuddy ? paths.lobby : paths.setup.quiz))
+    after(reducedMotion() ? 0 : PADLOCK_MS, () => navigate(paths.lobby))
   }
 
   // ---------- Pages ----------

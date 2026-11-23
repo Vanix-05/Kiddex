@@ -118,7 +118,7 @@ export type FileType = 'PDF' | 'PPT' | 'DOC'
  * failed   = making questions didn't work (failed)
  * toCheck  = drafts waiting for the Teacher (ready)
  * ready    = all checked, not assigned yet (approved)
- * assigned = given to the class as a review pack (screen only for now, kept in memory)
+ * assigned = given to the open section as a review pack (approved + an assignment on the server)
  */
 export type LessonStatus = 'making' | 'toCheck' | 'ready' | 'assigned' | 'draft' | 'failed'
 
@@ -139,7 +139,7 @@ export interface Lesson {
   /** The games picked at upload, and later the ones switched on for the review pack. */
   games: TemplateId[]
   status: LessonStatus
-  /** Assigned: "due Fri" or "done". */
+  /** Assigned to the open section (from the server): "due Fri". */
   assignedNote?: string
   /** How many words of text the backend read. */
   wordCount: number
@@ -149,10 +149,8 @@ export interface Lesson {
 
 /** A small note the screen keeps on top of a server lesson (in memory) until the backend has it. */
 export interface LessonNote {
-  /** The games switched on for the review pack (Games page). */
+  /** The games switched on for the review pack (Games page), until Assign saves them. */
   games?: TemplateId[]
-  /** Assigned to the class: "due Fri" or "done". */
-  assignedNote?: string
 }
 
 export type Level = QuestionCard['level']

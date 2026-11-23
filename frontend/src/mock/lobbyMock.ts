@@ -7,9 +7,8 @@
 import type { LobbyData } from '../screens/Lobby/lobbyData'
 
 export const lobbyMock: LobbyData = {
+  // No name: Students have none in KIDDEX. The Lobby shows their buddy's name (from the session).
   student: {
-    // TODO: the real name comes from the Teacher's student list when the backend is connected.
-    name: 'Sam',
     level: 4,
     xp: 240,
     xpGoal: 300,
@@ -20,8 +19,9 @@ export const lobbyMock: LobbyData = {
   // Only 1 classmate for now (no server or multiplayer yet).
   classmates: [
     {
-      id: 'mabborang',
-      name: 'Mabborang',
+      id: 'classmate-1',
+      // Students have no names: the name tag shows the buddy's name.
+      name: 'Bubbles',
       avatar: 'boy',
       look: { skin: 'skin4', hair: 'black', shirt: 'blue' },
       buddy: 'kitty',

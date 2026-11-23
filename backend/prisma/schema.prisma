@@ -102,6 +102,7 @@ model Lesson {
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   questions           Question[]
+  assignments         Assignment[]
 
   @@index([ownerId, createdAt])
 }
@@ -137,17 +138,18 @@ model Question {
 // a name, email or photo column here.
 
 model Section {
-  id        String    @id @default(cuid())
-  teacherId String
-  teacher   Teacher   @relation(fields: [teacherId], references: [id], onDelete: Restrict)
-  grade     Int // 3 to 6
-  name      String // 1 to 30 characters, trimmed, e.g. "Sampaguita"
-  nameKey   String // the name in lowercase: one Teacher can't have "Sampaguita" and "sampaguita" in the same grade
-  color     String // yellow | pink | coral (the tab color)
-  icon      String // flower | tulip | rose (the tab icon)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  students  Student[]
+  id          String       @id @default(cuid())
+  teacherId   String
+  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  grade       Int // 3 to 6
+  name        String // 1 to 30 characters, trimmed, e.g. "Sampaguita"
+  nameKey     String // the name in lowercase: one Teacher can't have "Sampaguita" and "sampaguita" in the same grade
+  color       String // yellow | pink | coral (the tab color)
+  icon        String // flower | tulip | rose (the tab icon)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  students    Student[]
+  assignments Assignment[]
 
   @@unique([teacherId, grade, nameKey])
   @@index([teacherId, createdAt])
@@ -185,4 +187,24 @@ model Student {
   updatedAt DateTime @updatedAt
 
   @@index([sectionId, schoolId])
+}
+
+// ---------- Assignments (review packs) ----------
+// A Teacher gives an approved lesson to a section as a review pack. Assigning the
+// same lesson to the same section again updates it (unique lessonId + sectionId).
+
+model Assignment {
+  id        String    @id @default(cuid())
+  lessonId  String
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name      String // the pack name, 1 to 60 characters
+  games     String[] // 1 to 3 of quiz-show | match-up | fill-blank
+  dueDate   DateTime? // the date only, saved as noon Philippine time (04:00 UTC) so it never slips a day
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([lessonId, sectionId])
+  @@index([sectionId, createdAt])
 }

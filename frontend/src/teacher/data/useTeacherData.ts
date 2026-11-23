@@ -14,7 +14,14 @@ import {
   type TextLevel,
   type UploadPhase,
 } from '../api/lessonsApi'
-import { sectionKeys, sectionsApi, type ServerSection, type ServerStudent } from '../api/sectionsApi'
+import {
+  sectionKeys,
+  sectionsApi,
+  type AssignInput,
+  type ServerAssignment,
+  type ServerSection,
+  type ServerStudent,
+} from '../api/sectionsApi'
 import { toScreenLesson } from './lessonMapping'
 import { useTeacherStore } from './teacherDataContext'
 import type {
@@ -227,21 +234,32 @@ export interface LessonDetail extends LessonWithCounts {
   questions: ServerQuestion[]
 }
 
-/** Marks every To do that points at this lesson as done. */
-const finishTodos = (todos: TodoItem[], kind: 'check' | 'games', lessonId: string) =>
-  todos.map((t) =>
-    !t.done && t.target.kind === kind && t.target.lessonId === lessonId ? { ...t, done: true, doneAt: nowLabel() } : t,
-  )
-
 /** Changes the screen-only note of one lesson. */
 const withNote = (d: TeacherData, id: string, change: Partial<LessonNote>): TeacherData => ({
   ...d,
   lessonNotes: { ...d.lessonNotes, [id]: { ...d.lessonNotes[id], ...change } },
 })
 
+/** The open section's review packs, by lesson id (from the server). */
+export function useSectionAssignments() {
+  const { active } = useSection()
+  const sectionId = active?.id ?? ''
+  const query = useQuery({
+    queryKey: sectionKeys.assignments(sectionId),
+    queryFn: () => sectionsApi.assignments(sectionId),
+    enabled: !!sectionId,
+  })
+  return useMemo(() => new Map((query.data ?? []).map((a): [string, ServerAssignment] => [a.lessonId, a])), [query.data])
+}
+
+/** Assign: which section, the pack name, the games and the due date ("2026-11-27" or null). */
+export type AssignPack = AssignInput & { sectionId: string }
+
 /** My lessons, newest first. While any is being made, asks again every 3 seconds. */
 export function useLessons() {
   const { data, update } = useTeacherStore()
+  const queryClient = useQueryClient()
+  const assignments = useSectionAssignments()
   const query = useQuery({
     queryKey: lessonKeys.list,
     queryFn: lessonsApi.list,
@@ -252,19 +270,30 @@ export function useLessons() {
     () =>
       (query.data ?? []).map(
         (item): LessonWithCounts => ({
-          ...toScreenLesson(item, lessonNotes[item.id]),
+          ...toScreenLesson(item, lessonNotes[item.id], assignments.get(item.id)),
           toCheck: item.counts.toCheck,
           approved: item.counts.approved,
         }),
       ),
-    [query.data, lessonNotes],
+    [query.data, lessonNotes, assignments],
   )
 
-  /** Assign stays on the screen for now (the backend has no assign yet). */
+  /**
+   * Saves the review pack on the server (or updates the one given before), then
+   * refreshes that section's assignments. Throws an ApiError with the server's
+   * friendly message (e.g. 409 LESSON_NOT_READY, 409 GAME_NOT_READY).
+   */
   const assignLesson = useCallback(
-    (id: string, dueLabel: string) =>
-      update((d) => ({ ...withNote(d, id, { assignedNote: `due ${dueLabel.split(',')[0]}` }), todos: finishTodos(d.todos, 'games', id) })),
-    [update],
+    async (id: string, { sectionId, ...pack }: AssignPack) => {
+      const saved = await sectionsApi.assign(sectionId, id, pack)
+      queryClient.setQueryData<ServerAssignment[]>(sectionKeys.assignments(sectionId), (old) => [
+        saved,
+        ...(old ?? []).filter((a) => a.id !== saved.id),
+      ])
+      void queryClient.invalidateQueries({ queryKey: sectionKeys.assignments(sectionId) })
+      return saved
+    },
+    [queryClient],
   )
 
   /** The games switched on for the review pack (screen only for now). */
@@ -283,12 +312,13 @@ export function useLessonLoad(id: string | undefined) {
     refetchInterval: (q) => (q.state.data?.status === 'making' ? LESSON_POLL_MS : false),
   })
   const note = id ? data.lessonNotes[id] : undefined
+  const assignment = useSectionAssignments().get(id ?? '')
   const server = query.data
   const fetchedAt = query.dataUpdatedAt
   const lesson = useMemo((): LessonDetail | undefined => {
     if (!server) return undefined
     return {
-      ...toScreenLesson(server, note),
+      ...toScreenLesson(server, note, assignment),
       toCheck: server.counts.toCheck,
       approved: server.counts.approved,
       textLevel: server.textLevel,
@@ -298,7 +328,7 @@ export function useLessonLoad(id: string | undefined) {
       error: server.error,
       questions: [...server.questions].sort((a, b) => a.position - b.position),
     }
-  }, [server, note, fetchedAt])
+  }, [server, note, assignment, fetchedAt])
   const notFound = query.error instanceof ApiError && query.error.status === 404
   return { lesson, loading: query.isPending && !!id, notFound, error: query.error }
 }
@@ -369,7 +399,14 @@ export function useTodos() {
           done: false,
         }),
       )
-    const others = data.todos.filter((t) => t.target.kind !== 'check').map((t): ShownTodo => ({ ...t, title: t.title ?? '' }))
+    const assigned = new Set(lessons.filter((l) => l.status === 'assigned').map((l) => l.id))
+    const others = data.todos
+      .filter((t) => t.target.kind !== 'check')
+      .map((t): ShownTodo => {
+        const shown = { ...t, title: t.title ?? '' }
+        // "Assign …": done once the lesson is really assigned to this section.
+        return t.target.kind === 'games' && !t.done && assigned.has(t.target.lessonId) ? { ...shown, done: true } : shown
+      })
     return [...checks, ...others]
   }, [lessons, data.todos])
   const toggle = useCallback(

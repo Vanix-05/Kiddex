@@ -57,7 +57,10 @@ export const TEMPLATE_FOR_TYPE: Record<CardType, TemplateId> = {
   fill_blank: 'fill-blank',
 }
 
-/** Fewest approved cards a game needs to be playable. */
+/**
+ * Fewest approved cards a game needs to be playable (and to be put in an assigned
+ * review pack). Must match MIN_CARDS in frontend/src/content/questionCard.ts.
+ */
 export const MIN_CARDS: Record<TemplateId, number> = {
   'quiz-show': 3,
   'match-up': 4,

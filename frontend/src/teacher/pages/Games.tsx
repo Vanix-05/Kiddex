@@ -4,7 +4,18 @@ import { ArrowLeft, CalendarDays, ChartNoAxesColumn, Check, Package, Pencil, Pla
 import { MIN_CARDS } from '../../content/questionCard'
 import { paths } from '../../routes/paths'
 import { previewGames, previewPath } from '../preview/previewCards'
-import { sectionLabel, useLesson, useLessonGames, useLessons, useReviewPackDefaults, useSection, useStudents } from '../data/useTeacherData'
+import { errorMessage } from '../api/client'
+import { dueChoices } from '../data/dueDates'
+import {
+  sectionLabel,
+  useLesson,
+  useLessonGames,
+  useLessons,
+  useReviewPackDefaults,
+  useSection,
+  useSectionAssignments,
+  useStudents,
+} from '../data/useTeacherData'
 import type { TemplateId } from '../data/types'
 import { GAME_ICON, GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
@@ -232,31 +243,32 @@ function PreviewButton({
 
 // ---------- Right page ----------
 
-/** The next few school days, for the due date list. */
-function DUE_DATES(first: string) {
-  const days: string[] = []
-  const d = new Date()
-  while (days.length < 8) {
-    d.setDate(d.getDate() + 1)
-    if (d.getDay() !== 0 && d.getDay() !== 6) days.push(d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))
-  }
-  // The default (next Friday) first, then the other school days in order.
-  return [first, ...days.filter((x) => x !== first)].slice(0, 6)
-}
-
 export function GamesRight({ lessonId, live }: PageProps) {
   const { lesson, games, inPack } = usePackGames(lessonId)
   const { assignLesson } = useLessons()
   const { sections, active } = useSection()
   const students = useStudents()
   const { dueLabel } = useReviewPackDefaults()
+  // Already assigned to this section: the page starts with the saved name and due date
+  // (and the saved games, through the lesson).
+  const saved = useSectionAssignments().get(lessonId ?? '')
   const navigate = useNavigate()
   const ids = useId()
-  const [name, setName] = useState(lesson ? `${lesson.topic} Review` : '')
-  const [giveTo, setGiveTo] = useState<'section' | 'pick'>('section')
+  const [name, setName] = useState(saved?.name ?? (lesson ? `${lesson.topic} Review` : ''))
   const [sectionId, setSectionId] = useState(active?.id ?? '')
-  const [due, setDue] = useState(dueLabel)
+  // The due date as "2026-11-27"; the list shows its label ("Fri, Nov 27").
+  const [due, setDue] = useState(() => saved?.dueDate ?? dueChoices(dueLabel)[0]?.iso ?? '')
   const [assigned, setAssigned] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  // The saved pack arrived after the page opened: fill it in once.
+  const [prefilled, setPrefilled] = useState(!!saved)
+  if (saved && !prefilled) {
+    setPrefilled(true)
+    setName(saved.name)
+    if (saved.dueDate) setDue(saved.dueDate)
+  }
+  const choices = dueChoices(dueLabel, saved?.dueDate)
   const section = sections.find((s) => s.id === sectionId) ?? active
   const registered = students.filter((s) => s.registered).length
   const tab = live ? undefined : -1
@@ -268,11 +280,18 @@ export function GamesRight({ lessonId, live }: PageProps) {
     return () => window.clearTimeout(t)
   }, [assigned, live, navigate])
 
-  const assign = () => {
-    if (!lesson || assigned || inPack.length === 0) return
-    // TODO: send the review pack (with the games in inPack) to the backend.
-    assignLesson(lesson.id, due)
-    setAssigned(true)
+  /** Saves the review pack on the server: "Assigning…", then "Assigned!" (or the server's message). */
+  const assign = async () => {
+    if (!lesson || !section || assigned || saving || inPack.length === 0 || !name.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      await assignLesson(lesson.id, { sectionId: section.id, name: name.trim(), games: inPack, dueDate: due || null })
+      setAssigned(true)
+    } catch (err) {
+      setError(errorMessage(err))
+    }
+    setSaving(false)
   }
 
   return (
@@ -282,7 +301,7 @@ export function GamesRight({ lessonId, live }: PageProps) {
 
       <label className={styles.field}>
         <span className={styles.label}>Pack name</span>
-        <input className={styles.input} value={name} tabIndex={tab} onChange={(e) => setName(e.target.value)} />
+        <input className={styles.input} value={name} maxLength={60} tabIndex={tab} onChange={(e) => setName(e.target.value)} />
       </label>
 
       <div className={styles.field} role="group" aria-labelledby={`${ids}-games`}>
@@ -312,27 +331,19 @@ export function GamesRight({ lessonId, live }: PageProps) {
           Give to
         </span>
         <div className={styles.giveTo}>
-          {(
-            [
-              ['section', 'Whole section'],
-              ['pick', 'Pick students'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={giveTo === value}
-              tabIndex={tab}
-              className={giveTo === value ? `${styles.give} ${styles.giveOn}` : styles.give}
-              onClick={() => {
-                setGiveTo(value)
-                // TODO: "Pick students" opens a student picker.
-              }}
-            >
-              {giveTo === value && <Check size={18} strokeWidth={3} aria-hidden="true" />}
-              {label}
+          <button type="button" aria-pressed="true" tabIndex={tab} className={`${styles.give} ${styles.giveOn}`}>
+            <Check size={18} strokeWidth={3} aria-hidden="true" />
+            Whole section
+          </button>
+          {/* Assigning to single Students is not in the MVP (brief 7: a review pack goes to a section). */}
+          <span className={styles.giveLater}>
+            <button type="button" aria-pressed="false" disabled aria-describedby={`${ids}-later`} className={styles.give}>
+              Pick students
             </button>
-          ))}
+            <span id={`${ids}-later`} className={styles.giveLaterNote}>
+              Coming later
+            </span>
+          </span>
         </div>
       </div>
 
@@ -352,8 +363,10 @@ export function GamesRight({ lessonId, live }: PageProps) {
           <span className={styles.dateBox}>
             <CalendarDays size={20} aria-hidden="true" />
             <select className={styles.dateSelect} value={due} tabIndex={tab} onChange={(e) => setDue(e.target.value)}>
-              {DUE_DATES(dueLabel).map((d) => (
-                <option key={d}>{d}</option>
+              {choices.map((c) => (
+                <option key={c.iso} value={c.iso}>
+                  {c.label}
+                </option>
               ))}
             </select>
           </span>
@@ -372,12 +385,12 @@ export function GamesRight({ lessonId, live }: PageProps) {
         <Btn
           variant="primary"
           className={styles.assign}
-          disabled={!lesson || inPack.length === 0 || name.trim() === '' || assigned}
+          disabled={!lesson || !section || inPack.length === 0 || name.trim() === '' || assigned || saving}
           tabIndex={tab}
           icon={<Package size={22} aria-hidden="true" />}
-          onClick={assign}
+          onClick={() => void assign()}
         >
-          Assign to {section ? sectionLabel(section) : 'your class'}
+          {saving ? 'Assigning…' : `Assign to ${section ? sectionLabel(section) : 'your class'}`}
         </Btn>
         <span className={styles.toastSlot} role="status">
           {assigned && (
@@ -387,6 +400,11 @@ export function GamesRight({ lessonId, live }: PageProps) {
           )}
         </span>
       </div>
+      {error && (
+        <p className={styles.assignError} role="alert">
+          {error}
+        </p>
+      )}
       {lesson && inPack.length === 0 && (
         <p className={styles.assignHint}>
           {games.ready.length === 0 ? 'No game has enough approved questions yet.' : 'Switch on at least one game to assign this pack.'}
