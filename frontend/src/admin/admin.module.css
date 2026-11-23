@@ -117,10 +117,13 @@ button.bigButton {
 
 /* ---------- Admin Login ---------- */
 
+/* The logo and card, centered on the beach scene (a too-short screen scrolls). */
 .loginColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-height: 100svh;
   gap: 20px;
   width: 100%;
   max-width: 560px;
@@ -742,4 +745,11 @@ button.addButton {
   overflow-wrap: anywhere;
   text-align: center;
   user-select: all;
+}
+
+/* Desktop only: the login card sits a little above the middle (phones stay exactly centered). */
+@media (min-width: 900px) and (min-height: 640px) {
+  .loginColumn {
+    padding-bottom: 140px;
+  }
 }

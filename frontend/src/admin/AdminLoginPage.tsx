@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { BeachCrab } from '../components/BeachCrab/BeachCrab'
 import { Button } from '../components/Button/Button'
 import { KiddexLogo } from '../components/KiddexLogo/KiddexLogo'
+import { SceneBackground } from '../components/SceneBackground/SceneBackground'
 import { TextInput } from '../components/TextInput/TextInput'
 import { paths } from '../routes/paths'
 import type { TeacherLoginState } from '../session/session'
@@ -55,8 +57,10 @@ export function AdminLoginPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <main className={styles.loginColumn}>
+    // The same beach scene and walking crab as the main login. SceneBackground
+    // has the page's <main>, so the column is a <div>.
+    <SceneBackground decor={<BeachCrab />}>
+      <div className={styles.loginColumn}>
         <KiddexLogo className={styles.loginLogo} />
         <section className={styles.loginCard} aria-labelledby="admin-login-title">
           <h1 id="admin-login-title" className={styles.loginTitle}>
@@ -104,7 +108,7 @@ export function AdminLoginPage() {
             )}
           </form>
         </section>
-      </main>
-    </div>
+      </div>
+    </SceneBackground>
   )
 }
