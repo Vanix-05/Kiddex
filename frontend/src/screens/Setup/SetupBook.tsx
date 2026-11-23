@@ -100,6 +100,8 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
   // Nicknames typed so far, per buddy, so switching back keeps them.
   const [names, setNames] = useState<Partial<Record<BuddyId, string>>>({})
   const [chosen, setChosen] = useState(!!pullIn)
+  // Choose could not be saved (no internet, server asleep): a message and Try again on the page.
+  const [saveProblem, setSaveProblem] = useState(false)
   // After Choose and "A perfect team!": the buddy pulls the Student into the page.
   const [pulling, setPulling] = useState(!!pullIn)
   // The pull-in's wide shot for the Student's gender: its address, set once from Choose on (the
@@ -264,6 +266,7 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
     const nickname = (names[selectedId] ?? '').trim()
     if (busy || !avatar || !isBuddyReady(selectedId)) return
     setChosen(true)
+    setSaveProblem(false)
     // The wide shot for the gender being saved: normally downloaded long ago (at Boy or Girl).
     // Then its <video> is made and primed right here, inside the tap: phones only load a video
     // (and iPhone Low Power Mode only lets it play) after a play() started by a tap. If it is
@@ -275,11 +278,18 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
     }
     void whenPullInVideo(avatar).then(keepWideVideo)
     later(CHOSEN_MS, () => {
-      // Saved now, so the picks are kept even if the clip is skipped or the tab is closed.
+      // Saved on the server now, so the picks are kept even if the clip is skipped or the tab is closed.
       // The gate keeps this book on screen meanwhile (SetupFrame would send a Student with a buddy away).
       pullInGate.start()
-      finishSetup({ avatar, buddy: selectedId, nickname })
-      setPulling(true)
+      finishSetup({ avatar, buddy: selectedId, nickname }).then(
+        () => setPulling(true),
+        () => {
+          // Not saved: stay on Pick your buddy with every pick kept, and offer Try again.
+          pullInGate.end()
+          setChosen(false)
+          setSaveProblem(true)
+        },
+      )
     })
   }
 
@@ -356,6 +366,7 @@ export function SetupBook({ intro, freezeAt, onIntroEnd, pullIn }: SetupBookProp
         covered={covered}
         frozen={pulling}
         onChoose={choose}
+        saveProblem={saveProblem}
         onBack={petBack}
       />
     )

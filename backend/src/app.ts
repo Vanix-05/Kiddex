@@ -10,6 +10,7 @@ import { healthRouter } from "./routes/health";
 import { lessonsRouter } from "./routes/lessons";
 import { questionsRouter } from "./routes/questions";
 import { sectionsRouter } from "./routes/sections";
+import { studentRouter } from "./routes/student";
 import { errorHandler, notFound } from "./middleware/errors";
 
 export const app = express();
@@ -33,11 +34,13 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 
-// Open: "/", /api/ping, /api/health and the two login addresses.
+// Open: "/", /api/ping, /api/health and the login addresses (Teacher, admin, Student).
 app.use(healthRouter);
 app.use(authRouter);
 // The Admin page (Teacher accounts). Everything but its login needs requireAdmin.
 app.use(adminRouter);
+// Student login (open, with its own per-computer limit) and /api/student/... (requireStudent).
+app.use(studentRouter);
 
 // Everything about lessons and questions needs a logged-in Teacher. This runs
 // before the routes, so a file upload without a login is never read.

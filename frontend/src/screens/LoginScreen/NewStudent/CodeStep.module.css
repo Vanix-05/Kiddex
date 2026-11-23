@@ -25,6 +25,61 @@
   font-weight: 700;
 }
 
+/* ---------- A login problem (mockup 7-student-wrong-code) ---------- */
+
+/* The hint line, or the red problem box in its place. */
+.hintArea {
+  margin-top: 10px;
+}
+
+.hintArea .hint {
+  margin-top: 0;
+}
+
+.problem {
+  margin: 0;
+  padding: 10px 16px;
+  border: 2px solid color-mix(in srgb, var(--color-danger-text) 28%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-danger-text) 9%, white);
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.problem strong {
+  font-weight: 700;
+  color: var(--color-danger-text);
+}
+
+/* The boxes didn't match: red borders, a light red fill, one small shake. */
+.bad .box {
+  border-color: var(--color-danger-text);
+  background: color-mix(in srgb, var(--color-danger-text) 8%, white);
+  box-shadow: none;
+}
+
+.bad {
+  animation: shake 420ms ease-in-out;
+}
+
+@keyframes shake {
+  15%,
+  55% {
+    transform: translateX(-7px);
+  }
+  35%,
+  75% {
+    transform: translateX(7px);
+  }
+}
+
+.key:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* ---------- Digit boxes ---------- */
 
 /* The boxes plus "Show numbers" under them (PIN code). */
@@ -231,6 +286,10 @@
   .next {
     transition: none;
   }
+
+  .bad {
+    animation: none;
+  }
 }
 
 /* ---------- Phone held sideways ----------
@@ -319,4 +378,20 @@
 .phonePad .next svg {
   width: 34px;
   height: 34px;
+}
+
+/* Phone held sideways: the red box on Ollie's page. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .phoneEntry .hintArea {
+    margin-top: 6px;
+  }
+
+  .phoneEntry .hintArea .hint {
+    margin: 0;
+  }
+
+  .phoneEntry .problem {
+    font-size: 24px;
+    text-wrap: balance;
+  }
 }

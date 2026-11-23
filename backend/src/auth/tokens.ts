@@ -1,7 +1,8 @@
-// Login tokens (JWT, HS256, signed with JWT_SECRET) for Teachers and admins.
-// A token holds only: sub = account id, role = "teacher" | "admin", tv = the account's tokenVersion.
-// No email or name. A token is only accepted for its own role, so a Teacher token never
-// passes the admin check and an admin token never passes the Teacher check.
+// Login tokens (JWT, HS256, signed with JWT_SECRET) for Teachers, admins and Students.
+// A token holds only: sub = account id, role = "teacher" | "admin" | "student", tv = the
+// account's tokenVersion. No email, name or School ID. A token is only accepted for its
+// own role, so a Student token never passes requireTeacher or requireAdmin, and Teacher
+// and admin tokens never pass requireStudent.
 // Never print or log a token or the secret.
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
@@ -12,13 +13,15 @@ export const TOKEN_LIFETIME = "8h";
 const ALGORITHM = "HS256";
 
 export type AccountRole = "teacher" | "admin";
+/** Every kind of login token. Students are not in accountTables (they log in by School ID). */
+export type TokenRole = AccountRole | "student";
 
 export interface TokenContent {
   accountId: string;
   tokenVersion: number;
 }
 
-export function makeToken(role: AccountRole, account: { id: string; tokenVersion: number }): string {
+export function makeToken(role: TokenRole, account: { id: string; tokenVersion: number }): string {
   return jwt.sign({ role, tv: account.tokenVersion }, env.jwtSecret, {
     algorithm: ALGORITHM,
     subject: account.id,
@@ -27,7 +30,7 @@ export function makeToken(role: AccountRole, account: { id: string; tokenVersion
 }
 
 /** Returns the token's content, or null when it is wrong, expired, not HS256 or for another role. */
-export function readToken(role: AccountRole, token: string): TokenContent | null {
+export function readToken(role: TokenRole, token: string): TokenContent | null {
   try {
     const content = jwt.verify(token, env.jwtSecret, { algorithms: [ALGORITHM] });
     if (typeof content !== "object" || content === null) return null;
@@ -43,3 +46,5 @@ export const makeTeacherToken = (teacher: { id: string; tokenVersion: number }) 
 export const readTeacherToken = (token: string) => readToken("teacher", token);
 export const makeAdminToken = (admin: { id: string; tokenVersion: number }) => makeToken("admin", admin);
 export const readAdminToken = (token: string) => readToken("admin", token);
+export const makeStudentToken = (student: { id: string; tokenVersion: number }) => makeToken("student", student);
+export const readStudentToken = (token: string) => readToken("student", token);

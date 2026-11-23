@@ -1,11 +1,22 @@
-// `npm run test-students`: checks the School ID cleaner, the one-time code maker, "New code" and
-// the 45-Students rule, and prints PASS or FAIL for each. Needs NO database.
+// `npm run test-students`: checks the School ID cleaner, the one-time code maker, "New code",
+// the 45-Students rule, the Student login rules and tokens, and prints PASS or FAIL for each.
 // Codes made here are random test values; they are never printed.
+import fs from "node:fs";
+import path from "node:path";
+import type { Request, RequestHandler, Response } from "express";
+import { requireAdmin } from "../auth/requireAdmin";
+import { requireStudent } from "../auth/requireStudent";
+import { requireTeacher } from "../auth/requireTeacher";
+import { hashPassword } from "../auth/passwords";
+import { makeStudentToken, makeTeacherToken, readAdminToken, readStudentToken, readTeacherToken } from "../auth/tokens";
+import { AVATARS, BUDDY_IDS, LOOK_ITEMS, MAX_NICKNAME } from "../content/studentSetup";
+import { AppError } from "../middleware/AppError";
 import { MAX_STUDENTS_PER_SECTION } from "../sections/limits";
 import { newCodeChanges } from "../sections/newCode";
 import { makeOneTimeCode, makeUniqueCodes, showOneTimeCode } from "../sections/oneTimeCode";
 import { planAdd } from "../sections/planAdd";
 import { cleanSchoolId, showSchoolId } from "../sections/schoolId";
+import { studentLogin, type StudentLoginRow, type StudentLoginStore } from "../students/studentLogin";
 
 let failures = 0;
 function check(name: string, ok: boolean, detail = ""): void {
@@ -105,8 +116,158 @@ async function main() {
   });
   check("new code: never the same as the old code", renewed !== oldCode && /^\d{6}$/.test(renewed) && rounds === 2);
 
+  await loginChecks();
+  await tokenChecks();
+  sameAsFrontendChecks();
+
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
   process.exitCode = failures === 0 ? 0 : 1;
+}
+
+// ---------- Student login (an in-memory store: no database) ----------
+
+/** The error code a promise fails with ("" when it works). */
+async function failsWith(work: Promise<unknown>): Promise<string> {
+  try {
+    await work;
+    return "";
+  } catch (err) {
+    return err instanceof AppError ? err.code : "UNEXPECTED";
+  }
+}
+
+async function loginChecks() {
+  const rows = new Map<string, StudentLoginRow & { schoolId: string }>();
+  const add = (id: string, schoolId: string, extra: Partial<StudentLoginRow> = {}) =>
+    rows.set(id, {
+      id,
+      schoolId,
+      tokenVersion: 0,
+      oneTimeCode: null,
+      pinHash: null,
+      failedLogins: 0,
+      lockedUntil: null,
+      registeredAt: null,
+      ...extra,
+    });
+  const store: StudentLoginStore = {
+    find: async (schoolId) => [...rows.values()].find((r) => r.schoolId === schoolId) ?? null,
+    update: async (id, changes) => {
+      const row = rows.get(id);
+      if (row) Object.assign(row, changes);
+    },
+    useCode: async (id, code, changes) => {
+      const row = rows.get(id);
+      if (!row || row.oneTimeCode !== code) return false;
+      Object.assign(row, changes);
+      return true;
+    },
+  };
+  const login = studentLogin(store);
+  const row = (id: string) => rows.get(id)!;
+
+  // A new Student (code 482915) and a registered one (PIN code 1234).
+  add("new", "20260191", { oneTimeCode: "482915" });
+  add("old", "20260192", { pinHash: await hashPassword("1234"), registeredAt: new Date("2026-11-01") });
+
+  // School ID cleaning on login
+  check("login: School ID with a dash works", (await failsWith(login.checkCode({ schoolId: "2026-0191", code: "482915" }))) === "");
+  check("login: School ID without a dash works", (await failsWith(login.checkCode({ schoolId: "20260191", code: "482-915" }))) === "");
+  check("login: check-code does not use up the code", row("new").oneTimeCode === "482915");
+
+  // The one shared WRONG_LOGIN
+  check("login: unknown School ID → WRONG_LOGIN (code)", (await failsWith(login.checkCode({ schoolId: "2026-9999", code: "482915" }))) === "WRONG_LOGIN");
+  check("login: unknown School ID → WRONG_LOGIN (PIN)", (await failsWith(login.login({ schoolId: "2026-9999", pin: "1234" }))) === "WRONG_LOGIN");
+  check("login: wrong code → WRONG_LOGIN", (await failsWith(login.checkCode({ schoolId: "2026-0191", code: "111111" }))) === "WRONG_LOGIN");
+  check("login: a wrong code counts as a wrong try", row("new").failedLogins === 1);
+  check("login: wrong PIN code → WRONG_LOGIN", (await failsWith(login.login({ schoolId: "2026-0192", pin: "9999" }))) === "WRONG_LOGIN");
+  check("login: no PIN code made yet → WRONG_LOGIN", (await failsWith(login.login({ schoolId: "2026-0191", pin: "1234" }))) === "WRONG_LOGIN");
+  check("login: a PIN code must be 4 numbers", (await failsWith(login.firstLogin({ schoolId: "2026-0191", code: "482915", pin: "12" }))) === "BAD_REQUEST");
+
+  // First login: the PIN code is saved (hashed), the code is used up
+  const before = row("new").failedLogins;
+  check("first login: right code + new PIN code works", (await failsWith(login.firstLogin({ schoolId: "2026-0191", code: "482-915", pin: "5678" }))) === "" && before > 0);
+  check("first login: the code is gone, codeMadeAt cleared", row("new").oneTimeCode === null && (row("new") as { codeMadeAt?: unknown }).codeMadeAt === null);
+  check("first login: the PIN code is hashed, never kept as typed", !!row("new").pinHash && row("new").pinHash !== "5678");
+  check("first login: registeredAt is set and wrong tries cleared", !!row("new").registeredAt && row("new").failedLogins === 0);
+  check("login: a used-up code → WRONG_LOGIN", (await failsWith(login.checkCode({ schoolId: "2026-0191", code: "482915" }))) === "WRONG_LOGIN");
+  check("login: the new PIN code works", (await failsWith(login.login({ schoolId: "2026-0191", pin: "5678" }))) === "");
+
+  // A right login resets the count
+  await failsWith(login.login({ schoolId: "2026-0192", pin: "0000" }));
+  await failsWith(login.login({ schoolId: "2026-0192", pin: "0000" }));
+  const counted = row("old").failedLogins;
+  await login.login({ schoolId: "2026-0192", pin: "1234" });
+  check("login: a right login resets the wrong tries", counted === 3 && row("old").failedLogins === 0);
+
+  // 5 wrong in a row → 429, even with the right PIN code
+  const answers: string[] = [];
+  for (let i = 0; i < 5; i++) answers.push(await failsWith(login.login({ schoolId: "2026-0192", pin: "0000" })));
+  check("login: wrong tries 1–5 answer WRONG_LOGIN", answers.every((a) => a === "WRONG_LOGIN"));
+  check("login: after 5 wrong → 429 TOO_MANY_TRIES", (await failsWith(login.login({ schoolId: "2026-0192", pin: "0000" }))) === "TOO_MANY_TRIES");
+  check("login: locked: even the right PIN code waits", (await failsWith(login.login({ schoolId: "2026-0192", pin: "1234" }))) === "TOO_MANY_TRIES");
+  const minutes = ((row("old").lockedUntil?.getTime() ?? 0) - Date.now()) / 60000;
+  check("login: the lock lasts 5 minutes", minutes > 4.9 && minutes <= 5);
+  row("old").lockedUntil = new Date(Date.now() - 1000); // 5 minutes later
+  check("login: after the lock the right PIN code works again", (await failsWith(login.login({ schoolId: "2026-0192", pin: "1234" }))) === "");
+
+  // New code (Teacher): the old PIN code stops working, registeredAt is kept
+  Object.assign(row("old"), newCodeChanges("730264", new Date()), { tokenVersion: 1 });
+  check("new code: the old PIN code stops working", (await failsWith(login.login({ schoolId: "2026-0192", pin: "1234" }))) === "WRONG_LOGIN");
+  const registeredAt = row("old").registeredAt;
+  await login.firstLogin({ schoolId: "2026-0192", code: "730264", pin: "4321" });
+  check("new code: a new PIN code works, registeredAt is kept", row("old").registeredAt === registeredAt && (await failsWith(login.login({ schoolId: "2026-0192", pin: "4321" }))) === "");
+}
+
+// ---------- Tokens ----------
+
+async function tokenChecks() {
+  const studentToken = makeStudentToken({ id: "student-1", tokenVersion: 0 });
+  const teacherToken = makeTeacherToken({ id: "teacher-1", tokenVersion: 0 });
+  check("token: a Student token reads as a Student token", readStudentToken(studentToken)?.accountId === "student-1");
+  check("token: a Student token is not a Teacher token", readTeacherToken(studentToken) === null);
+  check("token: a Student token is not an admin token", readAdminToken(studentToken) === null);
+  check("token: a Teacher token is not a Student token", readStudentToken(teacherToken) === null);
+
+  // The real middleware: it refuses before it ever asks the database.
+  const run = (handler: RequestHandler, token: string) =>
+    new Promise<string>((resolve) => {
+      const req = { get: (name: string) => (name.toLowerCase() === "authorization" ? `Bearer ${token}` : undefined) };
+      void handler(req as unknown as Request, {} as Response, (err?: unknown) => resolve(err instanceof AppError ? err.code : "PASSED"));
+    });
+  check("token: requireTeacher refuses a Student token", (await run(requireTeacher, studentToken)) === "LOGIN_NEEDED");
+  check("token: requireAdmin refuses a Student token", (await run(requireAdmin, studentToken)) === "LOGIN_NEEDED");
+  check("token: requireStudent refuses a Teacher token", (await run(requireStudent, teacherToken)) === "LOGIN_NEEDED");
+}
+
+// ---------- The allowed values match the frontend ----------
+
+function sameAsFrontendChecks() {
+  const setupFolder = path.resolve(__dirname, "../../../frontend/src/setup");
+  if (!fs.existsSync(setupFolder)) {
+    console.log("SKIP  allowed values vs frontend (no frontend folder next to the backend)");
+    return;
+  }
+  const read = (file: string) => fs.readFileSync(path.join(setupFolder, file), "utf8");
+  const ids = (list: string) => [...list.matchAll(/id: '([^']+)'/g)].map((m) => m[1]);
+  const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+  const buddyList = /buddyIds = \[([^\]]+)\]/.exec(read("quizData.ts"))?.[1] ?? "";
+  check("same as frontend: buddy ids", same([...buddyList.matchAll(/'([^']+)'/g)].map((m) => m[1]), BUDDY_IDS));
+  check("same as frontend: MAX_NICKNAME", new RegExp(`MAX_NICKNAME = ${MAX_NICKNAME}\\b`).test(read("petData.ts")));
+  check("same as frontend: avatars", /'boy' \| 'girl'/.test(read("avatar.ts")) && same(AVATARS, ["boy", "girl"]));
+
+  const customize = read("customizeData.ts");
+  for (const key of Object.keys(LOOK_ITEMS) as (keyof typeof LOOK_ITEMS)[]) {
+    if (key === "skin") {
+      const swatches = /const skin[^=]*= \[([^\]]+)\]/.exec(customize)?.[1] ?? "";
+      const count = (swatches.match(/'#/g) ?? []).length;
+      check("same as frontend: look skin", same(Array.from({ length: count }, (_, i) => `skin${i + 1}`), LOOK_ITEMS.skin));
+      continue;
+    }
+    const block = new RegExp(`const ${key}: CustomizeItem\\[\\] = \\[([\\s\\S]*?)\\n\\]`).exec(customize)?.[1] ?? "";
+    check(`same as frontend: look ${key}`, same(ids(block), LOOK_ITEMS[key]));
+  }
 }
 
 void main();

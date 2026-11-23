@@ -174,6 +174,7 @@ function Bridge({
   onLobby: () => void
   onLogOut: () => void
 }) {
+  const { section } = useSession()
   const pet = petById(buddy)
   const name = buddyName || pet?.name || 'Buddy'
   const level = levelFromXp(FAKE_XP)
@@ -343,7 +344,7 @@ function Bridge({
 
         <p className={styles.island}>
           <span aria-hidden="true">🌴 </span>Rene Island
-          <small>Lobby · {SECTION}</small>
+          <small>Lobby · {section ?? SECTION}</small>
         </p>
 
         {/* ---------- The boat ---------- */}

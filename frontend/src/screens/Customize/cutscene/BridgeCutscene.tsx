@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { CompanionId } from '../../../companions/registry'
+import { useSession } from '../../../session/session'
 import { SECTION, type Look } from '../../../setup/customizeData'
 import { petById } from '../../../setup/petData'
 import { isBuddyId } from '../../../setup/quizData'
@@ -206,6 +207,7 @@ export interface BridgeCutsceneProps {
 export function BridgeCutscene({ avatar, buddy, look, buddyName, onDone, freezeAt }: BridgeCutsceneProps) {
   const cast: Cast = { avatar, buddy, look }
   const name = buddyName || (isBuddyId(buddy) ? petById(buddy)?.name : undefined) || 'your buddy'
+  const { section } = useSession()
   const startAt = freezeAt ?? 0
 
   const [{ scale, left, top }, setLayout] = useState(fit)
@@ -464,7 +466,7 @@ export function BridgeCutscene({ avatar, buddy, look, buddyName, onDone, freezeA
               <div ref={bind('title')} className={styles.title}>
                 <p className={styles.titleMain}>Welcome to Rene Island!</p>
                 <p className={styles.titleSub}>
-                  You and {name} made it to {SECTION}
+                  You and {name} made it to {section ?? SECTION}
                 </p>
               </div>
               <div ref={bind('cream')} className={styles.cream} />

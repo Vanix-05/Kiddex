@@ -37,8 +37,10 @@ export interface SessionState {
   seenBridgeCutscene: boolean
   /** The bedroom intro clip before the setup storybook has played (it plays once). */
   seenIntroClip: boolean
-  /** The loading video has played while the Lobby loaded (the first time the Lobby opens in a session). */
+  /** The loading video has played while the Lobby loaded (the first time the Lobby opens in a session). Screen only. */
   seenLoadingVideo: boolean
+  /** A Student's class section, e.g. "Grade 4 – Sampaguita" (null for a Teacher). */
+  section: string | null
 }
 
 /** What the student picked during first-time setup. */
@@ -49,18 +51,27 @@ export interface SetupResult {
   nickname: string
 }
 
+/** After a Student login: has the Student picked their buddy (setup done)? */
+export interface StudentLoggedIn {
+  hasBuddy: boolean
+}
+
 export interface SessionContextValue extends SessionState {
   /** Real login (backend). Throws an Error with a friendly message on failure. */
   logInTeacher: (email: string, password: string) => Promise<User>
-  /** New Student flow (School ID + one-time code + new PIN code): logs them in
-      with no buddy yet, so the first-time setup (quiz) comes next. Fake for now. */
-  logInNewStudent: (schoolId: string) => void
-  /** Returning Student (School ID + PIN code): logs them in with their kid and
-      buddy, so the Lobby comes next. Fake for now. */
-  logInReturningStudent: (schoolId: string) => void
-  /** Saves the setup picks to the session (no backend yet). */
-  finishSetup: (result: SetupResult) => void
-  /** Customize Bridge: saves the look. */
+  /** New Student book, before the PIN code page: right School ID + one-time code?
+      Throws an ApiError (401 WRONG_LOGIN, 429 TOO_MANY_TRIES, NETWORK…). Does not log in. */
+  checkStudentCode: (schoolId: string, code: string) => Promise<void>
+  /** New Student (School ID + one-time code + new PIN code): saves the PIN code and logs
+      them in, usually with no buddy yet, so the first-time setup comes next. Throws an ApiError. */
+  logInNewStudent: (schoolId: string, code: string, pin: string) => Promise<StudentLoggedIn>
+  /** Returning Student (School ID + PIN code): logs them in with their kid, buddy and look.
+      Throws an ApiError. */
+  logInReturningStudent: (schoolId: string, pin: string) => Promise<StudentLoggedIn>
+  /** Saves the setup picks (PUT /api/student/setup), then puts them in the session.
+      Throws an ApiError if it can't be saved (nothing changes then). */
+  finishSetup: (result: SetupResult) => Promise<void>
+  /** Customize Bridge: saves the look (on screen now, on the server in the background). */
   saveLook: (look: Look) => void
   /** Customize Bridge pencil: renames the buddy (empty = the buddy's default name). */
   renameBuddy: (name: string) => void

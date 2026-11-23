@@ -23,6 +23,27 @@ export interface CodeStepProps {
   onSubmit: () => void
   /** Off while the page is animating or is a still copy, so typing is ignored. */
   active: boolean
+  /**
+   * A login problem (mockup 7): shown in a soft red box instead of the hint, in
+   * a role="alert" area so screen readers read it.
+   */
+  error?: ReactNode
+  /** The typed numbers didn't match: red boxes, and one small shake each time `shakeKey` changes. */
+  bad?: boolean
+  shakeKey?: number
+  /** Waiting for the server: the number pad and the button are locked. */
+  busy?: boolean
+  /** The button stays off (e.g. too many tries: wait a few minutes). */
+  blocked?: boolean
+}
+
+/** The hint line, or the red problem box in its place. */
+function Hint({ hint, error }: Pick<CodeStepProps, 'hint' | 'error'>) {
+  return (
+    <div role="alert" className={styles.hintArea}>
+      {error ? <p className={styles.problem}>{error}</p> : <p className={styles.hint}>{hint}</p>}
+    </div>
+  )
 }
 
 const totalLength = (groups: number[]) => groups.reduce((a, b) => a + b, 0)
@@ -41,7 +62,7 @@ function stepClass(groups: number[], large: boolean) {
 export function CodeStep(props: CodeStepProps) {
   return (
     <div className={stepClass(props.groups, props.large ?? false)}>
-      <p className={styles.hint}>{props.hint}</p>
+      <Hint hint={props.hint} error={props.error} />
 
       <div className={styles.entry}>
         <CodeBoxes {...props} />
@@ -58,7 +79,7 @@ export function CodeStep(props: CodeStepProps) {
 export function CodeEntry(props: Omit<CodeStepProps, 'active'>) {
   return (
     <div className={`${stepClass(props.groups, props.large ?? false)} ${styles.phoneEntry}`}>
-      <p className={styles.hint}>{props.hint}</p>
+      <Hint hint={props.hint} error={props.error} />
       <CodeBoxes {...props} />
     </div>
   )
@@ -74,7 +95,7 @@ export function CodePadPage(props: CodeStepProps) {
 }
 
 /** The digit boxes, plus "Show numbers" under them for a PIN code. */
-function CodeBoxes({ label, groups, value, masked = false }: Omit<CodeStepProps, 'active'>) {
+function CodeBoxes({ label, groups, value, masked = false, bad = false, shakeKey = 0 }: Omit<CodeStepProps, 'active'>) {
   const length = totalLength(groups)
   const [showNumbers, setShowNumbers] = useState(false)
   const dashBefore = new Set(groups.slice(0, -1).map((_, g) => groups.slice(0, g + 1).reduce((a, b) => a + b, 0)))
@@ -88,7 +109,8 @@ function CodeBoxes({ label, groups, value, masked = false }: Omit<CodeStepProps,
 
   return (
     <div className={styles.boxArea}>
-      <div className={styles.boxes} role="group" aria-label={label}>
+      {/* key: a new wrong try plays the shake again. */}
+      <div key={bad ? shakeKey : 'ok'} className={bad ? `${styles.boxes} ${styles.bad}` : styles.boxes} role="group" aria-label={label}>
         {Array.from({ length }, (_, i) => {
           const digit = value[i]
           const className = digit
@@ -130,9 +152,10 @@ function CodeBoxes({ label, groups, value, masked = false }: Omit<CodeStepProps,
 }
 
 /** The number pad and the Next / Done! / Log in button. Typing on a keyboard works too. */
-function CodePad({ groups, value, onChange, submitLabel, onSubmit, active }: CodeStepProps) {
+function CodePad({ groups, value, onChange, submitLabel, onSubmit, active, busy = false, blocked = false }: CodeStepProps) {
   const length = totalLength(groups)
   const full = value.length === length
+  const canSubmit = full && !busy && !blocked
 
   const press = (key: (typeof KEYS)[number]) => {
     if (key === 'back') onChange((v) => v.slice(0, -1))
@@ -141,7 +164,7 @@ function CodePad({ groups, value, onChange, submitLabel, onSubmit, active }: Cod
   }
 
   useEffect(() => {
-    if (!active) return
+    if (!active || busy) return
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return
       if (/^[0-9]$/.test(e.key)) {
@@ -153,7 +176,7 @@ function CodePad({ groups, value, onChange, submitLabel, onSubmit, active }: Cod
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, length, onChange])
+  }, [active, busy, length, onChange])
 
   return (
     <>
@@ -164,6 +187,7 @@ function CodePad({ groups, value, onChange, submitLabel, onSubmit, active }: Cod
             type="button"
             className={key === 'back' || key === 'clear' ? `${styles.key} ${styles.keySmall}` : styles.key}
             onClick={() => press(key)}
+            disabled={busy}
             aria-label={key === 'back' ? 'Delete last number' : key === 'clear' ? 'Clear all' : undefined}
           >
             {key === 'back' ? <Icon name="backspace" size={22} /> : key === 'clear' ? 'Clear' : key}
@@ -171,7 +195,7 @@ function CodePad({ groups, value, onChange, submitLabel, onSubmit, active }: Cod
         ))}
       </div>
 
-      <button type="button" className={styles.next} disabled={!full} onClick={() => full && onSubmit()}>
+      <button type="button" className={styles.next} disabled={!canSubmit} onClick={() => canSubmit && onSubmit()}>
         {submitLabel}
         {submitLabel === 'Next' && <Icon name="arrowRight" size={22} />}
       </button>

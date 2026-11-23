@@ -4,10 +4,11 @@
  * In development VITE_API_URL is empty and Vite passes /api/... to the backend
  * (vite.config.ts). For the real website, VITE_API_URL is the backend's address.
  *
- * Every call sends the Teacher's login token (Authorization: Bearer ...) when there
- * is one. If the backend says the login ended (401 LOGIN_NEEDED), the token is
- * forgotten and the login-ended handler (set by SessionProvider) logs the Teacher
- * out and opens Teacher Login with a notice.
+ * Every call sends the login token of whoever is logged in on this tab (a Teacher
+ * or a Student; session/authToken.ts) as Authorization: Bearer .... If the backend
+ * says the login ended (401 LOGIN_NEEDED), the token is forgotten and the
+ * login-ended handler (set by SessionProvider) logs out and opens the right login
+ * screen (Teacher Login with a notice, or the Student welcome card).
  */
 import { clearToken, getToken } from '../../session/authToken'
 
@@ -44,7 +45,7 @@ export function errorFromBody(status: number, body: unknown): ApiError {
 
 let loginEndedHandler: (() => void) | null = null
 
-/** SessionProvider sets this: log out and go to Teacher Login with a notice. */
+/** SessionProvider sets this: log out and go to the right login screen. */
 export function setLoginEndedHandler(handler: (() => void) | null) {
   loginEndedHandler = handler
 }
@@ -65,7 +66,7 @@ export function checkLoginEnded(error: ApiError, sentToken: string | null) {
 export const errorMessage = (error: unknown) => (error instanceof ApiError ? error.message : UNKNOWN_MESSAGE)
 
 interface ApiOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   /** Sent as JSON. */
   body?: unknown
   signal?: AbortSignal

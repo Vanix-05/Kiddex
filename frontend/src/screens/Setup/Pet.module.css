@@ -528,3 +528,21 @@
     translate: 0 -50%;
   }
 }
+
+/* Choose could not be saved: a friendly line under the button (Try again). */
+.saveProblem {
+  position: absolute;
+  left: 660px;
+  top: 686px;
+  width: 480px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--color-danger-text);
+}
+
+.saveProblem:empty {
+  display: none;
+}

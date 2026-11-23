@@ -4,7 +4,10 @@
  * items in this order. `level` = locked until the Student reaches that level.
  */
 
-/** The Student's class section, shown on Rene Island's sign and the Lobby. FAKE until the backend sends it. */
+/**
+ * Only a fallback for screens with no logged-in Student (dev pages). A Student's real
+ * section comes from the backend: useSession().section.
+ */
 export const SECTION = 'Grade 4 – Sampaguita'
 
 /** A drawn accessory (see companions/rig/Accessories.tsx). */

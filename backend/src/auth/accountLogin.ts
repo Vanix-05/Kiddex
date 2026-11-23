@@ -14,15 +14,25 @@ import { fromDb, tooManyTries, wrongLogin } from "./authErrors";
 import { checkPassword, cleanEmail } from "./passwords";
 import { makeToken, readToken, type AccountRole } from "./tokens";
 
-/** Wrong passwords in a row before the account is locked. */
-const MAX_FAILED_LOGINS = 5;
+/** Wrong tries in a row before the account is locked (Teachers, admins and Students). */
+export const MAX_FAILED_LOGINS = 5;
 /** How long a locked account stays locked. */
-const LOCK_MS = 5 * 60 * 1000;
+export const LOCK_MS = 5 * 60 * 1000;
 
-// A bcrypt hash (cost 12) of random text nobody knows. For an unknown email we
-// still check the password against it, so the answer takes about as long as for
-// a real account and does not tell which emails exist.
-const DUMMY_HASH = "$2b$12$qEu2vvUG.tquneoqZs4WIuVETXzfgZXsZDHZs6etpNRo22XQVyNmG";
+/** True while a "too many wrong tries" lock is on. */
+export const isLockedNow = (lockedUntil: Date | null, now = Date.now()) =>
+  !!lockedUntil && lockedUntil.getTime() > now;
+
+/** What to save after one more wrong try: the new count, or (at 5) the lock with the count back at 0. */
+export function wrongTryChanges(failedLogins: number, now = Date.now()): { failedLogins: number; lockedUntil?: Date } {
+  const next = failedLogins + 1;
+  return next >= MAX_FAILED_LOGINS ? { failedLogins: 0, lockedUntil: new Date(now + LOCK_MS) } : { failedLogins: next };
+}
+
+// A bcrypt hash (cost 12) of random text nobody knows. For an unknown email (or
+// School ID) we still check against it, so the answer takes about as long as for
+// a real account and does not tell which ones exist.
+export const DUMMY_HASH = "$2b$12$qEu2vvUG.tquneoqZs4WIuVETXzfgZXsZDHZs6etpNRo22XQVyNmG";
 
 const loginBody = z.object({
   email: z.string().max(320),
@@ -66,17 +76,10 @@ export function loginHandlers(role: AccountRole, options: LoginOptions = {}): Re
     }
 
     // Locked: even the right password waits.
-    if (account.lockedUntil && account.lockedUntil.getTime() > Date.now()) throw tooManyTries();
+    if (isLockedNow(account.lockedUntil)) throw tooManyTries();
 
     if (!(await checkPassword(password, account.passwordHash))) {
-      const failedLogins = account.failedLogins + 1;
-      const lock = failedLogins >= MAX_FAILED_LOGINS;
-      await fromDb(() =>
-        table.update(
-          account.id,
-          lock ? { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MS) } : { failedLogins },
-        ),
-      );
+      await fromDb(() => table.update(account.id, wrongTryChanges(account.failedLogins)));
       throw wrongLogin();
     }
 

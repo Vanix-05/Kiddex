@@ -44,7 +44,7 @@ describe('authToken', () => {
       const { getToken, setToken, clearToken } = await loadAuthToken()
       setToken('abc.def.ghi')
       expect(getToken()).toBe('abc.def.ghi')
-      expect(sessionStorage.getItem('kiddex.teacherToken')).toBe('abc.def.ghi')
+      expect(sessionStorage.getItem('kiddex.loginToken')).toBe('abc.def.ghi')
       clearToken()
       expect(getToken()).toBeNull()
     })

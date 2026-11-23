@@ -75,7 +75,7 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. Add `--password "..."` to choose it instead. |
 | `npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"` | Makes an admin account for the Admin page and prints a temporary password once. Add `--password "..."` to choose it instead (testing; see "Choosing the password"). |
 | `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). Add `--password "..."` to choose it instead. |
-| `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`) and the 45-Students rule, and prints PASS or FAIL for each. Needs no database. |
+| `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`), New code, the 45-Students rule, the Student login rules (shared `WRONG_LOGIN`, 5 wrong → `429`, reset on a right login), Student tokens vs `requireTeacher` / `requireAdmin`, and that the setup values match the frontend. Prints PASS or FAIL for each. Needs no database. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
 
 ## Check that it runs
@@ -216,6 +216,27 @@ Try it (PowerShell or cmd):
 curl -H "Content-Type: application/json" -d "{\"email\":\"mr.gucci@kiddex.test\",\"password\":\"<password>\"}" http://localhost:3000/api/auth/teacher/login
 curl -H "Authorization: Bearer <token>" http://localhost:3000/api/auth/me
 ```
+
+## Student login
+
+School ID + PIN code are two credentials, like a username and a password. Rules in `src/students/studentLogin.ts`, addresses in `src/routes/student.ts`.
+
+| Address | What it does |
+| --- | --- |
+| `POST /api/auth/student/check-code` | Body `{ "schoolId", "code" }`. Right School ID + its current one-time code: `200 { ok: true }`. Used by the New Student book before the PIN code page. Does **not** log in. |
+| `POST /api/auth/student/first-login` | Body `{ "schoolId", "code", "pin" }` (pin = exactly 4 digits). Checks the code again, saves the PIN code (bcrypt, cost 12), removes the one-time code, sets `registeredAt` (only if empty) and `lastLoginAt`. Answers `{ token, student }`. |
+| `POST /api/auth/student/login` | Body `{ "schoolId", "pin" }`. Answers `{ token, student }`. |
+| `GET /api/student/me` | Needs a Student token. The profile: `schoolId` (`2026-0144`), `section: { grade, name }`, `avatar, buddy, buddyName, look, seenIntroClip, seenBridgeCutscene`. Never a hash or a code. |
+| `PUT /api/student/setup` | Needs a Student token. `{ avatar, buddy, buddyName }` at the end of first-time setup. Answers `{ student }`. |
+| `PATCH /api/student/me` | Needs a Student token. Any of `{ look, buddyName, seenIntroClip, seenBridgeCutscene }`. Answers `{ student }`. |
+
+- School IDs are cleaned like everywhere else (`2026-0144`, `20260144` or with spaces). One-time codes are compared with `crypto.timingSafeEqual`; a code works once.
+- **One answer** for an unknown School ID, a wrong code, a used-up code and a wrong PIN code: `401 WRONG_LOGIN`. It never says which part was wrong. `/login` runs a bcrypt check against a dummy hash for an unknown School ID or a Student with no PIN code yet (same timing).
+- **Wrong tries:** each wrong code or PIN code for a real Student counts. 5 in a row lock that Student for 5 minutes (`429 TOO_MANY_TRIES`); a right login clears the count. Same rule and code as the Teacher login.
+- **Per computer:** a whole class logs in from one school internet address at the same time, so these three addresses share their own limit of **300 tries per 15 minutes** per address (not the Teacher login's 20). The per-Student lock is what protects each PIN code.
+- **The token:** `role: "student"`, `sub` = Student id, `tv` = the Student's `tokenVersion`, 8 hours. A Student token never passes `requireTeacher` or `requireAdmin`, and Teacher/admin tokens never pass `requireStudent`. A **New code** from the Teacher raises `tokenVersion`, so the Student's open login ends (`401 LOGIN_NEEDED`).
+- The allowed avatar, buddy, buddy name and look values are in `src/content/studentSetup.ts`, copies of the frontend's lists. `npm run test-students` checks they still match.
+- No address ever gives a Student another Student's School ID.
 
 ## Addresses
 

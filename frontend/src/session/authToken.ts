@@ -1,12 +1,14 @@
 /**
- * The Teacher's login token (from POST /api/auth/teacher/login).
+ * The login token of whoever is logged in on this tab: a Teacher (POST
+ * /api/auth/teacher/login) or a Student (POST /api/auth/student/login or
+ * first-login). Only one at a time; teacher/api/client.ts sends it with every call.
  *
- * Kept in sessionStorage, so closing the tab logs the Teacher out: what we want
- * on shared school computers. Storage can be blocked (private mode, settings),
+ * Kept in sessionStorage, so closing the tab logs out: what we want on shared
+ * school computers. Storage can be blocked (private mode, settings),
  * so every read and write is wrapped, and a copy is kept in memory: then the
  * login still works, just not after a reload.
  */
-const TOKEN_KEY = 'kiddex.teacherToken'
+const TOKEN_KEY = 'kiddex.loginToken'
 
 let memoryToken: string | null = null
 

@@ -65,6 +65,8 @@ interface PetSpreadProps {
   frozen?: boolean
   onChoose?: () => void
   onBack?: () => void
+  /** Choose could not be saved: a friendly line, and the button says Try again. */
+  saveProblem?: boolean
 }
 
 /**
@@ -91,6 +93,7 @@ export function PetSpread({
   frozen = false,
   onChoose,
   onBack,
+  saveProblem = false,
 }: PetSpreadProps) {
   const titleId = useId()
   const live = mode === 'live'
@@ -225,11 +228,19 @@ export function PetSpread({
       </label>
 
       <Button className={styles.choose} onClick={onChoose} disabled={!ready || chosen}>
-        {ready ? `Choose ${displayName}!` : 'Coming soon!'}
+        {!ready ? 'Coming soon!' : saveProblem ? 'Try again' : `Choose ${displayName}!`}
       </Button>
+      {live && (
+        <p role="alert" className={styles.saveProblem}>
+          {saveProblem ? SAVE_PROBLEM : ''}
+        </p>
+      )}
     </div>
   )
 }
+
+/** Choose could not reach the server (the picks stay on the page). */
+const SAVE_PROBLEM = 'Oops! We couldn’t save your buddy. Check the internet, then tap Try again.'
 
 /** Soft "mystery pet" shape for pets with no art yet. */
 function Silhouette({ className }: { className?: string }) {

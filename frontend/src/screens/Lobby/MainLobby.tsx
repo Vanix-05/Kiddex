@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useSession } from '../../session/session'
 import { SECTION } from '../../setup/customizeData'
 import { isWalkKey, LobbyGame, type BubbleContent, type NearAction, type ZoneId, type ZoneNews } from './game/LobbyGame'
 import { ZONE_IDS } from './game/room'
@@ -177,7 +178,8 @@ export function MainLobby({
   }, [viewOnly])
 
   // The words on the walls.
-  const section = viewer?.section ?? SECTION
+  const { section: mySection } = useSession()
+  const section = viewer?.section ?? mySection ?? SECTION
   const roomText = useMemo(
     () => ({
       hello: `Hello, ${section.split('–').pop()?.trim() ?? section}!`,
