@@ -12,6 +12,7 @@ import { lessonsRouter } from "./routes/lessons";
 import { questionsRouter } from "./routes/questions";
 import { sectionsRouter } from "./routes/sections";
 import { studentRouter } from "./routes/student";
+import { studentGamesRouter } from "./routes/studentGames";
 import { errorHandler, notFound } from "./middleware/errors";
 
 export const app = express();
@@ -42,6 +43,8 @@ app.use(authRouter);
 app.use(adminRouter);
 // Student login (open, with its own per-computer limit) and /api/student/... (requireStudent).
 app.use(studentRouter);
+// The Student's games and saved rounds (requireStudent on each address).
+app.use(studentGamesRouter);
 
 // Everything about lessons and questions needs a logged-in Teacher. This runs
 // before the routes, so a file upload without a login is never read.

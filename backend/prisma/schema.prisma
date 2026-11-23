@@ -105,14 +105,15 @@ model Lesson {
   updatedAt           DateTime     @updatedAt
   questions           Question[]
   assignments         Assignment[]
+  gameRounds          GameRound[]
 
   @@index([ownerId, createdAt])
 }
 
 model Question {
-  id          String     @id @default(cuid())
+  id          String        @id @default(cuid())
   lessonId    String
-  lesson      Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson      Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   position    Int
   type        CardType
   prompt      String
@@ -126,11 +127,12 @@ model Question {
   sourcePage  Int?
   sourceQuote String?
   flag        CardFlag?
-  flagChecked Boolean    @default(false)
-  madeBy      String     @default("ai") // ai | teacher
-  status      CardStatus @default(draft)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  flagChecked Boolean       @default(false)
+  madeBy      String        @default("ai") // ai | teacher
+  status      CardStatus    @default(draft)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  answers     RoundAnswer[]
 
   @@index([lessonId, position])
 }
@@ -185,8 +187,17 @@ model Student {
   seenIntroClip      Boolean @default(false)
   seenBridgeCutscene Boolean @default(false)
 
+  // Game progress (gp-1). The level is worked out from xp (300 XP per level), not saved.
+  xp          Int     @default(0) // all XP ever earned
+  stars       Int     @default(0)
+  streakDays  Int     @default(0)
+  lastPlayDay String? // the Philippine calendar day of the last saved round, e.g. "2026-11-23"
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  topicLevels TopicLevel[]
+  gameRounds  GameRound[]
 
   @@index([sectionId, schoolId])
 }
@@ -196,17 +207,89 @@ model Student {
 // same lesson to the same section again updates it (unique lessonId + sectionId).
 
 model Assignment {
-  id        String    @id @default(cuid())
+  id        String      @id @default(cuid())
   lessonId  String
-  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson    Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   sectionId String
-  section   Section   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section   Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   name      String // the pack name, 1 to 60 characters
   games     String[] // 1 to 3 of quiz-show | match-up | fill-blank
   dueDate   DateTime? // the date only, saved as noon Philippine time (04:00 UTC) so it never slips a day
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  rounds    GameRound[]
 
   @@unique([lessonId, sectionId])
   @@index([sectionId, createdAt])
+}
+
+// ---------- Game rounds and progress (gp-1) ----------
+// What a Student played, saved by POST /api/student/rounds. The backend works out
+// XP, stars, the streak and the level (src/games/), never the browser.
+// These tables are what step 8 (show the adaptive engine) and step 9 (Teacher
+// reports: mastery per topic, weakest topics, completion) will read. Those are
+// not built yet. Still no Student names anywhere.
+
+// The difficulty engine's memory: one level per Student per topic. The engine is
+// rule-based, not AI (src/games/difficulty.ts).
+model TopicLevel {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  topicKey  String // the topic, trimmed and lowercase
+  topic     String // as shown
+  level     Level    @default(easy)
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, topicKey])
+}
+
+// One finished round of one game.
+model GameRound {
+  id               String        @id @default(cuid())
+  clientRoundId    String        @unique // made by the browser when the round starts: the same round is never saved twice
+  studentId        String
+  student          Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lessonId         String
+  lesson           Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  assignmentId     String?
+  assignment       Assignment?   @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  game             String // quiz-show | match-up | fill-blank
+  topic            String
+  startLevel       Level
+  endLevel         Level
+  change           String // up | down | keep
+  reason           String // e.g. "7 of 8 right (88%)"
+  right            Int // right answers, helped ones included
+  helpedRight      Int
+  total            Int
+  helpsUsed        Int
+  xp               Int // XP this round gave
+  stars            Int // 1 to 3, the round's stars as shown on Results
+  starsEarned      Int // stars actually added (only what beats this Student's best earlier round)
+  countsForMission Boolean // true only for the first finished round of this game in this assignment
+  startedAt        DateTime
+  endedAt          DateTime
+  createdAt        DateTime      @default(now())
+  answers          RoundAnswer[]
+
+  @@index([studentId, lessonId, game])
+  @@index([assignmentId])
+}
+
+// One answer inside a round.
+model RoundAnswer {
+  id         String    @id @default(cuid())
+  roundId    String
+  round      GameRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  questionId String? // becomes null if the Teacher deletes the question later: the record stays
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  position   Int // 0, 1, 2… in the order played
+  level      Level // copied from the question when saved
+  right      Boolean
+  tries      Int
+  ms         Int
+  helped     Boolean
+
+  @@index([questionId])
 }

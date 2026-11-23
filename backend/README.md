@@ -77,6 +77,7 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). Add `--password "..."` to choose it instead. |
 | `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`), New code, the 45-Students rule, the Student login rules (shared `WRONG_LOGIN`, 5 wrong → `429`, reset on a right login), Student tokens vs `requireTeacher` / `requireAdmin`, the Admin totals (admin token only, exactly 7 number fields), and that the setup values match the frontend. Prints PASS or FAIL for each. Needs no database. |
 | `npm run test-teacher-password` | **Uses the database.** Makes one test Teacher, then checks the Teacher's own Change password (no token `401`, `WRONG_CURRENT_PASSWORD`, `BAD_PASSWORD`, `SAME_PASSWORD`, a right change gives a new token and the old one gets `401`), the sticky note flag, `/api/auth/me`'s `password` part, and that an admin reset makes the password temporary again. Always deletes the test Teacher. Never prints a password or token. |
+| `npm run test-game-rounds` | Checks the game rules in `src/games/` (the difficulty copy gives the same decisions as the frontend, XP, the stars rule, levels per 300 XP, the streak in Philippine time, the mission choice, the chalkboard) and that `ROUND_SIZE` matches the frontend. These need no database. **When `DATABASE_URL` is set it also uses the database:** it makes a throwaway Teacher, section, 2 Students, approved lesson and assignment (names start with `zz-test-`), calls `GET /api/student/games` and `POST /api/student/rounds` on the real app (a round saves, sending it again changes nothing, wrong game `404`, draft question `400`, mission and streak update) and **always deletes them at the end**, even when a check fails. Prints PASS or FAIL for each. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
 
 ## Check that it runs
@@ -243,12 +244,43 @@ School ID + PIN code are two credentials, like a username and a password. Rules 
 - The allowed avatar, buddy, buddy name and look values are in `src/content/studentSetup.ts`, copies of the frontend's lists. `npm run test-students` checks they still match.
 - No address ever gives a Student another Student's School ID.
 
+## Game rounds and progress
+
+Saved by `POST /api/student/rounds`, read by `GET /api/student/games` (addresses in `src/routes/studentGames.ts`, database work in `src/store/gameStore.ts`). The rules are small pure functions in `src/games/`, checked by `npm run test-game-rounds`.
+
+**What is saved:** each finished round (`GameRound`) with every answer (`RoundAnswer`), the Student's level per topic (`TopicLevel`), and the Student's totals (`xp`, `stars`, `streakDays`, `lastPlayDay` on `Student`). The Teacher Preview never calls these addresses, so it never saves anything. Showing the engine (step 8) and Teacher reports (step 9) will read these tables later; they are not built yet.
+
+**The difficulty engine is rule-based, not AI.** `src/games/difficulty.ts` is a copy of the end-of-round rule in `frontend/src/games/difficulty.ts` (keep them in sync; the test compares them): 80% or more counting as right → one level up for that topic, under 50% → one level down, otherwise keep. A Buddy-helped answer counts as not right. Easy never goes lower, hard never higher. Everyone starts on easy. A round's topic is the most common topic among its questions (a tie goes to the first one played).
+
+**XP:** 5 per right answer, 2 if the buddy helped, + 10 for finishing. **Level** = 1 + XP ÷ 300 (rounded down); it is worked out from XP, not saved.
+
+**Stars:** a round shows 3★ when perfect, 2★ at 75% or more, 1★ for finishing (helped right answers count here). **Only stars that beat the Student's best earlier round of the same game and lesson are added** (new rule, group to confirm): 2★ → +2, then 2★ → +0, then 3★ → +1. Replaying can't farm stars.
+
+**Streak:** in Philippine calendar days (UTC+8, no daylight saving). A round on the same day as the last one keeps it, the next day adds 1, any longer gap starts again at 1. Nothing ever says the streak was lost.
+
+**Mission** (the Lobby's first card): among the assignments with a playable game not done yet, the one with the soonest due date; no due date goes last; a tie goes to the newest. Overdue ones still count. A game is done in an assignment once it has a round with `countsForMission` (only the first finished round of each game in each assignment). When everything is done, the one finished today (Philippine time) shows as `complete`; otherwise `mission` is `null`. `maxXp` adds up a perfect round of each mission game (at most the round size: Quiz Show 8, Match Up 5, Fill the Blank 8). The chalkboard shows the first 4 matching pairs as key words, or else the first 3 fill-in-the-blank sentences as key ideas.
+
+**Playable** = the game is in the assignment and the lesson still has at least `MIN_CARDS` approved questions of its type (the Teacher may have deleted some after assigning).
+
+**The backend decides, not the browser.** Each answer's level comes from the question in the database; XP, stars, stars earned, the level decision, the mission and the streak are all worked out on the server. Every question must be an approved question of that lesson, of the game's type, at most once, and at most the game's round size. `tries` is 1 to 20, `ms` is capped at 30 minutes, `helpsUsed` is at most the number of answers, `endedAt` is not before `startedAt`, and neither is more than 5 minutes in the future. Everything is saved in **one transaction**.
+
+**Honest limit:** whether an answer was right is decided in the browser; the backend trusts that flag but checks everything else.
+
+The server log only says `[rounds] saved (quiz-show, 8 answers)`: never ids, School IDs or answers.
+
 ## Addresses
 
 | Address | What it does |
 | --- | --- |
 | `GET /api/ping` | Open (no login). Answers `{ "ok": true }` without touching the database: for a wake-up ping service. |
 | `GET /api/health` | Open (no login). Server status, whether each AI key is set, and `db: true/false` (a tiny database check, at most 3 seconds; still `200` when the database is down). |
+
+These two need a **Student** token (see "Student login") and only ever show the Student's own section and own rounds. Rules in "Game rounds and progress" above.
+
+| Address | What it does |
+| --- | --- |
+| `GET /api/student/games` | Everything the Student's game screens need, in one call: `progress { xp, level, xpIntoLevel, xpGoal, stars, streakDays }`, `levels` (topic key → `easy/medium/hard`), `lessons` (the section's assignments whose lesson is still approved, newest first: `assignmentId, lessonId, name, lessonTitle, subject, grade, teacher, dueDate, assignedAt`, `games [{ id, playable, reason?, bestStars, done }]` and `cards`: the approved questions for the assigned games, in the question card shape without `sourceQuote` / `flag`), and `mission` (`{ assignmentId, state: "open" or "complete", games, done, maxXp, board: { keyWords, keyIdeas } }` or `null`). |
+| `POST /api/student/rounds` | Saves one finished round. Body `{ clientRoundId (uuid), assignmentId, game, startedAt, endedAt, helpsUsed, answers: [{ questionId, right, tries, ms, helped }] }` (no other fields). Answers `{ round: { xp, stars, starsEarned, decision: { level, change, reason }, countsForMission, missionDone }, progress }`. Sending the same `clientRoundId` again saves nothing and answers the first answer again (`200`); another Student's round id: `409 ROUND_TAKEN`. Game not in the Student's assignments any more: `404 GAME_NOT_FOUND`. Anything wrong in the body or answers: `400 BAD_ROUND`. At most 60 rounds per 15 minutes per Student: `429 TOO_MANY_TRIES`. |
 
 Every address below needs a Teacher login token (`Authorization: Bearer <token>`, see "Teacher login"), and only shows that Teacher's own lessons and questions.
 
@@ -303,7 +335,7 @@ Both need a Teacher login token, and only work on the Teacher's own sections and
 - The lesson must be approved: else `409 LESSON_NOT_READY` "Check and approve the questions first.".
 - Each game needs enough **approved** questions (`MIN_CARDS` in `src/content/questionCard.ts`, the same numbers as the frontend: Quiz Show 3, Match Up 4, Fill the Blank 3): else `409 GAME_NOT_READY`, naming the game.
 - The due date is a date only, saved as noon Philippine time, so it never slips a day.
-- A section with no Students yet can still get an assignment. What Students see from it comes later (roadmap step 7).
+- A section with no Students yet can still get an assignment. Students read their assignments with `GET /api/student/games` (see "Game rounds and progress").
 
 ### The database tables
 
@@ -314,7 +346,10 @@ Both need a Teacher login token, and only work on the Teacher's own sections and
 | `Question` | One row per question card of a lesson, with its `position` (order in the Check list, 1, 2, 3…), `flagChecked` and `madeBy`. Deleted together with its lesson. |
 | `Section` | One row per class section of a Teacher (grade 3–6, name, tab color and icon). `nameKey` is the name in lowercase, so one Teacher can't have the same grade + name twice in any capitals. |
 | `Assignment` | A review pack: one approved lesson given to one section (pack name, games, due date). One per lesson + section; assigning again updates it. Deleted with its lesson or section. |
-| `Student` | One row per Student: **School ID only, no name, email or photo** (Master Brief 4.1). The one-time code (not hashed, so the Teacher can show and print it; it works once and is removed when the PIN code is made), the PIN code's bcrypt hash, login lock fields, and the setup choices (buddy, look…) filled in later. |
+| `Student` | One row per Student: **School ID only, no name, email or photo** (Master Brief 4.1). The one-time code (not hashed, so the Teacher can show and print it; it works once and is removed when the PIN code is made), the PIN code's bcrypt hash, login lock fields, the setup choices (buddy, look…), and the game progress: `xp`, `stars`, `streakDays`, `lastPlayDay`. |
+| `TopicLevel` | The difficulty engine's memory: one level (`easy/medium/hard`) per Student per topic (`topicKey` = the topic trimmed and lowercase). |
+| `GameRound` | One finished round: Student, lesson, assignment (set to null if the assignment is deleted), game, topic, start and end level with the reason, right / helped / total / helps, XP, stars, stars earned, `countsForMission`, times. `clientRoundId` is unique, so a round is never saved twice. |
+| `RoundAnswer` | One answer of a round, in the order played: the question (null if the Teacher deletes it later; the record stays), its level when played, right, tries, time and helped. |
 
 - Saving the AI's cards, adding a question, deleting one (the rest are renumbered) and Approve all each happen in **one transaction**: all or nothing.
 - "At most 2 lessons made at the same time" counts the `making` lessons in the database.
