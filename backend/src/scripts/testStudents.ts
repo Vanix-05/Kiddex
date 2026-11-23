@@ -1,9 +1,10 @@
 // `npm run test-students`: checks the School ID cleaner, the one-time code maker, "New code",
-// the 45-Students rule, the Student login rules and tokens, and prints PASS or FAIL for each.
-// Codes made here are random test values; they are never printed.
+// the 45-Students rule, the Student login rules and tokens, the Admin totals, and prints
+// PASS or FAIL for each. Codes made here are random test values; they are never printed.
 import fs from "node:fs";
 import path from "node:path";
 import type { Request, RequestHandler, Response } from "express";
+import { ADMIN_STATS_KEYS, readAdminStats } from "../admin/adminStats";
 import { requireAdmin } from "../auth/requireAdmin";
 import { requireStudent } from "../auth/requireStudent";
 import { requireTeacher } from "../auth/requireTeacher";
@@ -125,6 +126,7 @@ async function main() {
 
   await loginChecks();
   await tokenChecks();
+  await adminStatsChecks();
   sameAsFrontendChecks();
 
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
@@ -245,6 +247,29 @@ async function tokenChecks() {
   check("token: requireTeacher refuses a Student token", (await run(requireTeacher, studentToken)) === "LOGIN_NEEDED");
   check("token: requireAdmin refuses a Student token", (await run(requireAdmin, studentToken)) === "LOGIN_NEEDED");
   check("token: requireStudent refuses a Teacher token", (await run(requireStudent, teacherToken)) === "LOGIN_NEEDED");
+  // GET /api/admin/stats sits behind requireAdmin.
+  check("admin stats: a Teacher token is refused", (await run(requireAdmin, teacherToken)) === "LOGIN_NEEDED");
+  check("admin stats: a Student token is refused", (await run(requireAdmin, studentToken)) === "LOGIN_NEEDED");
+}
+
+// ---------- Admin totals (numbers only) ----------
+
+async function adminStatsChecks() {
+  const sample = { teachers: 4, activeTeachers: 3, sections: 5, students: 186, registeredStudents: 142, lessons: 7, approvedLessons: 5 };
+  const stats = await readAdminStats({
+    teachers: async () => sample.teachers,
+    activeTeachers: async () => sample.activeTeachers,
+    sections: async () => sample.sections,
+    students: async () => sample.students,
+    registeredStudents: async () => sample.registeredStudents,
+    lessons: async () => sample.lessons,
+    approvedLessons: async () => sample.approvedLessons,
+  });
+  const keys = Object.keys(stats).sort();
+  check("admin stats: exactly 7 fields", keys.length === 7, keys.join());
+  check("admin stats: the right field names", keys.join() === Object.keys(sample).sort().join(), keys.join());
+  check("admin stats: every field is a number", Object.values(stats).every((v) => typeof v === "number" && Number.isFinite(v)));
+  check("admin stats: the numbers are passed through", ADMIN_STATS_KEYS.every((k) => stats[k] === sample[k]));
 }
 
 // ---------- The allowed values match the frontend ----------

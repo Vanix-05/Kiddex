@@ -1,4 +1,4 @@
-import { KeyRound, LogOut, Plus, Power } from 'lucide-react'
+import { BookOpen, Clock, KeyRound, LogOut, Plus, Power } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../components/Button/Button'
@@ -10,7 +10,9 @@ import { ApiError, errorMessage } from '../teacher/api/client'
 import { adminApi, setAdminLoginEndedHandler, type AdminTeacher } from './adminApi'
 import { AdminDialog } from './AdminDialog'
 import { clearAdminToken, getAdminToken } from './adminToken'
+import { CountCards, type StatsState } from './CountCards'
 import { lastLoginText } from './lastLogin'
+import { nameInitial } from './nameInitial'
 import styles from './admin.module.css'
 
 type Popup =
@@ -23,9 +25,9 @@ type Popup =
 type ListState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; teachers: AdminTeacher[] }
 
 /**
- * The Admin page (/admin): every Teacher account as a card, + Add Teacher,
- * Reset password and Turn off / Turn on. Teacher accounts only. Without an
- * admin token it goes to Admin Login.
+ * The Admin page (/admin): 4 count cards (totals only), then every Teacher
+ * account as a card, + Add Teacher, Reset password and Turn off / Turn on.
+ * It manages Teacher accounts only. Without an admin token it goes to Admin Login.
  */
 export function AdminTeachersPage() {
   const [hasToken] = useState(() => Boolean(getAdminToken()))
@@ -36,6 +38,7 @@ export function AdminTeachersPage() {
 function TeachersScreen() {
   const navigate = useNavigate()
   const [list, setList] = useState<ListState>({ status: 'loading' })
+  const [stats, setStats] = useState<StatsState>({ status: 'loading' })
   const [popup, setPopup] = useState<Popup | null>(null)
   /** The Teacher whose Turn on is running (no confirm for Turn on). */
   const [turningOn, setTurningOn] = useState<string | null>(null)
@@ -60,11 +63,37 @@ function TeachersScreen() {
     }
   }, [])
 
+  /** The totals: separate from the list, so a failure here never blocks the Teachers. */
+  const loadStats = useCallback(async () => {
+    setStats({ status: 'loading' })
+    try {
+      setStats({ status: 'ready', stats: await adminApi.stats() })
+    } catch {
+      setStats({ status: 'error' })
+    }
+  }, [])
+
   useEffect(() => {
-    // Runs the first load; load() only sets state after the answer comes back.
+    // Runs the first load of both; they only set state after the answers come back.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load()
-  }, [load])
+    void loadStats()
+  }, [load, loadStats])
+
+  /** Keeps the Teachers numbers right after Add Teacher or Turn off / on. */
+  const adjustTeacherStats = (teachers: number, activeTeachers: number) =>
+    setStats((current) =>
+      current.status === 'ready'
+        ? {
+            status: 'ready',
+            stats: {
+              ...current.stats,
+              teachers: Math.max(0, current.stats.teachers + teachers),
+              activeTeachers: Math.max(0, current.stats.activeTeachers + activeTeachers),
+            },
+          }
+        : current,
+    )
 
   const open = (next: Popup, event?: MouseEvent<HTMLElement>) => {
     if (event) opener.current = event.currentTarget
@@ -95,7 +124,9 @@ function TeachersScreen() {
     setPageError('')
     setTurningOn(teacher.id)
     try {
-      putTeacher((await adminApi.setActive(teacher.id, true)).teacher)
+      const turnedOn = (await adminApi.setActive(teacher.id, true)).teacher
+      putTeacher(turnedOn)
+      if (!teacher.active && turnedOn.active) adjustTeacherStats(0, 1)
     } catch (err) {
       setPageError(`Could not turn on ${teacher.name}. ${errorMessage(err)}`)
     } finally {
@@ -123,14 +154,18 @@ function TeachersScreen() {
       </header>
 
       <main className={styles.column}>
-        <h1 className={styles.pageTitle}>
-          Teachers{count !== null && <span className={styles.count}> · {count}</span>}
-        </h1>
-        <Button fullWidth className={styles.bigButton} onClick={(e) => open({ kind: 'add' }, e)}>
-          <span className={styles.buttonInner}>
-            <Plus size={24} strokeWidth={2.6} aria-hidden="true" /> Add Teacher
-          </span>
-        </Button>
+        <CountCards state={stats} onRetry={() => void loadStats()} />
+
+        <div className={styles.titleRow}>
+          <h1 className={styles.pageTitle}>
+            Teachers{count !== null && <span className={styles.count}> · {count}</span>}
+          </h1>
+          <Button className={`${styles.bigButton} ${styles.addButton}`} onClick={(e) => open({ kind: 'add' }, e)}>
+            <span className={styles.buttonInner}>
+              <Plus size={24} strokeWidth={2.6} aria-hidden="true" /> Add Teacher
+            </span>
+          </Button>
+        </div>
 
         {pageError && (
           <p className={styles.pageError} role="alert">
@@ -185,6 +220,7 @@ function TeachersScreen() {
           onCancel={close}
           onMade={({ teacher, temporaryPassword }) => {
             putTeacher(teacher)
+            adjustTeacherStats(1, teacher.active ? 1 : 0)
             setPopup({ kind: 'password', name: teacher.name, email: teacher.email, password: temporaryPassword })
           }}
         />
@@ -215,7 +251,9 @@ function TeachersScreen() {
           danger
           onCancel={close}
           onConfirm={async () => {
-            putTeacher((await adminApi.setActive(popup.teacher.id, false)).teacher)
+            const turnedOff = (await adminApi.setActive(popup.teacher.id, false)).teacher
+            putTeacher(turnedOff)
+            if (popup.teacher.active && !turnedOff.active) adjustTeacherStats(0, -1)
             close()
           }}
         />
@@ -245,14 +283,25 @@ function TeacherCard({
   return (
     <li className={`${styles.card} ${teacher.active ? '' : styles.cardOff}`}>
       <div className={styles.cardInfo}>
-        <div className={styles.cardHead}>
-          <h2 className={styles.teacherName}>{teacher.name}</h2>
-          <span className={teacher.active ? styles.badgeOn : styles.badgeOff}>{teacher.active ? 'Active' : 'Off'}</span>
+        <div className={styles.cardTop}>
+          <span className={styles.letterCircle} aria-hidden="true">
+            {nameInitial(teacher.name)}
+          </span>
+          <div className={styles.cardWho}>
+            <div className={styles.cardHead}>
+              <h2 className={styles.teacherName}>{teacher.name}</h2>
+              <span className={teacher.active ? styles.badgeOn : styles.badgeOff}>{teacher.active ? 'Active' : 'Off'}</span>
+            </div>
+            <p className={styles.teacherEmail}>{teacher.email}</p>
+          </div>
         </div>
-        <p className={styles.teacherEmail}>{teacher.email}</p>
         <p className={styles.teacherFacts}>
-          <span>Last login: {lastLoginText(teacher.lastLoginAt)}</span>
-          <span>Lessons: {teacher.lessonCount}</span>
+          <span className={styles.fact}>
+            <Clock size={16} aria-hidden="true" /> Last login: {lastLoginText(teacher.lastLoginAt)}
+          </span>
+          <span className={styles.fact}>
+            <BookOpen size={16} aria-hidden="true" /> Lessons: {teacher.lessonCount}
+          </span>
         </p>
       </div>
       <div className={styles.cardActions}>

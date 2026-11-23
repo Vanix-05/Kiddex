@@ -75,7 +75,7 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run reset-teacher-password -- --email "santos@school.ph"` | Admin: gives a Teacher a new temporary password, printed once. Add `--password "..."` to choose it instead. |
 | `npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"` | Makes an admin account for the Admin page and prints a temporary password once. Add `--password "..."` to choose it instead (testing; see "Choosing the password"). |
 | `npm run reset-admin-password -- --email "carlo@kiddex.test"` | Gives an admin a new temporary password, printed once (signs them out, clears the lock). Add `--password "..."` to choose it instead. |
-| `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`), New code, the 45-Students rule, the Student login rules (shared `WRONG_LOGIN`, 5 wrong → `429`, reset on a right login), Student tokens vs `requireTeacher` / `requireAdmin`, and that the setup values match the frontend. Prints PASS or FAIL for each. Needs no database. |
+| `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`), New code, the 45-Students rule, the Student login rules (shared `WRONG_LOGIN`, 5 wrong → `429`, reset on a right login), Student tokens vs `requireTeacher` / `requireAdmin`, the Admin totals (admin token only, exactly 7 number fields), and that the setup values match the frontend. Prints PASS or FAIL for each. Needs no database. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
 
 ## Check that it runs
@@ -167,7 +167,7 @@ Emails are always saved trimmed and lowercase. Passwords are stored only as bcry
 
 ## Admin page
 
-The Admin page (`/admin` on the website) manages **Teacher accounts only** (nothing about Students or lessons). Admins are their own accounts in the `Admin` table: an admin is not a Teacher and has no lessons. Admin accounts are made only from your laptop:
+The Admin page (`/admin` on the website) manages **Teacher accounts**. For sections, Students and lessons it shows **totals only** (numbers, never names, School IDs, scores or lists). Admins are their own accounts in the `Admin` table: an admin is not a Teacher and has no lessons. Admin accounts are made only from your laptop:
 
 ```
 npm run add-admin -- --name "Carlo" --email "carlo@kiddex.test"
@@ -182,12 +182,13 @@ Same style as the Teacher scripts: a duplicate email is refused, the temporary p
 | --- | --- |
 | `POST /api/admin/login` | Body `{ "email", "password" }`. Right: `{ token, admin: { id, name, email } }`. Exactly the same rules as the Teacher login (one `WRONG_LOGIN` answer, 5 wrong tries lock it for 5 minutes, at most 20 tries per 15 minutes per computer with its own counter, `503 DB_UNAVAILABLE`). |
 | `GET /api/admin/me` | Needs an admin token. Answers `{ admin: { id, name, email } }`. |
+| `GET /api/admin/stats` | Needs an admin token. Totals only, all numbers: `{ teachers, activeTeachers, sections, students, registeredStudents, lessons, approvedLessons }`. `registeredStudents` = Students who made their PIN code; `approvedLessons` = lessons with status `approved`. |
 | `GET /api/admin/teachers` | All Teachers, newest first: `id, name, email, active, lastLoginAt, createdAt, lessonCount`. Never the password hash. |
 | `POST /api/admin/teachers` | Body `{ "name", "email" }` (name 2–60 characters). Makes the account with a temporary password and answers `201` `{ teacher, temporaryPassword }`. This is the only time the password is sent. Duplicate email: `409 EMAIL_TAKEN`. |
 | `POST /api/admin/teachers/:id/reset-password` | Like `npm run reset-teacher-password`: a new temporary password, the Teacher is signed out everywhere, the lock is cleared. Answers `{ teacher, temporaryPassword }`. |
 | `PATCH /api/admin/teachers/:id` | Body `{ "active": true }` or `{ "active": false }`. Turning **off** also signs the Teacher out everywhere; their lessons are kept. Answers `{ teacher }`. |
 
-- Every `/api/admin/teachers...` address needs an **admin** token (`Authorization: Bearer <token>`); `401 LOGIN_NEEDED` otherwise. An admin token has `role: "admin"` and also lasts 8 hours. A Teacher token never works on the admin addresses, and an admin token never works on the Teacher ones.
+- `/api/admin/stats` and every `/api/admin/teachers...` address need an **admin** token (`Authorization: Bearer <token>`); `401 LOGIN_NEEDED` otherwise. An admin token has `role: "admin"` and also lasts 8 hours. A Teacher token never works on the admin addresses, and an admin token never works on the Teacher ones.
 - An unknown Teacher id: `404 TEACHER_NOT_FOUND`.
 - There is **no delete address**, on purpose: it can't be undone. Turn the account off instead.
 - A temporary password is only ever in the answer: it is never logged (the server log only has the error code and the address).

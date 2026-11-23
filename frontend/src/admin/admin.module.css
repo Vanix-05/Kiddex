@@ -1,7 +1,8 @@
 /*
  * The Admin page (/admin, /admin/login): plain cream page, one centered column
- * (max 560px, 16px sides on phones), Fredoka, the theme colors. Works upright
- * and sideways on phones and on laptops. Every tap target is at least 44px.
+ * (max 1040px on /admin, 560px on the login; 16px sides on phones), Fredoka, the
+ * theme colors. Works upright and sideways on phones and on laptops. Every tap
+ * target is at least 44px.
  */
 
 /* The whole page is cream on /admin (also behind an overscroll). */
@@ -19,7 +20,7 @@
 
 .column {
   width: 100%;
-  max-width: 560px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 8px 16px 40px;
 }
@@ -214,7 +215,7 @@ button.bigButton {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  max-width: 560px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 12px 16px 4px;
 }
@@ -239,10 +240,164 @@ button.bigButton {
   font-weight: 600;
 }
 
+/* ---------- Count cards (totals only) ---------- */
+
+.countCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 860px) {
+  .countCards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.countCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 18px 16px;
+  border: 2px solid var(--color-input-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-input-bg);
+  box-shadow: 0 5px 0 rgba(107, 74, 51, 0.1);
+}
+
+.countIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1.5px solid var(--color-input-border);
+  border-radius: 50%;
+  color: var(--color-card-border);
+}
+
+.countIcon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.countText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.countNumber {
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.countLabel {
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.countDetail {
+  color: var(--color-text-subtle);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.countError {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+
+.smallButton {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 0.95rem;
+}
+
+/* Phones and narrow screens: a compact 2×2, so the Teachers start in the top half. */
+@media (max-width: 720px) {
+  .countCards {
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .countCard {
+    gap: 10px;
+    padding: 12px 10px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 0 rgba(107, 74, 51, 0.1);
+  }
+
+  .countIcon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .countIcon svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .countNumber {
+    font-size: 1.6rem;
+  }
+
+  .countLabel {
+    font-size: 1rem;
+  }
+
+  .countDetail {
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- Teachers ---------- */
+
+/* "Teachers · 4" on the left, + Add Teacher on the right (stacked on phones). */
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin: 26px 0 4px;
+}
+
 .pageTitle {
-  margin: 12px 0 14px;
+  min-width: 0;
   font-size: 1.9rem;
   font-weight: 600;
+  line-height: 1.2;
+}
+
+button.addButton {
+  flex-shrink: 0;
+  padding: 0 24px;
+}
+
+@media (max-width: 720px) {
+  .titleRow {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 20px;
+  }
+
+  button.addButton {
+    width: 100%;
+  }
 }
 
 .count {
@@ -257,12 +412,18 @@ button.bigButton {
 }
 
 .cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   margin: 18px 0 0;
   padding: 0;
   list-style: none;
+}
+
+@media (min-width: 860px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .card {
@@ -287,7 +448,43 @@ button.bigButton {
 .cardInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The letter circle, then the name, email and badge. */
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.letterCircle {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 2px solid var(--color-button-border);
+  border-radius: 50%;
+  background: var(--color-title-pill-bg);
+  color: var(--color-button-text);
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cardOff .letterCircle {
+  border-color: var(--color-input-border);
+  background: var(--color-admin-off-bg);
+  color: var(--color-admin-off-text);
+}
+
+.cardWho {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -341,16 +538,50 @@ button.bigButton {
   font-size: 0.95rem;
 }
 
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fact svg {
+  flex-shrink: 0;
+}
+
 .cardActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: auto;
 }
 
-/* A little tighter, so "Reset password" fits on one line on phones. */
+/* A little tighter, so "Reset password" fits on one line. */
 .cardActions .secondaryButton {
   padding: 0 8px;
   font-size: 1rem;
+  white-space: nowrap;
+}
+
+/* Phones: smaller text, icon and gap, so "Reset password" stays on one line at 360px. */
+@media (max-width: 720px) {
+  .card {
+    padding: 14px;
+  }
+
+  .cardActions {
+    gap: 8px;
+  }
+
+  .cardActions .secondaryButton {
+    gap: 4px;
+    padding: 0 6px;
+    font-size: 0.92rem;
+  }
+
+  .cardActions .secondaryButton svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .listMessage {

@@ -25,6 +25,18 @@ export interface TeacherWithPassword {
   temporaryPassword: string
 }
 
+/** The totals at the top of the Admin page. Numbers only (GET /api/admin/stats). */
+export interface AdminStats {
+  teachers: number
+  activeTeachers: number
+  sections: number
+  students: number
+  /** Students who finished making their PIN code. */
+  registeredStudents: number
+  lessons: number
+  approvedLessons: number
+}
+
 /** The free backend can take about 50 seconds to wake up: the login waits up to 75. */
 const LOGIN_TIMEOUT_MS = 75_000
 
@@ -61,6 +73,7 @@ export const adminApi = {
       timeoutMs: LOGIN_TIMEOUT_MS,
       authToken: null,
     }),
+  stats: () => adminCall<AdminStats>('/api/admin/stats'),
   teachers: () => adminCall<AdminTeacher[]>('/api/admin/teachers'),
   addTeacher: (name: string, email: string) =>
     adminCall<TeacherWithPassword>('/api/admin/teachers', { method: 'POST', body: { name, email } }),

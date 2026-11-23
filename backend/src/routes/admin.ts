@@ -1,6 +1,8 @@
-// The Admin page: admin login and Teacher accounts only (nothing about Students or lessons).
+// The Admin page: admin login and Teacher accounts. For sections, Students and
+// lessons it shows TOTALS ONLY (numbers, never names, School IDs, scores or lists).
 //   POST  /api/admin/login                         { email, password } -> { token, admin }
 //   GET   /api/admin/me                            -> { admin }
+//   GET   /api/admin/stats                         -> the 7 totals (src/admin/adminStats.ts)
 //   GET   /api/admin/teachers                      all Teachers, newest first
 //   POST  /api/admin/teachers                      { name, email } -> 201 { teacher, temporaryPassword }
 //   POST  /api/admin/teachers/:id/reset-password   -> { teacher, temporaryPassword }
@@ -11,6 +13,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { loginHandlers } from "../auth/accountLogin";
+import { readAdminStats } from "../admin/adminStats";
 import { createAccount, resetAccountPassword } from "../auth/accounts";
 import { fromDb } from "../auth/authErrors";
 import { cleanEmail } from "../auth/passwords";
@@ -60,6 +63,24 @@ adminRouter.post("/api/admin/login", ...loginHandlers("admin"));
 
 adminRouter.get("/api/admin/me", requireAdmin, (req, res) => {
   res.json({ admin: req.admin });
+});
+
+// ---------- Totals (numbers only) ----------
+
+adminRouter.get("/api/admin/stats", requireAdmin, async (_req, res) => {
+  const stats = await fromDb(() =>
+    readAdminStats({
+      teachers: () => prisma.teacher.count(),
+      activeTeachers: () => prisma.teacher.count({ where: { active: true } }),
+      sections: () => prisma.section.count(),
+      students: () => prisma.student.count(),
+      // Students who finished making their PIN code.
+      registeredStudents: () => prisma.student.count({ where: { pinHash: { not: null } } }),
+      lessons: () => prisma.lesson.count(),
+      approvedLessons: () => prisma.lesson.count({ where: { status: "approved" } }),
+    }),
+  );
+  res.json(stats);
 });
 
 // ---------- Teacher accounts ----------
