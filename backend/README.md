@@ -78,7 +78,37 @@ Running the seed again changes nothing if that Teacher already exists (it never 
 | `npm run test-students` | Checks the School ID cleaner, the one-time code maker (6 digits, from `crypto`), New code, the 45-Students rule, the Student login rules (shared `WRONG_LOGIN`, 5 wrong → `429`, reset on a right login), Student tokens vs `requireTeacher` / `requireAdmin`, the Admin totals (admin token only, exactly 7 number fields), and that the setup values match the frontend. Prints PASS or FAIL for each. Needs no database. |
 | `npm run test-teacher-password` | **Uses the database.** Makes one test Teacher, then checks the Teacher's own Change password (no token `401`, `WRONG_CURRENT_PASSWORD`, `BAD_PASSWORD`, `SAME_PASSWORD`, a right change gives a new token and the old one gets `401`), the sticky note flag, `/api/auth/me`'s `password` part, and that an admin reset makes the password temporary again. Always deletes the test Teacher. Never prints a password or token. |
 | `npm run test-game-rounds` | Checks the game rules in `src/games/` (the difficulty copy gives the same decisions as the frontend, XP, the stars rule, levels per 300 XP, the streak in Philippine time (and the streak shown: kept today or yesterday, else 0), the mission choice, the chalkboard) and that `ROUND_SIZE` matches the frontend. These need no database. **When `DATABASE_URL` is set it also uses the database:** it makes a throwaway Teacher, section, 2 Students, approved lesson and assignment (names start with `zz-test-`), calls `GET /api/student/games` and `POST /api/student/rounds` on the real app (a round saves, sending it again changes nothing, wrong game `404`, draft question `400`, mission and streak update) and **always deletes them at the end**, even when a check fails. Prints PASS or FAIL for each. |
+| `npm run cleanup -- --list` | **Uses the shared database.** Removes test data, safely: **without `--yes` it deletes nothing** and only prints what it would delete. See "Cleaning up test data" below. |
 | `npm run test-checks` | Runs hand-made cards through our card checks (marks, page numbers, rejects, repeats, extra cards) and prints PASS or FAIL for each. Makes no AI call. |
+
+### Cleaning up test data (`npm run cleanup`)
+
+Removes test data from the database (the **shared** Neon one the deployed app uses), for example before a demo. It runs from your computer; the server never runs it. It first prints the database's host name (for example `ep-xxx.neon.tech`, never the address) so you can see which one it will change.
+
+```
+npm run cleanup -- --list
+npm run cleanup -- --lesson "water cycle"
+npm run cleanup -- --lesson "water cycle" --yes
+npm run cleanup -- --assignment "Walkthrough Review" --student 2026-0191 --zz-test --yes
+npm run cleanup -- --reset-progress all --yes
+```
+
+| Option | Deletes |
+| --- | --- |
+| `--list` | Nothing. Shows what is there, by Teacher: lessons (title, status, questions, date made, where assigned), sections (Students, assignments) and their Students (School ID, registered, XP, stars, streak, rounds; never a code or PIN code), and the `zz-test-` leftovers. |
+| `--lesson "<text>"` | Lessons whose title or file name contains the text (any capitals), with their questions, assignments and game rounds. |
+| `--assignment "<pack name>"` | Assignments with exactly that pack name (any capitals). Their game rounds stay, without the assignment link. |
+| `--student <School ID>` | That Student (`2026-0191` or `20260191`) with their rounds, answers and topic levels. Can be given more than once. |
+| `--reset-progress <School ID or all>` | Keeps the Student and their setup (buddy, look, PIN code), deletes their rounds, answers and topic levels, and sets XP, stars and streak to 0. `all` = every Student. |
+| `--section "<grade> <name>"` | For example `--section "4 Sampaguita"`: that section, its Students (with their data) and its assignments. |
+| `--zz-test` | Every `zz-test-` leftover from the test scripts (lessons, sections with their Students, assignments). |
+| `--teacher <email>` | Limits every option to that Teacher. |
+
+- You can combine options in one run. It first prints the plan, e.g. `Will delete 2 lessons ("Water Cycle", "water-cycle.pdf"): 31 questions, 1 assignment, 4 game rounds.`
+- **If any filter matches nothing** (`No lesson matches "watr".`), or a `--lesson`, `--assignment` or `--section` text matches **more than one Teacher** without `--teacher`, it stops and deletes **nothing at all**, not even the other options.
+- Without `--yes` it ends with `Nothing was deleted. Run again with --yes to delete.` With `--yes` everything happens in **one transaction** (all or nothing), then it prints the real counts.
+- It **never deletes Teachers or Admins** (a `zz-test-` Teacher account is only reported). It never prints a code, PIN code, hash, token or the database address.
+- `npm run test-game-rounds` checks it on its own `zz-test-` data.
 
 ## Check that it runs
 

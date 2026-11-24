@@ -12,6 +12,7 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import dotenv from "dotenv";
+import { applyPlan, makePlan, NO_OPTIONS, type CleanupOptions } from "../cleanup/cleanup";
 import { makeBoard, type BoardQuestion } from "../games/board";
 import { decideAfterRound, stepLevel, type Answer, type Level } from "../games/difficulty";
 import { pickMission, type MissionCandidate } from "../games/mission";
@@ -289,7 +290,7 @@ async function databaseWalkthrough() {
   const { makeStudentToken } = require("../auth/tokens") as typeof import("../auth/tokens");
 
   const tag = `zz-test-${randomBytes(4).toString("hex")}`;
-  const made: { teacherId?: string; sectionId?: string; lessonId?: string } = {};
+  const made: { teacherId?: string; teacher2Id?: string; sectionId?: string; lessonId?: string } = {};
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -540,6 +541,99 @@ async function databaseWalkthrough() {
       "answers: 8 saved, level from the question",
       answers.length === 8 && answers.every((a) => a.level === "easy"),
     );
+
+    // ---------- npm run cleanup (on this test's zz-test- data only) ----------
+    const teacherEmail = `${tag}@kiddex.test`;
+    const opts = (extra: Partial<CleanupOptions>): CleanupOptions => ({
+      ...NO_OPTIONS,
+      teacher: teacherEmail,
+      ...extra,
+    });
+    const lessonRows = () => prisma.lesson.count({ where: { id: lesson.id } });
+
+    // A second Teacher with a lesson whose title also starts with the tag.
+    const teacher2 = await prisma.teacher.create({
+      data: { email: `${tag}-2@kiddex.test`, name: `${tag}-teacher-2`, passwordHash: "not-a-hash" },
+    });
+    made.teacher2Id = teacher2.id;
+    await prisma.lesson.create({
+      data: {
+        ownerId: teacher2.id,
+        topic: `${tag}-Other`,
+        fileName: `${tag}-other.pdf`,
+        fileType: "pdf",
+        sizeBytes: 1,
+        unitLabel: "page",
+        unitCount: 1,
+        unitCountIsEstimate: false,
+        wordCount: 100,
+        textLevel: "ok",
+        units: [],
+      },
+    });
+
+    const dry = await makePlan(prisma, opts({ lessons: [tag] }));
+    check(
+      "cleanup: a dry run plans the lesson",
+      dry.problems.length === 0 && dry.lessonIds.length === 1,
+      dry.problems.join(" "),
+    );
+    check("cleanup: a dry run deletes nothing", (await lessonRows()) === 1);
+
+    const twoTeachers = await makePlan(prisma, { ...NO_OPTIONS, lessons: [tag] });
+    check(
+      "cleanup: text matching 2 Teachers stops without --teacher",
+      twoTeachers.problems.some((p) => p.includes("2 Teachers")) && twoTeachers.lessonIds.length === 0,
+      twoTeachers.problems.join(" "),
+    );
+
+    const typo = await makePlan(prisma, opts({ lessons: [tag], assignments: [`${tag}-no-such-pack`] }));
+    let typoDeleted = true;
+    try {
+      await applyPlan(prisma, typo);
+    } catch {
+      typoDeleted = false;
+    }
+    check(
+      "cleanup: a filter that matches nothing stops the whole run",
+      typo.problems.length === 1 && !typoDeleted && (await lessonRows()) === 1,
+      typo.problems.join(" "),
+    );
+
+    // --lesson --yes: its questions, assignments and rounds go with it.
+    const roundsBefore = await prisma.gameRound.count({ where: { lessonId: lesson.id } });
+    await applyPlan(prisma, dry);
+    const lessonGone =
+      (await lessonRows()) === 0 &&
+      (await prisma.question.count({ where: { lessonId: lesson.id } })) === 0 &&
+      (await prisma.assignment.count({ where: { lessonId: lesson.id } })) === 0 &&
+      (await prisma.gameRound.count({ where: { lessonId: lesson.id } })) === 0;
+    check(
+      "cleanup: --lesson removes its questions, assignment and rounds",
+      roundsBefore === 2 && lessonGone,
+      `${roundsBefore} rounds before`,
+    );
+
+    // --reset-progress: keeps the Student and the PIN code, zeros the numbers.
+    await prisma.student.update({ where: { id: student.id }, data: { pinHash: "zz-test-not-a-real-hash" } });
+    await prisma.topicLevel.create({ data: { studentId: student.id, topicKey: "zz", topic: "zz" } });
+    const reset = await makePlan(prisma, opts({ resetProgress: [student.schoolId] }));
+    await applyPlan(prisma, reset);
+    const after = await prisma.student.findUnique({
+      where: { id: student.id },
+      select: { pinHash: true, xp: true, stars: true, streakDays: true, lastPlayDay: true },
+    });
+    check(
+      "cleanup: --reset-progress keeps the Student and PIN code, zeros the numbers",
+      !!after &&
+        after.pinHash === "zz-test-not-a-real-hash" &&
+        after.xp === 0 &&
+        after.stars === 0 &&
+        after.streakDays === 0 &&
+        after.lastPlayDay === null &&
+        (await prisma.topicLevel.count({ where: { studentId: student.id } })) === 0,
+      JSON.stringify(after && { ...after, pinHash: undefined }),
+    );
   } catch (err) {
     check("database walkthrough ran without a crash", false, err instanceof Error ? err.name : "error");
   } finally {
@@ -547,8 +641,10 @@ async function databaseWalkthrough() {
     try {
       if (made.sectionId) await prisma.student.deleteMany({ where: { sectionId: made.sectionId } });
       if (made.lessonId) await prisma.lesson.deleteMany({ where: { id: made.lessonId } });
+      if (made.teacher2Id) await prisma.lesson.deleteMany({ where: { ownerId: made.teacher2Id } });
       if (made.sectionId) await prisma.section.deleteMany({ where: { id: made.sectionId } });
       if (made.teacherId) await prisma.teacher.deleteMany({ where: { id: made.teacherId } });
+      if (made.teacher2Id) await prisma.teacher.deleteMany({ where: { id: made.teacher2Id } });
       const left = await prisma.teacher.count({ where: { email: { startsWith: tag } } });
       check("clean-up: everything made by the test is deleted", left === 0);
     } catch {

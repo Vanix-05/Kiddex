@@ -14,6 +14,7 @@
     "test-students": "tsx src/scripts/testStudents.ts",
     "test-teacher-password": "tsx src/scripts/testTeacherPassword.ts",
     "test-game-rounds": "tsx src/scripts/testGameRounds.ts",
+    "cleanup": "tsx src/scripts/cleanup.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
