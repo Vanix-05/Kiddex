@@ -1,4 +1,5 @@
-/** What the Lobby shows. The shapes the backend will send (see useLobbyData.ts). */
+/** What the Lobby shows (see useLobbyData.ts). */
+import type { Board } from '../../games/studentGames'
 import type { GameId } from '../../games/types'
 import type { Avatar } from '../../setup/avatar'
 import type { Look } from '../../setup/customizeData'
@@ -29,23 +30,34 @@ export interface Classmate {
   badges: number
 }
 
+/** Today's mission: the assignment the Lobby puts first (from GET /api/student/games). */
 export interface Mission {
-  /** The lesson the mission games use (the game chip shows its name, = title). */
-  lessonId: string
-  teacher: string
-  title: string
+  /** open: a game is left. complete: all done (today). none: nothing to do now. */
+  state: 'open' | 'complete' | 'none'
+  assignmentId: string | null
+  /** The lesson its games play (?lesson=). */
+  lessonId: string | null
+  /** The pack name, e.g. "Fractions Review". */
+  name: string
+  /** e.g. "Equivalent Fractions" */
+  lessonTitle: string
   subject: string
-  /** How many games (the first ones of MISSION_GAMES, games/mission.ts). 0: no mission today. */
-  games: number
-  /** Mission games finished today for this lesson. */
-  gamesDone: number
-  /** Which ones (the same count as gamesDone). */
+  /** The Teacher's name ('' when the Student has no lessons: say "your teacher"). */
+  teacher: string
+  /** "2026-11-27", or null. */
+  dueDate: string | null
+  /** The playable mission games, in the usual order. */
+  games: GameId[]
+  /** The ones finished (each counts once). */
   done: GameId[]
-  due: string
-  xp: number
-  stars: number
-  /** Today's lesson, as written on the chalkboard card. */
-  lesson: { icon: string; word: string; text: string }[]
+  /** Best stars per game with this lesson. */
+  bestStars: Partial<Record<GameId, number>>
+  /** The most XP a perfect run of every mission game gives ("Up to +85 XP"). */
+  maxXp: number
+  /** The chalkboard. */
+  board: Board
+  /** Does the Student have any lessons at all (for the "none" lines)? */
+  hasLessons: boolean
 }
 
 /** The Class Garden: one plant the whole section grows by finishing missions. */

@@ -1,11 +1,16 @@
-// FAKE DATA for the front-end only. Delete this file when the database is connected.
+// DEV PAGES ONLY: never used by Student screens.
 //
-// Every fake question card lives here (src/content/questionCard.ts has the format):
-// - fakeQuestionCards: 20 approved Grade 4 fraction cards + 2 drafts, for building the mini games
-// - mixedCards / comparingCards: the Student games' other sample lessons (All games: Change lesson)
-// Only the Student mini games use these. Teacher lessons come from the backend.
+// Sample question cards for /dev/games, /dev/play, /dev/all-games and /dev/lobby
+// (not in production builds). Students play their Teacher's real questions
+// (GET /api/student/games). sampleCards.test.ts checks that nothing else imports this file.
+// The card format is in src/content/questionCard.ts.
 
-import { QuestionCardSchema, type QuestionCard } from '../content/questionCard'
+import { MIN_CARDS, QuestionCardSchema, TEMPLATE_FOR_TYPE, type QuestionCard } from '../../content/questionCard'
+import type { Mission } from '../../screens/Lobby/lobbyData'
+import { makeBoard, noMission, type PlayLesson } from '../studentData'
+import type { GameEntry, Progress } from '../studentGames'
+import type { GameId } from '../types'
+
 type Extra = Pick<QuestionCard, 'level'> & Partial<Pick<QuestionCard, 'explanation' | 'sourcePage' | 'status'>>
 
 /** Card makers for one lesson. Ids are `<lessonId>-c01`, `-c02`, … in order. */
@@ -22,23 +27,11 @@ function deck(lessonId: string, topic: string, status: QuestionCard['status']) {
   }
 }
 
-/**
- * FAKE: the Student's lessons the mini games can be played with: the Teacher
- * approved them (src/games/lessonCards.ts). In order: the first one with
- * enough cards for a game is that game's default. `added`: when the Teacher
- * gave it to the class (All games picks the newest when there is no mission).
- */
-export const fakeGameLessons = [
-  { id: 'g4-fractions', name: 'Fractions', teacher: 'Ms. Cruz', subject: 'Math', added: '2026-11-10' },
-  { id: 'mixed', name: 'Mixed Numbers', teacher: 'Ms. Cruz', subject: 'Math', added: '2026-11-03' },
-  { id: 'comparing', name: 'Comparing Fractions', teacher: 'Ms. Cruz', subject: 'Math', added: '2026-10-27' },
-]
-
 // ---------- For the mini games: 20 approved + 2 drafts ----------
 
 const g4 = deck('g4-fractions', 'Fractions', 'approved')
 
-export const fakeQuestionCards: QuestionCard[] = [
+export const fractionCards: QuestionCard[] = [
   // Multiple choice (Quiz Show)
   g4.mc('A pizza is cut into 4 equal slices. You eat 1 slice. What fraction did you eat?', ['1/4', '1/3', '4/1', '3/4'], '1/4', {
     level: 'easy', sourcePage: 1, explanation: 'You ate 1 of the 4 equal slices, so you ate 1/4.',
@@ -146,38 +139,57 @@ export const mixedCards: QuestionCard[] = [
   }),
 ]
 
-// ---------- Sample lesson "Comparing Fractions" (7 approved) ----------
-// Only 2 pairs, so Match Up needs 2 more: it shows grey on All games.
+// ---------- The sample lessons the dev pages play with ----------
 
-const cmp = deck('comparing', 'Comparing Fractions', 'approved')
+const GAME_ORDER: readonly GameId[] = ['quiz-show', 'match-up', 'fill-blank']
 
-export const comparingCards: QuestionCard[] = [
-  cmp.mc('Which is bigger?', ['2/3', '1/3', '0/3', '1/6'], '2/3', {
-    level: 'easy', sourcePage: 1, explanation: 'Both are thirds, so the one with more parts, 2/3, is bigger.',
-  }),
-  cmp.mc('Which is smaller?', ['1/6', '1/2', '1/3', '1/4'], '1/6', {
-    level: 'easy', sourcePage: 1, explanation: 'All tops are 1. The whole cut into the most parts has the smallest parts: 1/6.',
-  }),
-  cmp.mc('Which sign makes 3/8 ___ 5/8 true?', ['<', '>', '='], '<', {
-    level: 'medium', sourcePage: 2, explanation: 'Both are eighths, and 3 is less than 5, so 3/8 < 5/8.',
-  }),
-  cmp.mc('Which is the same as 1 whole?', ['4/4', '1/4', '4/1', '3/4'], '4/4', {
-    level: 'medium', sourcePage: 2, explanation: 'When the top and bottom are the same, the fraction is one whole.',
-  }),
-  cmp.pair('2/4', 'one half', { level: 'easy', sourcePage: 3 }),
-  cmp.pair('3/9', 'one third', { level: 'medium', sourcePage: 3 }),
-  cmp.blank('3/4 is ___ than 1/4.', ['bigger', 'smaller', 'equal'], 'bigger', {
-    level: 'easy', sourcePage: 1, explanation: 'Three fourths has more of the same parts than one fourth.',
-  }),
+/** A sample lesson as the games see it (like one assignment). Nothing is saved: no assignmentId. */
+function sampleLesson(id: string, name: string, added: string, cards: QuestionCard[]): PlayLesson {
+  const approved = cards.filter((c) => c.status === 'approved')
+  const games: GameEntry[] = GAME_ORDER.map((game) => {
+    const have = approved.filter((c) => TEMPLATE_FOR_TYPE[c.type] === game).length
+    const playable = have >= MIN_CARDS[game]
+    return { id: game, playable, ...(playable ? {} : { reason: `Needs at least ${MIN_CARDS[game]} approved cards.` }), bestStars: 0, done: false }
+  })
+  return { id, assignmentId: null, name, lessonTitle: name, teacher: 'Ms. Cruz', subject: 'Math', assignedAt: added, games, cards: approved }
+}
+
+/** Newest first, like the backend sends them. */
+export const SAMPLE_LESSONS: PlayLesson[] = [
+  sampleLesson('g4-fractions', 'Fractions', '2026-11-10T00:00:00.000Z', fractionCards),
+  sampleLesson('mixed', 'Mixed Numbers', '2026-11-03T00:00:00.000Z', mixedCards),
 ]
 
-// Dev only: check every card when this file loads, so a typo shows up right away.
-if (import.meta.env.DEV) {
-  for (const card of [...fakeQuestionCards, ...mixedCards, ...comparingCards]) {
-    const result = QuestionCardSchema.safeParse(card)
-    if (!result.success) {
-      const why = result.error.issues.map((i) => `${i.path.join('.') || 'card'}: ${i.message}`).join('; ')
-      throw new Error(`Bad fake question card ${card.id}: ${why}`)
-    }
+/** A sample Student's progress (the Lobby and Results on the dev pages). */
+export const SAMPLE_PROGRESS: Progress = { xp: 1140, level: 4, xpIntoLevel: 240, xpGoal: 300, stars: 125, streakDays: 3 }
+
+/** A sample mission with the Fractions lesson: ?mission=open (1 of 2 done), done, none. */
+export function sampleMission(kind: string | null): Mission {
+  if (kind === 'none') return noMission('Ms. Cruz', true)
+  const done: GameId[] = kind === 'done' ? ['quiz-show', 'match-up'] : ['quiz-show']
+  return {
+    state: kind === 'done' ? 'complete' : 'open',
+    assignmentId: null,
+    lessonId: 'g4-fractions',
+    name: 'Fractions Review',
+    lessonTitle: 'Fractions',
+    subject: 'Math',
+    teacher: 'Ms. Cruz',
+    dueDate: '2026-11-27',
+    games: ['quiz-show', 'match-up'],
+    done,
+    bestStars: { 'quiz-show': 2, 'match-up': 3 },
+    maxXp: 85,
+    board: makeBoard(kind === 'ideas' ? fractionCards.filter((c) => c.type !== 'matching_pair') : fractionCards),
+    hasLessons: true,
+  }
+}
+
+// Check every card when this file loads, so a typo shows up right away.
+for (const card of [...fractionCards, ...mixedCards]) {
+  const result = QuestionCardSchema.safeParse(card)
+  if (!result.success) {
+    const why = result.error.issues.map((i) => `${i.path.join('.') || 'card'}: ${i.message}`).join('; ')
+    throw new Error(`Bad sample question card ${card.id}: ${why}`)
   }
 }

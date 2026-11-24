@@ -52,7 +52,7 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, preview, 
   // Dev Results screen: the played-out demo round, not saved.
   const [summary, setSummary] = useState<RoundSummary | null>(() =>
     demo === 'results'
-      ? endRound(makeResult('quiz-show', lesson.id, topic, round.startedAt, round.startedAt, records(round), round.help.used), round.startLevel, false)
+      ? endRound(makeResult(round.id, 'quiz-show', lesson.id, topic, round.startedAt, round.startedAt, records(round), round.help.used), round.startLevel, false)
       : null,
   )
   const [jump, setJump] = useState(0)
@@ -86,8 +86,8 @@ export function QuizShow({ player, lesson, cards, lessonCanPlay, demo, preview, 
     if (!answered) return
     setConfetti(null)
     if (finished(round)) {
-      const result = makeResult('quiz-show', lesson.id, topic, round.startedAt, Date.now(), records(round), round.help.used)
-      setSummary(endRound(result, round.startLevel, !demo))
+      const result = makeResult(round.id, 'quiz-show', lesson.id, topic, round.startedAt, Date.now(), records(round), round.help.used)
+      setSummary(endRound(result, round.startLevel, !demo, setSummary))
       setJump((j) => j + 1)
       setConfetti(1)
       return

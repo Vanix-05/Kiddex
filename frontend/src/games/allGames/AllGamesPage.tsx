@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronLeft, Pin, Play, Plus } from 'lucide-react'
 import { canPlay, CATALOG, catalogGame, type CanPlay, type CatalogGame } from '../catalog'
 import type { GameId } from '../types'
+import { useToday } from '../useToday'
+import { dueText } from '../studentData'
 import { pickedLesson, rememberLesson } from './pageMemory'
 import type { AllGamesData, GamesMission } from './useAllGames'
 import styles from './AllGamesPage.module.css'
@@ -44,10 +46,10 @@ export function AllGamesPage({
   const isMissionLesson = !!mission && mission.lessonId === lessonId
   const rows = useMemo(() => {
     const missionOrder = (g: CatalogGame) => (isMissionLesson && mission ? mission.games.indexOf(g.id) : -1)
-    return CATALOG.map((game) => ({ game, check: canPlay(game, lessonId), assigned: missionOrder(game) >= 0 }))
+    return CATALOG.map((game) => ({ game, check: canPlay(game, lesson), assigned: missionOrder(game) >= 0 }))
       .map((row, i) => ({ ...row, rank: row.assigned && row.check.ok ? 0 : row.check.ok ? 1 : 2, order: row.assigned ? missionOrder(row.game) : i }))
       .sort((a, b) => a.rank - b.rank || a.order - b.order)
-  }, [lessonId, isMissionLesson, mission])
+  }, [lesson, isMissionLesson, mission])
 
   return (
     <div className={styles.page}>
@@ -66,8 +68,14 @@ export function AllGamesPage({
       <main className={styles.main}>
         <h1 className="visually-hidden">All games</h1>
 
-        {mission && <MissionBanner mission={mission} bestStars={bestStars} onOpen={onOpen} />}
+        {mission && <MissionBanner mission={mission} lessons={lessons} bestStars={bestStars} onOpen={onOpen} />}
 
+        {lessons.length === 0 ? (
+          <section className={styles.noLessons} role="status">
+            <b>No games yet</b>
+            <span>Your games will show up here when your teacher gives your class a lesson.</span>
+          </section>
+        ) : (
         <section aria-labelledby="pick-title">
           <div className={styles.pickHead}>
             <h2 id="pick-title" className={styles.pickTitle}>
@@ -107,6 +115,7 @@ export function AllGamesPage({
             </li>
           </ul>
         </section>
+        )}
       </main>
 
       {picking && <LessonPicker lessons={lessons} current={lessonId} onPick={pick} onClose={() => { setPicking(false); changeButton.current?.focus() }} />}
@@ -124,15 +133,20 @@ export function AllGamesPage({
 
 function MissionBanner({
   mission,
+  lessons,
   bestStars,
   onOpen,
 }: {
   mission: GamesMission
+  lessons: AllGamesData['lessons']
   bestStars: AllGamesData['bestStars']
   onOpen: (game: GameId, lessonId: string) => void
 }) {
+  const today = useToday()
+  const lesson = lessons.find((l) => l.id === mission.lessonId)
   const allDone = mission.games.every((g) => mission.done.includes(g))
-  const next = mission.games.find((g) => !mission.done.includes(g) && canPlayGame(g, mission.lessonId).ok)
+  const next = mission.games.find((g) => !mission.done.includes(g) && canPlay({ id: g }, lesson).ok)
+  const due = mission.dueDate ? dueText(mission.dueDate, today, 'card') : null
 
   return (
     <section className={`${styles.mission} ${allDone ? styles.missionDone : ''}`} aria-labelledby="mission-title">
@@ -144,7 +158,7 @@ function MissionBanner({
           {mission.lessonName}
         </h2>
         <p className={styles.missionMeta}>
-          {mission.subject} · Due {mission.due}
+          {[mission.subject, due].filter(Boolean).join(' · ')}
         </p>
         <p className={styles.missionCount}>
           <span className={styles.missionDots} aria-hidden="true">
@@ -152,7 +166,7 @@ function MissionBanner({
               <span key={g} className={`${styles.mDot} ${mission.done.includes(g) ? styles.mDotDone : ''}`} />
             ))}
           </span>
-          {allDone ? `Mission done! +${mission.xp} XP` : `${mission.done.length} of ${mission.games.length} games done`}
+          {allDone ? 'Mission done!' : `${mission.done.length} of ${mission.games.length} games done`}
         </p>
       </div>
 
@@ -161,7 +175,7 @@ function MissionBanner({
           const game = catalogGame(id)
           if (!game) return null
           const done = mission.done.includes(id)
-          const check = canPlay(game, mission.lessonId)
+          const check = canPlay(game, lesson)
           const play = () => onOpen(id, mission.lessonId)
           return (
             <li key={id} className={`${styles.mGame} ${id === next ? styles.mGameNext : ''}`}>
@@ -195,11 +209,6 @@ function MissionBanner({
       </ul>
     </section>
   )
-}
-
-const canPlayGame = (id: GameId, lessonId: string): CanPlay => {
-  const game = catalogGame(id)
-  return game ? canPlay(game, lessonId) : { ok: false, reason: 'Coming soon' }
 }
 
 // ---------- Grid card ----------
@@ -292,7 +301,7 @@ function LessonPicker({
         </h2>
         <ul className={styles.lessons}>
           {lessons.map((l) => {
-            const games = CATALOG.filter((g) => canPlay(g, l.id).ok).length
+            const games = CATALOG.filter((g) => canPlay(g, l).ok).length
             const on = l.id === current
             return (
               <li key={l.id}>

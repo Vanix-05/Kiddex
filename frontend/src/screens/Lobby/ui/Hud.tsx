@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import type { Zoom } from '../game/LobbyGame'
 import type { Mission, StudentProgress } from '../lobbyData'
+import { useToday } from '../../../games/useToday'
+import { dueText } from '../../../games/studentData'
 import { EmoteBar } from './EmoteBar'
 import { LobbyIcon } from './icons'
 import { IS_TOUCH } from './touch'
@@ -22,6 +24,7 @@ export function Hud({
   zoom,
   showHint,
   onStart,
+  onMission,
   onMyRoom,
   onAllGames,
   onZoom,
@@ -38,7 +41,10 @@ export function Hud({
   zoom: Zoom
   /** "WASD or click to walk" ("Use the joystick to walk" on touch screens), until the first move. */
   showHint: boolean
+  /** Plays the next mission game. */
   onStart: () => void
+  /** Opens Ollie's mission card (the note's View, when the mission is complete). */
+  onMission: () => void
   onMyRoom: () => void
   onAllGames: () => void
   onZoom: () => void
@@ -113,21 +119,7 @@ export function Hud({
       </div>
 
       <div className={styles.topRight}>
-        <section className={styles.note} aria-label="Today's mission">
-          <span className={styles.pin} aria-hidden="true" />
-          <div className={styles.kicker}>Today's mission · {mission.teacher}</div>
-          <h2 className={styles.noteTitle}>{mission.title}</h2>
-          <div className={styles.noteSub}>
-            {mission.subject} · {mission.gamesDone} of {mission.games} games · due {mission.due}
-          </div>
-          <div className={styles.noteRow}>
-            <span className={styles.chip}>+{mission.xp} XP</span>
-            <span className={styles.chip}>+{mission.stars} stars</span>
-            <button type="button" className={styles.start} onClick={onStart}>
-              Start
-            </button>
-          </div>
-        </section>
+        <MissionNote mission={mission} onPlay={onStart} onView={onMission} onAllGames={onAllGames} />
         <div className={styles.online}>
           <span className={styles.dot} aria-hidden="true" />
           {classmatesHere} {classmatesHere === 1 ? 'classmate' : 'classmates'} here
@@ -156,5 +148,56 @@ export function Hud({
 
       {children}
     </div>
+  )
+}
+
+/** The pinned note, top right: today's mission (open, complete) or "No mission yet". */
+function MissionNote({
+  mission,
+  onPlay,
+  onView,
+  onAllGames,
+}: {
+  mission: Mission
+  onPlay: () => void
+  onView: () => void
+  onAllGames: () => void
+}) {
+  const today = useToday()
+  if (mission.state === 'none') {
+    return (
+      <section className={styles.note} aria-label="Today's mission">
+        <span className={styles.pin} aria-hidden="true" />
+        <div className={styles.kicker}>Today's mission</div>
+        <h2 className={styles.noteTitle}>No mission yet</h2>
+        <div className={styles.noteSub}>Practice your lessons in All games</div>
+        <div className={styles.noteRow}>
+          <button type="button" className={styles.start} onClick={onAllGames}>
+            All games
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  const complete = mission.state === 'complete'
+  const due = mission.dueDate ? dueText(mission.dueDate, today, 'note') : null
+  const subject = mission.subject ? `${mission.subject} · ` : ''
+  const line = complete
+    ? `${subject}All ${mission.games.length} ${mission.games.length === 1 ? 'game' : 'games'} done ✓`
+    : `${subject}${mission.done.length} of ${mission.games.length} games${due ? ` · ${due}` : ''}`
+  return (
+    <section className={styles.note} aria-label="Today's mission">
+      <span className={styles.pin} aria-hidden="true" />
+      <div className={styles.kicker}>Today's mission{mission.teacher ? ` · ${mission.teacher}` : ''}</div>
+      <h2 className={styles.noteTitle}>{mission.name}</h2>
+      <div className={styles.noteSub}>{line}</div>
+      <div className={styles.noteRow}>
+        <span className={styles.chip}>{complete ? 'Mission complete' : `Up to +${mission.maxXp} XP`}</span>
+        <button type="button" className={styles.start} onClick={complete ? onView : onPlay}>
+          {complete ? 'View' : 'Play'}
+        </button>
+      </div>
+    </section>
   )
 }

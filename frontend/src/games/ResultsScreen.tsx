@@ -124,6 +124,12 @@ export function ResultsBoard({
           {nextGame ? `Next game: ${GAMES[nextGame].name}` : leaveTo === 'games' ? 'Back to games' : 'Back to Lobby'} <ArrowRight size={24} strokeWidth={2.8} aria-hidden="true" />
         </button>
       </div>
+      {/* Not an error popup: the round is kept in this browser and sent again later. */}
+      {summary.save === 'failed' && (
+        <p className={styles.saveLater} role="status">
+          Couldn’t save this round yet. We’ll try again.
+        </p>
+      )}
     </div>
   )
 }

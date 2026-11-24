@@ -108,12 +108,16 @@ export function PrizeWheelCard({
         {wheel}
         <h2 className={styles.cardTitle}>Prize Wheel</h2>
         <p className={styles.sub}>Finish today's mission from Ollie to earn a free spin. Every slice is a prize!</p>
-        <p className={styles.sub}>
-          <b>
-            {mission.gamesDone} of {mission.games} mission games
-          </b>{' '}
-          done
-        </p>
+        {mission.state === 'none' ? (
+          <p className={styles.sub}>There is no mission right now.</p>
+        ) : (
+          <p className={styles.sub}>
+            <b>
+              {mission.done.length} of {mission.games.length} mission games
+            </b>{' '}
+            done
+          </p>
+        )}
         <div className={styles.acts}>
           <CardButton onClick={onClose}>Later</CardButton>
           <CardButton color="orange" primary onClick={onMission}>

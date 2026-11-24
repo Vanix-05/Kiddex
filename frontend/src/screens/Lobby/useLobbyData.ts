@@ -1,37 +1,38 @@
 import { useMemo } from 'react'
-import { MISSION_GAMES } from '../../games/mission'
-import { useGameProgress } from '../../games/useGameProgress'
-import { lobbyMock } from '../../mock/lobbyMock'
-import type { LobbyData } from './lobbyData'
+import { missionOf } from '../../games/studentData'
+import type { Progress } from '../../games/studentGames'
+import { useStudentGames } from '../../games/useStudentGames'
+import { lobbyMock, ollieLines } from '../../mock/lobbyMock'
+import type { LobbyData, Mission, StudentProgress } from './lobbyData'
+
+/** The Lobby's numbers from the server's progress (the bar shows the XP into this level). */
+export const lobbyProgress = (p: Progress): StudentProgress => ({
+  level: p.level,
+  xp: p.xpIntoLevel,
+  xpGoal: p.xpGoal,
+  stars: p.stars,
+  streakDays: p.streakDays,
+})
+
+/** The Lobby's data: real progress and mission, plus the parts that are still fake (lobbyMock.ts). */
+export const lobbyDataFrom = (student: StudentProgress, mission: Mission): LobbyData => ({
+  ...lobbyMock,
+  student,
+  mission,
+  ollieLines: ollieLines(mission.state === 'none' ? null : mission.name),
+})
 
 /**
- * Everything the Lobby shows that will come from the backend: the Student's
- * progress, their classmates, today's mission and Ollie's lines.
- *
- * FAKE for now: src/mock/lobbyMock.ts, plus what the mini games earned
- * (useGameProgress): their XP and stars go on top of the Student's own, and
- * the mission counts the games finished today. Replace the body with the real
- * API calls later; the screen only uses this hook.
+ * Everything the Student's Lobby shows. REAL: the Student's level, XP, stars and
+ * streak, today's mission and the chalkboard (GET /api/student/games). Still
+ * fake (lobbyMock.ts): classmates, the Class Garden, the Prize Wheel slices and Ollie's lines.
+ * Students only: the Teacher's view-only Lobby builds its own (TeacherLobbyScreen).
  */
-export function useLobbyData(): LobbyData {
-  const { xpEarned, starsEarned, playedToday } = useGameProgress()
-
-  return useMemo(() => {
-    const base = lobbyMock.student
-    // Every xpGoal (300) XP is the next level.
-    let level = base.level
-    let xp = base.xp + xpEarned
-    while (xp >= base.xpGoal) {
-      xp -= base.xpGoal
-      level++
-    }
-    const { mission } = lobbyMock
-    const today = playedToday(mission.lessonId)
-    const done = MISSION_GAMES.slice(0, mission.games).filter((g) => today.includes(g))
-    return {
-      ...lobbyMock,
-      student: { ...base, level, xp, stars: base.stars + starsEarned },
-      mission: { ...mission, gamesDone: done.length, done },
-    }
-  }, [xpEarned, starsEarned, playedToday])
+export function useLobbyData() {
+  const query = useStudentGames()
+  const data = useMemo(
+    () => (query.data ? lobbyDataFrom(lobbyProgress(query.data.progress), missionOf(query.data)) : null),
+    [query.data],
+  )
+  return { data, error: query.error, retry: () => void query.refetch() }
 }

@@ -9,6 +9,7 @@ import { authApi } from '../teacher/api/authApi'
 import { ApiError, setLoginEndedHandler } from '../teacher/api/client'
 import { studentApi, type StudentPatch, type StudentProfile } from './studentApi'
 import { teacherQueryClient } from '../teacher/api/queryClient'
+import { studentQueryClient } from '../games/studentQueryClient'
 import { router } from '../routes/router'
 import { paths } from '../routes/paths'
 
@@ -142,6 +143,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setToken(token)
       // A fresh cache: never show lessons from an earlier login on this computer.
       teacherQueryClient.clear()
+      studentQueryClient.clear()
       const user: User = { username: teacher.email, role: 'teacher', name: teacher.name }
       update({ ...EMPTY, user })
       return user
@@ -155,6 +157,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setToken(token)
       // Never keep a Teacher's cached lessons on a Student's tab.
       teacherQueryClient.clear()
+      studentQueryClient.clear()
       roleRef.current = 'student'
       update({ ...EMPTY, ...fromProfile(student) })
       return { hasBuddy: isBuddyId(student.buddy) }
@@ -211,11 +214,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [update, saveInBackground])
   const markLoadingVideoSeen = useCallback(() => update({ seenLoadingVideo: true }), [update])
 
-  // There is no logout address: the browser forgets the token. The Teacher cache
-  // is cleared too, so the next Teacher on this computer never sees these lessons.
+  // There is no logout address: the browser forgets the token. The Teacher and Student
+  // caches are cleared too, so the next person on this computer never sees these lessons or numbers.
   const logOut = useCallback(() => {
     clearToken()
     teacherQueryClient.clear()
+    studentQueryClient.clear()
     update(EMPTY)
   }, [update])
 

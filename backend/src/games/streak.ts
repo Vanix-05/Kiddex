@@ -23,3 +23,13 @@ export function nextStreak(lastPlayDay: string | null, streakDays: number, today
     return { streakDays: streakDays + 1, lastPlayDay: today };
   return { streakDays: 1, lastPlayDay: today };
 }
+
+/**
+ * The streak the screens show: the saved one only while it is still going (the last
+ * round was today or yesterday), else 0. The saved column is not changed; the next
+ * round starts it again at 1.
+ */
+export function shownStreak(lastPlayDay: string | null, streakDays: number, today: string): number {
+  if (lastPlayDay !== null && (lastPlayDay === today || lastPlayDay === dayBefore(today))) return streakDays;
+  return 0;
+}

@@ -16,7 +16,7 @@ import { makeBoard, type BoardQuestion } from "../games/board";
 import { decideAfterRound, stepLevel, type Answer, type Level } from "../games/difficulty";
 import { pickMission, type MissionCandidate } from "../games/mission";
 import { levelFromXp, missionMaxXp, ROUND_SIZE, starsEarned, starsFor, xpFor } from "../games/rewards";
-import { nextStreak, phDay } from "../games/streak";
+import { nextStreak, phDay, shownStreak } from "../games/streak";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env"), quiet: true });
 
@@ -176,6 +176,11 @@ function streakChecks() {
     "streak: never played → 1",
     same(nextStreak(null, 0, "2026-11-23"), { streakDays: 1, lastPlayDay: "2026-11-23" }),
   );
+  // What the screens see: only a streak that is still going.
+  check("shown streak: last round today → kept", shownStreak("2026-11-23", 3, "2026-11-23") === 3);
+  check("shown streak: last round yesterday → kept", shownStreak("2026-11-22", 3, "2026-11-23") === 3);
+  check("shown streak: last round 2 days ago → 0", shownStreak("2026-11-21", 3, "2026-11-23") === 0);
+  check("shown streak: never played → 0", shownStreak(null, 0, "2026-11-23") === 0);
 }
 
 // ---------- Mission ----------

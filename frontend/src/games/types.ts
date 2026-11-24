@@ -27,8 +27,10 @@ export interface AnswerRecord {
   helped: boolean
 }
 
-/** One finished round: saved by useGameProgress, later sent to the backend. */
+/** One finished round: sent to the backend (POST /api/student/rounds) for a Student. */
 export interface GameResult {
+  /** Made when the round starts: the backend never saves the same round twice. */
+  clientRoundId: string
   gameId: GameId
   lessonId: string
   /** The topic the Student's level belongs to (the cards' topic). */

@@ -1,13 +1,14 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { GameRoute } from '../GameRoute'
 import { SAMPLE_PLAYER as ANA } from '../samplePlayer'
+import { SAMPLE_LESSONS } from './sampleCards'
 import { GAMES, isGameId } from '../session'
 import { DEMO_STATES, type DemoState } from '../types'
 import styles from './DevGamesScreen.module.css'
 
 // Dev only (not in production builds): every mini game screen at a glance,
-// with a sample Student (the same look as /dev/lobby). Nothing is saved
-// from a ?state= screen; a plain play-through saves like the real game.
+// with a sample Student (the same look as /dev/lobby) and the sample lessons
+// (sampleCards.ts). Nothing is ever saved here (only the Student /play saves).
 
 const STATES: { game: string; state?: DemoState; label: string }[] = [
   { game: 'quiz-show', label: 'Quiz Show: play a round' },
@@ -41,7 +42,7 @@ const ALL_GAMES: { sample?: string; label: string }[] = [
   { sample: 'none', label: 'All games: no mission' },
   { sample: 'done', label: 'All games: mission done' },
   { sample: 'nomatch', label: 'All games: a lesson where Match Up is unavailable' },
-  { label: 'All games: your real progress (play from here to see it update)' },
+  { sample: 'empty', label: 'All games: no lessons yet (the friendly empty card)' },
 ]
 
 const isDemo = (v: string | null): v is DemoState => DEMO_STATES.includes(v as DemoState)
@@ -80,5 +81,5 @@ export function DevPlayScreen() {
   const [params] = useSearchParams()
   if (!isGameId(gameId) || !GAMES[gameId].built) return <Navigate to="/dev/games" replace />
   const state = params.get('state')
-  return <GameRoute gameId={gameId} player={ANA} base="/dev/play" lobby="/dev/lobby" games="/dev/all-games" demo={isDemo(state) ? state : undefined} />
+  return <GameRoute gameId={gameId} player={ANA} lessons={SAMPLE_LESSONS} base="/dev/play" lobby="/dev/lobby" games="/dev/all-games" demo={isDemo(state) ? state : undefined} />
 }

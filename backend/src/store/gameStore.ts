@@ -16,7 +16,7 @@ import { makeBoard, type Board } from "../games/board";
 import { decideAfterRound, START_LEVEL, type Decision, type Level } from "../games/difficulty";
 import { pickMission, type MissionCandidate } from "../games/mission";
 import { levelFromXp, missionMaxXp, ROUND_SIZE, starsEarned, starsFor, xpFor } from "../games/rewards";
-import { nextStreak, phDay } from "../games/streak";
+import { nextStreak, phDay, shownStreak } from "../games/streak";
 
 /** The games in their usual order. */
 export const GAMES = ["quiz-show", "match-up", "fill-blank"] as const satisfies readonly TemplateId[];
@@ -50,14 +50,18 @@ export interface Progress {
   streakDays: number;
 }
 
-const progressOf = (s: { xp: number; stars: number; streakDays: number }): Progress => ({
+/** The streak is shown only while it is still going (today or yesterday, Philippine time). */
+const progressOf = (
+  s: { xp: number; stars: number; streakDays: number; lastPlayDay: string | null },
+  now = new Date(),
+): Progress => ({
   xp: s.xp,
   ...levelFromXp(s.xp),
   stars: s.stars,
-  streakDays: s.streakDays,
+  streakDays: shownStreak(s.lastPlayDay, s.streakDays, phDay(now)),
 });
 
-const PROGRESS_FIELDS = { xp: true, stars: true, streakDays: true } satisfies Prisma.StudentSelect;
+const PROGRESS_FIELDS = { xp: true, stars: true, streakDays: true, lastPlayDay: true } satisfies Prisma.StudentSelect;
 
 // ---------- GET /api/student/games ----------
 
@@ -235,7 +239,7 @@ export async function studentGames(studentId: string, now = new Date()): Promise
   }
 
   return {
-    progress: progressOf(student),
+    progress: progressOf(student, now),
     levels: Object.fromEntries(student.topicLevels.map((t) => [t.topicKey, t.level])),
     lessons,
     mission,
@@ -480,7 +484,7 @@ export async function saveRound(studentId: string, input: RoundInput, now = new 
               select: PROGRESS_FIELDS,
             });
             const done = await missionDone(tx, studentId, assignment.id);
-            return answerOf(round, done, progressOf(updated));
+            return answerOf(round, done, progressOf(updated, now));
           },
           { maxWait: 10_000, timeout: 15_000 },
         );

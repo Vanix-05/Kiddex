@@ -31,8 +31,24 @@ export function shuffle<T>(items: readonly T[], random = Math.random): T[] {
   return out
 }
 
-/** The finished round's record. */
+/**
+ * A new round id (a random UUID), made when a round starts. crypto.randomUUID only
+ * works on https or localhost, so a phone on the school network gets the same kind
+ * of id from crypto.getRandomValues.
+ */
+export function newRoundId(): string {
+  const c = globalThis.crypto
+  if (typeof c?.randomUUID === 'function') return c.randomUUID()
+  const b = c.getRandomValues(new Uint8Array(16))
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+
+/** The finished round's record. `roundId`: the id the round got when it started. */
 export function makeResult(
+  roundId: string,
   gameId: GameId,
   lessonId: string,
   topic: string,
@@ -41,7 +57,7 @@ export function makeResult(
   answers: AnswerRecord[],
   helpsUsed: number,
 ): GameResult {
-  return { gameId, lessonId, topic, startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(), answers, helpsUsed }
+  return { clientRoundId: roundId, gameId, lessonId, topic, startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(), answers, helpsUsed }
 }
 
 // ---------- Scoring ----------

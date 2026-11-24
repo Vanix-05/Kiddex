@@ -4,7 +4,7 @@
 import type { QuestionCard } from '../../content/questionCard'
 import { afterAnswer, canSpend, spendHelp, startHelp, type HelpEvent, type HelpState } from '../buddyHelp'
 import { decideDuringRound, nextCard } from '../difficulty'
-import { GAMES, logLevel, shuffle } from '../session'
+import { GAMES, logLevel, newRoundId, shuffle } from '../session'
 import type { AnswerRecord, Level } from '../types'
 
 export interface QuizQuestion {
@@ -28,6 +28,8 @@ export interface QuizQuestion {
 export type QuizGame = 'quiz-show' | 'fill-blank'
 
 export interface QuizRound {
+  /** The round's id (clientRoundId), made when it starts. */
+  id: string
   /** Which game: sets the round size and what Buddy Help does. */
   game: QuizGame
   /** Cards not asked yet. */
@@ -58,7 +60,7 @@ function ask(round: QuizRound, now: number, random: () => number): QuizRound {
 /** A new round: up to the game's round size (fewer if the lesson has fewer cards), the first one asked. */
 export function startQuiz(cards: readonly QuestionCard[], level: Level, now: number, random = Math.random, game: QuizGame = 'quiz-show'): QuizRound {
   const total = Math.min(GAMES[game].roundSize, cards.length)
-  return ask({ game, pool: [...cards], total, startLevel: level, level, asked: [], startedAt: now, help: startHelp(), helpEvent: null }, now, random)
+  return ask({ id: newRoundId(), game, pool: [...cards], total, startLevel: level, level, asked: [], startedAt: now, help: startHelp(), helpEvent: null }, now, random)
 }
 
 export const current = (round: QuizRound) => round.asked[round.asked.length - 1]

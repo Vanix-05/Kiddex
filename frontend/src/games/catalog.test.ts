@@ -1,26 +1,38 @@
 import { describe, expect, it } from 'vitest'
 import { canPlay, CATALOG, catalogGame } from './catalog'
+import type { PlayLesson } from './studentData'
 
 const quiz = catalogGame('quiz-show')!
 const match = catalogGame('match-up')!
+const blank = catalogGame('fill-blank')!
+
+const lesson: PlayLesson = {
+  id: 'L1',
+  assignmentId: 'A1',
+  name: 'Fractions Review',
+  lessonTitle: 'Equivalent Fractions',
+  teacher: 'Ms. Cruz',
+  subject: 'Math',
+  assignedAt: '2026-11-23T00:00:00.000Z',
+  games: [
+    { id: 'quiz-show', playable: true, bestStars: 2, done: true },
+    { id: 'match-up', playable: false, reason: 'Needs at least 4 approved pairs.', bestStars: 0, done: false },
+  ],
+  cards: [],
+}
 
 describe('canPlay', () => {
-  it('plays a game when the lesson has enough approved cards of its type', () => {
-    expect(canPlay(quiz, 'g4-fractions')).toEqual({ ok: true })
-    expect(canPlay(match, 'g4-fractions')).toEqual({ ok: true })
-    expect(canPlay(match, 'mixed')).toEqual({ ok: true })
+  it('plays a game that is in the lesson and playable', () => {
+    expect(canPlay(quiz, lesson)).toEqual({ ok: true })
   })
 
-  it('says how many more cards are missing, in the card type’s words', () => {
-    // Comparing Fractions has 2 approved pairs; Match Up needs 4.
-    expect(canPlay(match, 'comparing')).toEqual({ ok: false, reason: 'Needs 2 more pairs' })
-    expect(canPlay({ cardType: 'fill_blank' }, 'comparing')).toEqual({ ok: false, reason: 'Needs 2 more sentences' })
-    expect(canPlay({ cardType: 'multiple_choice' }, 'nothing-here')).toEqual({ ok: false, reason: 'Needs 3 more questions' })
+  it('a game that is not playable is grey with the backend’s reason', () => {
+    expect(canPlay(match, lesson)).toEqual({ ok: false, reason: 'Needs at least 4 approved pairs.' })
   })
 
-  it('does not count drafts', () => {
-    // Equivalent Fractions (the fake "AI" upload): 6 Quiz Show cards, all drafts the Teacher hasn't checked.
-    expect(canPlay(quiz, 'g4-equivalent-fractions')).toEqual({ ok: false, reason: 'Needs 3 more questions' })
+  it('a game the Teacher didn’t put in the lesson can’t be played', () => {
+    expect(canPlay(blank, lesson)).toEqual({ ok: false, reason: 'Not in this lesson' })
+    expect(canPlay(quiz, undefined)).toEqual({ ok: false, reason: 'Not in this lesson' })
   })
 
   it('lists every built game once', () => {

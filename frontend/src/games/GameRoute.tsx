@@ -4,6 +4,7 @@ import { FillBlank } from './fill-blank/FillBlank'
 import { MatchUp } from './match-up/MatchUp'
 import { QuizShow } from './quiz-show/QuizShow'
 import { GAMES } from './session'
+import type { PlayLesson } from './studentData'
 import type { DemoState, GameFrom, GameId, GameLesson, Player } from './types'
 import { useGameCards } from './useGameCards'
 import styles from './GameRoute.module.css'
@@ -15,13 +16,15 @@ const FROM: readonly GameFrom[] = ['games', 'stage', 'match', 'mission', 'dev']
 const isGameFrom = (v: string | null): v is GameFrom => FROM.includes(v as GameFrom)
 
 /**
- * One game for one lesson (?lesson=, else the first lesson with enough cards).
- * `base` is where games live (/play, or /dev/play), `lobby` where Leave goes,
- * `games` where it goes when the Student came from All games (?from=games).
+ * One game for one lesson (?lesson=, else the newest lesson that can play it).
+ * `lessons`: the Student's (PlayScreen) or the dev samples. `base` is where games
+ * live (/play, or /dev/play), `lobby` where Leave goes, `games` where it goes when
+ * the Student came from All games (?from=games).
  */
 export function GameRoute({
   gameId,
   player,
+  lessons,
   base,
   lobby,
   games,
@@ -29,6 +32,7 @@ export function GameRoute({
 }: {
   gameId: GameId
   player: Player
+  lessons: readonly PlayLesson[]
   base: string
   lobby: string
   games: string
@@ -37,7 +41,7 @@ export function GameRoute({
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const from: GameFrom = isGameFrom(params.get('from')) ? (params.get('from') as GameFrom) : 'mission'
-  const { lesson, cards, lessonCanPlay } = useGameCards(gameId, params.get('lesson'))
+  const { lesson, cards, lessonCanPlay } = useGameCards(gameId, params.get('lesson'), lessons)
 
   const zone = ZONE_OF[from]
   const leave = () => navigate(from === 'games' ? games : from === 'dev' ? '/dev/games' : zone ? `${lobby}?at=${zone}` : lobby)

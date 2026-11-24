@@ -2,7 +2,7 @@
 import type { QuestionCard } from '../../content/questionCard'
 import { afterAnswer, canSpend, spendHelp, startHelp, type HelpEvent, type HelpState } from '../buddyHelp'
 import { pickCards } from '../difficulty'
-import { GAMES, logLevel, shuffle } from '../session'
+import { GAMES, logLevel, newRoundId, shuffle } from '../session'
 import type { AnswerRecord, Level } from '../types'
 
 export type Side = 'left' | 'right'
@@ -22,6 +22,8 @@ export interface MatchRound {
   picked: { side: Side; id: string } | null
   /** A wrong pair on show: left card id, right card id. */
   miss: { left: string; right: string } | null
+  /** The round's id (clientRoundId), made when it starts. */
+  id: string
   startLevel: Level
   startedAt: number
   lastTieAt: number
@@ -42,7 +44,7 @@ export function startMatch(cards: readonly QuestionCard[], level: Level, now: nu
   let right = shuffle(left, random)
   // A different order on each side (when there's a choice).
   for (let i = 0; i < 5 && right.every((id, j) => id === left[j]); i++) right = shuffle(left, random)
-  return { cards: picked, left, right, tied: [], tries: {}, ms: {}, picked: null, miss: null, startLevel: level, startedAt: now, lastTieAt: now, help: startHelp(), helped: [], helpEvent: null }
+  return { id: newRoundId(), cards: picked, left, right, tied: [], tries: {}, ms: {}, picked: null, miss: null, startLevel: level, startedAt: now, lastTieAt: now, help: startHelp(), helped: [], helpEvent: null }
 }
 
 export const isTied = (r: MatchRound, id: string) => r.tied.includes(id)

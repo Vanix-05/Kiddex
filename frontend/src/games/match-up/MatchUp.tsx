@@ -93,7 +93,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, l
       if (i === 0) r = clearMiss(tryPair(r, id, r.left[1], id, r.startedAt))
       r = tryPair(r, id, id, id, r.startedAt)
     })
-    return endRound(makeResult('match-up', lesson.id, topic, r.startedAt, r.startedAt, records(r), r.help.used), r.startLevel, false)
+    return endRound(makeResult(r.id, 'match-up', lesson.id, topic, r.startedAt, r.startedAt, records(r), r.help.used), r.startLevel, false)
   })
   const [jump, setJump] = useState(0)
   const [lastTie, setLastTie] = useState(false)
@@ -130,8 +130,8 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, l
   useEffect(() => {
     if (!allDone || summary) return
     const t = window.setTimeout(() => {
-      const result = makeResult('match-up', lesson.id, topic, round.startedAt, Date.now(), records(round), round.help.used)
-      setSummary(endRound(result, round.startLevel, !demo))
+      const result = makeResult(round.id, 'match-up', lesson.id, topic, round.startedAt, Date.now(), records(round), round.help.used)
+      setSummary(endRound(result, round.startLevel, !demo, setSummary))
       setJump((j) => j + 1)
       setConfetti(1)
     }, 1000)

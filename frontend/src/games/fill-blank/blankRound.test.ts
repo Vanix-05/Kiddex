@@ -110,13 +110,12 @@ describe('Fill the Blank goes through the same round and difficulty path', () =>
 
     const deps = {
       student: { level: 1, xp: 0, xpGoal: 300, streakDays: 0 },
-      missionGameCount: 3,
-      playedToday: () => [],
+      mission: null,
+      lessonGames: [],
       lessonCanPlay: () => true,
-      saveRound: () => {},
     }
-    const result = { gameId: 'fill-blank' as const, lessonId: 'L1', topic: 'Fractions', startedAt: '', endedAt: '', answers: rec, helpsUsed: 1 }
-    const summary = finishRound('fill-blank', result, 'easy', false, false, deps)
+    const result = { clientRoundId: 'r1', gameId: 'fill-blank' as const, lessonId: 'L1', topic: 'Fractions', startedAt: '', endedAt: '', answers: rec, helpsUsed: 1 }
+    const summary = finishRound('fill-blank', result, 'easy', false, deps)
     // 1 of 1 right for the stars, but the helped answer doesn't count for the level: 0% -> keep at easy (can't go lower).
     expect(summary.right).toBe(1)
     expect(summary.helped).toBe(1)

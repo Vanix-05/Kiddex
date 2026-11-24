@@ -3,8 +3,8 @@
 import blankThumb from '../assets/games/thumbs/fill-blank.webp'
 import matchThumb from '../assets/games/thumbs/match-up.webp'
 import quizThumb from '../assets/games/thumbs/quiz-show.webp'
-import { MIN_CARDS, TEMPLATE_FOR_TYPE, type CardType } from '../content/questionCard'
-import { cardsOf } from './lessonCards'
+import type { CardType } from '../content/questionCard'
+import type { PlayLesson } from './studentData'
 import type { GameId } from './types'
 
 export interface CatalogGame {
@@ -26,21 +26,14 @@ export const CATALOG: readonly CatalogGame[] = [
 
 export const catalogGame = (id: GameId) => CATALOG.find((g) => g.id === id)
 
-/** What one card of each type is called, for "Needs 2 more pairs". */
-const CARD_WORD: Record<CardType, [one: string, many: string]> = {
-  multiple_choice: ['question', 'questions'],
-  matching_pair: ['pair', 'pairs'],
-  fill_blank: ['sentence', 'sentences'],
-}
-
 export type CanPlay = { ok: true } | { ok: false; reason: string }
 
-/** Has the lesson at least MIN_CARDS approved cards of the game's type? */
-export function canPlay(game: Pick<CatalogGame, 'cardType'>, lessonId: string): CanPlay {
-  const need = MIN_CARDS[TEMPLATE_FOR_TYPE[game.cardType]]
-  const have = cardsOf(lessonId).filter((c) => c.status === 'approved' && c.type === game.cardType).length
-  if (have >= need) return { ok: true }
-  const missing = need - have
-  const [one, many] = CARD_WORD[game.cardType]
-  return { ok: false, reason: `Needs ${missing} more ${missing === 1 ? one : many}` }
+/**
+ * Can this lesson play the game? Only a game in the lesson's assignment that is
+ * 'playable' (enough approved questions, says the backend); else its reason.
+ */
+export function canPlay(game: Pick<CatalogGame, 'id'>, lesson: PlayLesson | undefined): CanPlay {
+  const entry = lesson?.games.find((g) => g.id === game.id)
+  if (!entry) return { ok: false, reason: 'Not in this lesson' }
+  return entry.playable ? { ok: true } : { ok: false, reason: entry.reason ?? 'Not ready yet' }
 }

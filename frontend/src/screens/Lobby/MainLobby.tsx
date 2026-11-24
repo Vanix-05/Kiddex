@@ -12,7 +12,6 @@ import { BuddyCard } from './ui/BuddyCard'
 import { ComingSoonCard, type SoonKind } from './ui/ComingSoonCard'
 import { DoorCard } from './ui/DoorCard'
 import type { LobbySpot } from '../../games/allGames/pageMemory'
-import { MISSION_GAMES } from '../../games/mission'
 import { HowToPlayCard } from './ui/HowToPlayCard'
 import { Hud } from './ui/Hud'
 import { Joystick } from './ui/Joystick'
@@ -156,13 +155,13 @@ export function MainLobby({
   // Finishing Ollie's mission earns one spin a day, and waters the Class Garden.
   // The Teacher's view shows the section's garden as it is, and no news (they only look).
   const viewOnly = !!viewer
-  const missionDone = !viewOnly && mission.games > 0 && mission.gamesDone >= mission.games
+  const missionDone = !viewOnly && mission.state === 'complete'
   const wheelState: WheelState = !missionDone ? 'locked' : spun ? 'used' : 'ready'
   const gardenDone = Math.min(garden.goal, garden.done + (missionDone ? 1 : 0))
   const gardenStage = gardenDone >= garden.goal ? 4 : Math.min(3, Math.floor((gardenDone / garden.goal) * 4))
   const news: ZoneNews = useMemo(
-    () => (viewOnly ? {} : { ollie: !missionDone, stage: wheelState === 'ready' }),
-    [viewOnly, missionDone, wheelState],
+    () => (viewOnly ? {} : { ollie: mission.state === 'open', stage: wheelState === 'ready' }),
+    [viewOnly, mission.state, wheelState],
   )
   const gardenRef = useRef(gardenStage)
   // Fixed for the game's life (it is made once).
@@ -183,10 +182,10 @@ export function MainLobby({
   const roomText = useMemo(
     () => ({
       hello: `Hello, ${section.split('–').pop()?.trim() ?? section}!`,
-      today: `Today: ${mission.title}`,
+      today: mission.state === 'none' ? 'No mission yet' : `Today: ${mission.name}`,
       banner: section,
     }),
-    [section, mission.title],
+    [section, mission.state, mission.name],
   )
 
   // The first startAt, for the game (created once).
@@ -300,11 +299,12 @@ export function MainLobby({
 
   const close = () => setCard(null)
   const soon = (kind: SoonKind) => setCard({ type: 'soon', kind })
-  /** The mission's Start: the next unfinished mission game (the first one again when all are done). */
-  const missionGames = MISSION_GAMES.slice(0, mission.games).filter(isLobbyGame)
-  const nextMissionGame = missionGames.find((g) => !mission.done.includes(g)) ?? missionGames[0]
-  const startMission = () => (onPlay && nextMissionGame ? onPlay(nextMissionGame, 'mission') : soon('mission'))
   const allGames = (spot: LobbySpot | null) => (onAllGames ? onAllGames(spot) : soon('allGames'))
+  /** The mission's Play: the next unfinished mission game (the first one again when all are done). No mission: All games. */
+  const missionGames = mission.games.filter(isLobbyGame)
+  const nextMissionGame = missionGames.find((g) => !mission.done.includes(g)) ?? missionGames[0]
+  const startMission = () =>
+    mission.state === 'none' || !nextMissionGame ? allGames(null) : onPlay ? onPlay(nextMissionGame, 'mission') : soon('mission')
   const buddyCardOf = card?.type === 'buddy' ? classmates.find((c) => c.id === card.id) : undefined
   const buddyCardArt = buddyCardOf && cast?.classmates.find((c) => c.id === buddyCardOf.id)
   const failed = castFailed || gameFailed
@@ -417,6 +417,7 @@ export function MainLobby({
               zoom={settings.zoom}
               showHint={!hasMoved}
               onStart={startMission}
+              onMission={() => setCard({ type: 'mission' })}
               onMyRoom={() => soon('myRoom')}
               onAllGames={() => allGames(null)}
               onZoom={() => changeSettings({ zoom: settings.zoom === 'close' ? 'far' : 'close' })}
@@ -444,7 +445,9 @@ export function MainLobby({
             />
           )}
           {card?.type === 'door' && <DoorCard onGo={() => soon('island')} onClose={close} />}
-          {card?.type === 'mission' && <MissionCard mission={mission} onStart={startMission} onClose={close} />}
+          {card?.type === 'mission' && (
+            <MissionCard mission={mission} viewOnly={viewOnly} onPlay={startMission} onAllGames={() => allGames(null)} onClose={close} />
+          )}
           {card?.type === 'board' && <BoardCard mission={mission} onClose={close} />}
           {card?.type === 'wheel' && (
             <PrizeWheelCard
