@@ -1,5 +1,6 @@
 // `npm run test-game-rounds`: checks the game rules in src/games/ (difficulty copy,
-// XP, stars, levels, streak in Philippine time, mission choice, chalkboard) and prints
+// XP, stars, levels, streak in Philippine time, mission choice, chalkboard, the Teacher's
+// level path) and prints
 // PASS or FAIL for each. These need no database.
 //
 // When DATABASE_URL is set (backend/.env), it also walks through the two Student
@@ -14,7 +15,8 @@ import { randomBytes, randomInt, randomUUID } from "node:crypto";
 import dotenv from "dotenv";
 import { applyPlan, makePlan, NO_OPTIONS, type CleanupOptions } from "../cleanup/cleanup";
 import { makeBoard, type BoardQuestion } from "../games/board";
-import { decideAfterRound, stepLevel, type Answer, type Level } from "../games/difficulty";
+import { decideAfterFour, decideAfterRound, stepLevel, type Answer, type Level } from "../games/difficulty";
+import { countChanges, groupByTopic, roundChecks, shownRounds } from "../games/levelPath";
 import { pickMission, type MissionCandidate } from "../games/mission";
 import { levelFromXp, missionMaxXp, ROUND_SIZE, starsEarned, starsFor, xpFor } from "../games/rewards";
 import { nextStreak, phDay, shownStreak } from "../games/streak";
@@ -99,7 +101,10 @@ function difficultyChecks() {
   }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const frontend = require(frontendFile) as { decideAfterRound: typeof decideAfterRound };
+    const frontend = require(frontendFile) as {
+      decideAfterRound: typeof decideAfterRound;
+      decideAfterFour: typeof decideAfterFour;
+    };
     const differ = DIFFICULTY_CASES.filter(
       (c) => !same(frontend.decideAfterRound(c.answers, c.start), decideAfterRound(c.answers, c.start)),
     );
@@ -108,9 +113,96 @@ function difficultyChecks() {
       differ.length === 0,
       differ.map((c) => c.name).join("; "),
     );
+    const fours: [Answer[], Level][] = [
+      [[R, R, R, W], "medium"],
+      [[R, W, W, W], "easy"],
+      [[R, R, W, W], "medium"],
+      [[R, R, R, R], "hard"],
+      [[ok, ok, helped, helped], "medium"],
+    ];
+    check(
+      "difficulty: decideAfterFour same as the frontend",
+      fours.every(([a, l]) => same(frontend.decideAfterFour(a, l), decideAfterFour(a, l))),
+    );
   } catch {
     console.log("SKIP  difficulty vs frontend (could not load the frontend file)");
   }
+}
+
+// ---------- The Teacher's level path (step 8) ----------
+
+function levelPathChecks() {
+  const at = (rights: (boolean | "h")[]) =>
+    rights.map((r, position) => ({ position, right: r !== false, helped: r === "h" }));
+
+  const two = roundChecks("quiz-show", "medium", at([R, R, R, R, R, W, R, R]));
+  check(
+    "levelPath: 4 right then 3 right from medium → hard, then keep at hard",
+    two.length === 2 &&
+      two[0]!.levelBefore === "medium" &&
+      two[0]!.levelAfter === "hard" &&
+      two[0]!.change === "up" &&
+      two[0]!.counted === 4 &&
+      two[1]!.levelBefore === "hard" &&
+      two[1]!.levelAfter === "hard" &&
+      two[1]!.change === "keep" &&
+      two[1]!.reason.includes("already the hardest"),
+    JSON.stringify(two.map((c) => [c.levelBefore, c.levelAfter, c.change, c.reason])),
+  );
+
+  const low = roundChecks("fill-blank", "easy", at([R, W, W, W]));
+  check(
+    "levelPath: 1 right of 4 from easy → keep (already the easiest)",
+    low.length === 1 && low[0]!.change === "keep" && low[0]!.levelAfter === "easy" && low[0]!.reason.includes("already the easiest"),
+    JSON.stringify(low),
+  );
+
+  const helpedOnes = roundChecks("quiz-show", "medium", at([R, R, "h", "h"]));
+  check(
+    "levelPath: helped answers count as not right (2 of 4 → keep)",
+    helpedOnes[0]?.counted === 2 && helpedOnes[0]?.change === "keep",
+  );
+
+  check("levelPath: Match Up → no checks", roundChecks("match-up", "easy", at([R, R, R, R, R, R])).length === 0);
+
+  const six = roundChecks("quiz-show", "easy", at([R, R, R, R, R, W]));
+  check(
+    "levelPath: 6 answers → one check of 4 + one leftover group of 2",
+    six.length === 2 &&
+      six[0]!.from === 1 &&
+      six[0]!.to === 4 &&
+      six[0]!.decided &&
+      six[1]!.from === 5 &&
+      six[1]!.to === 6 &&
+      six[1]!.answers.length === 2 &&
+      !six[1]!.decided &&
+      six[1]!.change === "keep" &&
+      six[1]!.levelBefore === "medium" &&
+      six[1]!.levelAfter === "medium",
+    JSON.stringify(six.map((c) => [c.from, c.to, c.change, c.decided])),
+  );
+
+  const shuffled = roundChecks("quiz-show", "easy", [
+    { position: 3, right: true, helped: false },
+    { position: 0, right: false, helped: false },
+    { position: 2, right: false, helped: false },
+    { position: 1, right: false, helped: false },
+  ]);
+  check("levelPath: answers are read in position order", same(shuffled[0]?.answers.map((a) => a.right), [W, W, W, R]));
+
+  const d = (iso: string) => new Date(iso);
+  const groups = groupByTopic([
+    { topic: "Fractions ", endedAt: d("2026-11-20T01:00:00Z"), change: "up" },
+    { topic: "Plants", endedAt: d("2026-11-21T01:00:00Z"), change: "keep" },
+    { topic: "fractions", endedAt: d("2026-11-22T01:00:00Z"), change: "down" },
+  ]);
+  check(
+    "levelPath: grouped by trimmed lowercase topic, newest played first",
+    groups.length === 2 && groups[0]!.key === "fractions" && groups[0]!.rounds.length === 2 && groups[1]!.key === "plants",
+    JSON.stringify(groups.map((g) => g.key)),
+  );
+  check("levelPath: ups and downs", same(countChanges(groups[0]!.rounds), { ups: 1, downs: 1 }));
+  check("levelPath: the newest 6 rounds, oldest first", same(shownRounds([1, 2, 3, 4, 5, 6, 7, 8, 9]), [4, 5, 6, 7, 8, 9]));
 }
 
 // ---------- XP, stars, levels ----------
@@ -287,10 +379,17 @@ async function databaseWalkthrough() {
   /* eslint-disable @typescript-eslint/no-require-imports */
   const { prisma } = require("../db/prisma") as typeof import("../db/prisma");
   const { app } = require("../app") as typeof import("../app");
-  const { makeStudentToken } = require("../auth/tokens") as typeof import("../auth/tokens");
+  const { makeStudentToken, makeTeacherToken } = require("../auth/tokens") as typeof import("../auth/tokens");
 
   const tag = `zz-test-${randomBytes(4).toString("hex")}`;
-  const made: { teacherId?: string; teacher2Id?: string; sectionId?: string; lessonId?: string } = {};
+  const made: {
+    teacherId?: string;
+    teacher2Id?: string;
+    teacher3Id?: string;
+    sectionId?: string;
+    section3Id?: string;
+    lessonId?: string;
+  } = {};
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -542,6 +641,67 @@ async function databaseWalkthrough() {
       answers.length === 8 && answers.every((a) => a.level === "easy"),
     );
 
+    // ---------- The Teacher's levels page (step 8) ----------
+    const teacherToken = makeTeacherToken({ id: teacher.id, tokenVersion: 0 });
+    const lv = await call("GET", `/api/students/${student.id}/levels`, teacherToken);
+    const topic0 = lv.body.topics?.[0];
+    check("levels: 200 for my Student", lv.status === 200, `status ${lv.status} ${code(lv)}`);
+    check(
+      "levels: one topic, next round medium, 2 rounds, up 1",
+      lv.body.topics?.length === 1 &&
+        topic0?.topic === "Equivalent Fractions" &&
+        topic0?.level === "medium" &&
+        topic0?.roundCount === 2 &&
+        topic0?.ups === 1 &&
+        topic0?.downs === 0 &&
+        topic0?.lesson === `${tag}-pack`,
+      JSON.stringify(topic0 && { ...topic0, rounds: undefined }),
+    );
+    check(
+      "levels: checks worked out again (4 right from easy → medium)",
+      same(
+        topic0?.rounds?.[0]?.checks?.map((c: any) => [c.from, c.to, c.counted, c.levelBefore, c.levelAfter, c.change]),
+        [[1, 4, 4, "easy", "medium", "up"]],
+      ),
+      JSON.stringify(topic0?.rounds?.[0]?.checks),
+    );
+    check(
+      "levels: no question text or choices are sent",
+      !/Q0\?|1\/2|"prompt"|"choices"/.test(JSON.stringify(lv.body)),
+    );
+    check(
+      "levels: Last played and streak in the answer",
+      typeof lv.body.student?.lastPlayedAt === "string" && lv.body.student?.streakDays === 1,
+    );
+    const list = await call("GET", `/api/sections/${section.id}/students`, teacherToken);
+    const row = list.body?.find?.((s: any) => s.id === student.id);
+    const rowOther = list.body?.find?.((s: any) => s.id === other.id);
+    check(
+      "students list: lastPlayedAt and streakDays (null and 0 for a Student who never played)",
+      typeof row?.lastPlayedAt === "string" && row?.streakDays === 1 && rowOther?.lastPlayedAt === null && rowOther?.streakDays === 0,
+      JSON.stringify({ last: row?.lastPlayedAt, streak: row?.streakDays }),
+    );
+
+    // Another Teacher: the same 404 as a Student that doesn't exist.
+    const teacher3 = await prisma.teacher.create({
+      data: { email: `${tag}-3@kiddex.test`, name: `${tag}-teacher-3`, passwordHash: "not-a-hash" },
+    });
+    made.teacher3Id = teacher3.id;
+    const section3 = await prisma.section.create({
+      data: { teacherId: teacher3.id, grade: 4, name: `${tag}-3`, nameKey: `${tag}-3`, color: "yellow", icon: "flower" },
+    });
+    made.section3Id = section3.id;
+    const otherTeacherToken = makeTeacherToken({ id: teacher3.id, tokenVersion: 0 });
+    const notMine = await call("GET", `/api/students/${student.id}/levels`, otherTeacherToken);
+    const unknown = await call("GET", "/api/students/zz-no-such-student/levels", teacherToken);
+    check(
+      "levels: another Teacher's Student → 404 STUDENT_NOT_FOUND (same as unknown)",
+      notMine.status === 404 && code(notMine) === "STUDENT_NOT_FOUND" && unknown.status === 404 && code(unknown) === "STUDENT_NOT_FOUND",
+      `status ${notMine.status} ${code(notMine)}`,
+    );
+    const asStudent = await call("GET", `/api/students/${student.id}/levels`, token);
+    check("levels: a Student token → 401", asStudent.status === 401, `status ${asStudent.status}`);
+
     // ---------- npm run cleanup (on this test's zz-test- data only) ----------
     const teacherEmail = `${tag}@kiddex.test`;
     const opts = (extra: Partial<CleanupOptions>): CleanupOptions => ({
@@ -645,6 +805,8 @@ async function databaseWalkthrough() {
       if (made.sectionId) await prisma.section.deleteMany({ where: { id: made.sectionId } });
       if (made.teacherId) await prisma.teacher.deleteMany({ where: { id: made.teacherId } });
       if (made.teacher2Id) await prisma.teacher.deleteMany({ where: { id: made.teacher2Id } });
+      if (made.section3Id) await prisma.section.deleteMany({ where: { id: made.section3Id } });
+      if (made.teacher3Id) await prisma.teacher.deleteMany({ where: { id: made.teacher3Id } });
       const left = await prisma.teacher.count({ where: { email: { startsWith: tag } } });
       check("clean-up: everything made by the test is deleted", left === 0);
     } catch {
@@ -665,6 +827,7 @@ async function main() {
   streakChecks();
   missionChecks();
   boardChecks();
+  levelPathChecks();
   await databaseWalkthrough();
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
   process.exitCode = failures === 0 ? 0 : 1;

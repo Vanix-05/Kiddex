@@ -1,0 +1,655 @@
+/*
+ * A Student's page inside My Students (2-student-levels, 3-round-detail).
+ * Design px, like StudentsWindow.module.css. Level colors come from theme.ts
+ * (--color-level-*), used only here for now.
+ */
+
+.content {
+  position: absolute;
+  inset: 0;
+  padding: 30px 40px 22px;
+  display: flex;
+  flex-direction: column;
+  color: var(--color-text);
+}
+
+.content h2 {
+  font-size: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Top ---------- */
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex: none;
+}
+
+.who {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  outline: none;
+}
+
+.avatar {
+  flex: none;
+  width: 62px;
+  height: 62px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-tint-peach);
+  object-fit: cover;
+}
+
+.avatarEmpty {
+  border-style: dashed;
+  border-color: var(--color-neutral-line);
+  background: none;
+}
+
+.sub {
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: var(--color-text-subtle);
+}
+
+.flame {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-warn-text);
+  font-weight: 600;
+}
+
+/* ---------- Columns ---------- */
+
+.cols {
+  display: flex;
+  gap: 22px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 18px;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.mainHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
+}
+
+.h3 {
+  margin: 0;
+  font: 600 21px/1.2 var(--font-display);
+  color: var(--color-planner-ink);
+  white-space: nowrap;
+}
+
+.gameKey {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 16px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.gameKey > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.keyDot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-text-subtle);
+  color: var(--color-text-on-dark);
+}
+
+/* The topics: scroll inside the window when there are many; the right card stays put. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Room for the picked card's ring. */
+  padding: 4px;
+  margin: -4px;
+}
+
+/* ---------- Level colors ---------- */
+
+.easy {
+  --lv: var(--color-level-easy);
+  color: var(--color-level-easy-text);
+  fill: var(--color-level-easy-text);
+}
+
+.medium {
+  --lv: var(--color-level-medium);
+  color: var(--color-level-medium-text);
+  fill: var(--color-level-medium-text);
+}
+
+.hard {
+  --lv: var(--color-level-hard);
+  color: var(--color-level-hard-text);
+  fill: var(--color-level-hard-text);
+}
+
+/* ---------- A topic ---------- */
+
+.topic {
+  flex: none;
+  padding: 10px 18px 6px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 16px;
+  background: var(--color-admin-surface);
+}
+
+.topicOn {
+  border-color: var(--color-button-bg);
+  box-shadow: 0 0 0 3px var(--color-warn-bg);
+}
+
+.topicHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.topicName {
+  margin: 0;
+  font: 600 18px/1.3 var(--font-display);
+  color: var(--color-text);
+}
+
+.topicMeta {
+  font-size: 14px;
+  color: var(--color-text-subtle);
+}
+
+.now {
+  flex: none;
+  white-space: nowrap;
+  padding: 4px 12px;
+  border: 2px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: white;
+  font-size: 14px;
+}
+
+.now b {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+/* ---------- The level path ---------- */
+
+/* Scrolls sideways inside its card when there's no room (phone). */
+.pathBox {
+  margin-top: 2px;
+  padding: 6px 0 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.path {
+  position: relative;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+}
+
+.lane {
+  stroke: var(--color-neutral-line);
+  stroke-dasharray: 4 5;
+  stroke-width: 1.5;
+}
+
+.laneTxt {
+  font: 600 12.5px var(--font-display);
+}
+
+.trail {
+  fill: none;
+  stroke: var(--color-level-trail);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.startDot {
+  fill: var(--color-level-trail);
+}
+
+.dateTxt {
+  font: 12.5px var(--font-body);
+  fill: var(--color-text-subtle);
+}
+
+.upTxt {
+  font-size: 12px;
+  fill: var(--color-level-hard-text);
+}
+
+.downTxt {
+  font-size: 12px;
+  fill: var(--color-danger-text);
+}
+
+/* A round dot: the button is a bigger tap area around the visible dot. */
+.node {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.node:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid white;
+  border-radius: 50%;
+  background: var(--lv);
+  color: var(--color-text-on-dark);
+  box-shadow: 0 1px 0 rgba(74, 52, 38, 0.25);
+  transition: transform 120ms ease;
+}
+
+.node:hover .dot {
+  transform: scale(1.12);
+}
+
+/* The picked round: a dashed orange ring. */
+.nodeOn::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 3px dashed var(--color-button-bg);
+  border-radius: 50%;
+}
+
+/* ---------- Empty ---------- */
+
+.emptyCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 2px dashed var(--color-neutral-line);
+  border-radius: 16px;
+  background: var(--color-admin-surface);
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.emptyCard p {
+  margin: 0;
+}
+
+.emptyIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 2px dashed var(--color-neutral-line);
+  border-radius: 50%;
+  color: var(--color-text-subtle);
+}
+
+/* ---------- The right card ---------- */
+
+.side {
+  flex: none;
+  align-self: flex-start;
+  width: 330px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 18px 20px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 18px;
+  background: var(--color-admin-table-head);
+  box-shadow: 0 4px 0 rgba(107, 74, 51, 0.18);
+}
+
+.sideTitle {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 20px/1.25 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.sideSub {
+  margin: 4px 0 0;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--color-text-subtle);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: r;
+}
+
+.rules li {
+  position: relative;
+  padding-left: 38px;
+  counter-increment: r;
+  font-size: 15.5px;
+  line-height: 1.4;
+}
+
+.rules li::before {
+  content: counter(r);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 50%;
+  background: var(--color-title-pill-bg);
+  font: 600 14px/1 var(--font-display);
+}
+
+.honest {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border: 1.5px dashed var(--color-neutral-line);
+  border-radius: 12px;
+  background: white;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.honest svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-warn-text);
+}
+
+/* ---------- Round detail ---------- */
+
+.detail {
+  width: 360px;
+}
+
+.detailTop {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding-right: 26px;
+}
+
+.detailTitle {
+  outline: none;
+}
+
+.detailTitle:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.detailThumb {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--color-card-border);
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.closeX {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.closeX:hover {
+  background: var(--color-neutral-bg);
+}
+
+.startLine {
+  margin: 14px 0 8px;
+  font-size: 15.5px;
+}
+
+.mini {
+  display: inline-block;
+  padding: 1px 10px;
+  border: 2px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: white;
+  font: 600 13.5px/1.4 var(--font-display);
+}
+
+.check {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-neutral-line);
+  border-radius: 12px;
+  background: white;
+}
+
+.checkLabel {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.checkOut {
+  font-size: 15px;
+}
+
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ans {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--color-text-on-dark);
+  font: 700 15px/1 var(--font-display);
+}
+
+.ansOk {
+  background: var(--color-ok-fill);
+}
+
+.ansNo {
+  background: var(--color-danger-text);
+}
+
+.ansHelp {
+  background: var(--color-button-bg);
+  color: var(--color-button-text);
+}
+
+.endBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 2px solid var(--color-warn-line);
+  border-radius: 12px;
+  background: var(--color-warn-bg);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.endBox strong {
+  font: 600 18px/1.3 var(--font-display);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-text-subtle);
+}
+
+.legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend .ans {
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
+}
+
+.legend .ans svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    transition: none;
+  }
+}
+
+/* Phone held sideways (the planner's phone layout, like My Students): the right
+   card goes under the topics, and everything scrolls together inside the window.
+   The path scrolls sideways inside its card. Tap targets are 67 design px (44px). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .content {
+    padding: 26px 28px 18px;
+  }
+
+  .head {
+    padding-right: 64px;
+  }
+
+  .cols {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .main {
+    flex: none;
+    min-height: auto;
+  }
+
+  .mainHead {
+    flex-wrap: wrap;
+  }
+
+  .gameKey {
+    justify-content: flex-start;
+  }
+
+  .list {
+    flex: none;
+    overflow: visible;
+  }
+
+  .side,
+  .detail {
+    align-self: stretch;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .node {
+    width: 67px;
+    height: 67px;
+    margin: -33px 0 0 -33px;
+  }
+
+  .nodeOn::before {
+    inset: 18px;
+  }
+
+  .closeX {
+    width: 67px;
+    height: 67px;
+    right: -18px;
+    top: -18px;
+  }
+}

@@ -226,9 +226,9 @@ model Assignment {
 // ---------- Game rounds and progress (gp-1) ----------
 // What a Student played, saved by POST /api/student/rounds. The backend works out
 // XP, stars, the streak and the level (src/games/), never the browser.
-// These tables are what step 8 (show the adaptive engine) and step 9 (Teacher
-// reports: mastery per topic, weakest topics, completion) will read. Those are
-// not built yet. Still no Student names anywhere.
+// Step 8 (show the adaptive engine, src/store/levelStore.ts) reads these tables; step 9
+// (Teacher reports: mastery per topic, weakest topics, completion) will too, not built
+// yet. Still no Student names anywhere.
 
 // The difficulty engine's memory: one level per Student per topic. The engine is
 // rule-based, not AI (src/games/difficulty.ts).

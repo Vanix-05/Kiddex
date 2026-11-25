@@ -139,6 +139,44 @@ export const mixedCards: QuestionCard[] = [
   }),
 ]
 
+// ---------- Lesson "Long answers": checks that long text stays inside the tiles ----------
+// The long Quiz Show card is the only easy one, so a dev round (it starts on easy) asks it first.
+
+const long = deck('long-answers', 'Changing Fractions to Decimals', 'approved')
+
+export const longAnswerCards: QuestionCard[] = [
+  long.mc(
+    'How do you change a fraction into a decimal?',
+    [
+      'Divide the numerator by the denominator',
+      'Multiply the numerator by the denominator',
+      'Add the top and bottom numbers',
+      'Subtract the bottom number from the top',
+    ],
+    'Divide the numerator by the denominator',
+    { level: 'easy', sourcePage: 1, explanation: 'A fraction means top ÷ bottom, so 1/4 = 1 ÷ 4 = 0.25.' },
+  ),
+  long.mc('What is 1/2 as a decimal?', ['0.5', '0.2', '1.2', '2.1'], '0.5', {
+    level: 'medium', sourcePage: 1, explanation: '1 ÷ 2 = 0.5.',
+  }),
+  long.mc('What is 3/4 as a decimal?', ['0.75', '0.34', '3.4', '0.43'], '0.75', {
+    level: 'hard', sourcePage: 2, explanation: '3 ÷ 4 = 0.75.',
+  }),
+  long.pair('Numerator', 'The number on top of a fraction', { level: 'easy', sourcePage: 1 }),
+  long.pair('Denominator', 'The bottom number: how many equal parts in a whole', { level: 'easy', sourcePage: 1 }),
+  long.pair('Decimal point', 'The dot between ones and tenths', { level: 'easy', sourcePage: 2 }),
+  long.pair('0.25', 'one fourth', { level: 'easy', sourcePage: 2 }),
+  long.blank('To change 1/4 to a decimal, you ___.', ['divide 1 by 4', 'multiply 1 by 4', 'add 1 and 4 together'], 'divide 1 by 4', {
+    level: 'easy', sourcePage: 1, explanation: 'Top ÷ bottom: 1 ÷ 4 = 0.25.',
+  }),
+  long.blank('The bottom number of a fraction is the ___.', ['denominator', 'numerator', 'decimal point'], 'denominator', {
+    level: 'easy', sourcePage: 1, explanation: 'The denominator is the bottom number.',
+  }),
+  long.blank('0.5 is read as five ___.', ['tenths', 'hundredths', 'ones'], 'tenths', {
+    level: 'easy', sourcePage: 2, explanation: 'The first place after the point is tenths.',
+  }),
+]
+
 // ---------- The sample lessons the dev pages play with ----------
 
 const GAME_ORDER: readonly GameId[] = ['quiz-show', 'match-up', 'fill-blank']
@@ -159,6 +197,9 @@ export const SAMPLE_LESSONS: PlayLesson[] = [
   sampleLesson('g4-fractions', 'Fractions', '2026-11-10T00:00:00.000Z', fractionCards),
   sampleLesson('mixed', 'Mixed Numbers', '2026-11-03T00:00:00.000Z', mixedCards),
 ]
+
+/** /dev/play only (?lesson=long-answers): long answers in every game. Not in /dev/all-games. */
+export const LONG_ANSWERS_LESSON: PlayLesson = sampleLesson('long-answers', 'Long answers', '2026-11-01T00:00:00.000Z', longAnswerCards)
 
 /** A sample Student's progress (the Lobby and Results on the dev pages). */
 export const SAMPLE_PROGRESS: Progress = { xp: 1140, level: 4, xpIntoLevel: 240, xpGoal: 300, stars: 125, streakDays: 3 }
@@ -186,7 +227,7 @@ export function sampleMission(kind: string | null): Mission {
 }
 
 // Check every card when this file loads, so a typo shows up right away.
-for (const card of [...fractionCards, ...mixedCards]) {
+for (const card of [...fractionCards, ...mixedCards, ...longAnswerCards]) {
   const result = QuestionCardSchema.safeParse(card)
   if (!result.success) {
     const why = result.error.issues.map((i) => `${i.path.join('.') || 'card'}: ${i.message}`).join('; ')

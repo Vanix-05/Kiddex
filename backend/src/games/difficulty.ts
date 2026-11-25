@@ -1,7 +1,11 @@
 // Keep in sync with frontend/src/games/difficulty.ts. Rule-based, not AI.
 //
-// Only the end-of-round part of the KIDDEX difficulty engine is copied here: the
-// backend decides the next round's level when a round is saved. The rules:
+// Two parts of the KIDDEX difficulty engine are copied here:
+//   - decideAfterRound: the backend decides the next round's level when a round is saved.
+//   - decideAfterFour: the backend works out again the checks made every 4 answers
+//     during a round, to show the Teacher why a level changed (src/games/levelPath.ts).
+// Every 4 answers: 3 or 4 right -> one level up, 0 or 1 right -> one level down, 2 -> keep.
+// End of a round:
 //   - 80% or more counting as right -> one level up for the next round
 //   - under 50%                      -> one level down
 //   - otherwise                      -> keep
@@ -51,6 +55,13 @@ export const countsAsRight = (a: Answer) => (typeof a === "boolean" ? a : a.righ
 
 /** "3 of 4 right" */
 const rightOf = (answers: readonly Answer[]) => `${answers.filter(countsAsRight).length} of ${answers.length} right`;
+
+/** Every 4 answers during a round: the level for the next cards. */
+export function decideAfterFour(lastFour: readonly Answer[], level: Level): Decision {
+  const right = lastFour.filter(countsAsRight).length;
+  const wanted: Change = right >= 3 ? "up" : right <= 1 ? "down" : "keep";
+  return decide(level, wanted, rightOf(lastFour));
+}
 
 /** The next round's level, from the level this round started at. */
 export function decideAfterRound(answers: readonly Answer[], startLevel: Level): Decision {

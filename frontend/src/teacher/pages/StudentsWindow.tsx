@@ -10,6 +10,7 @@ import { Bar, Btn, Chip, Pills, Title } from '../planner/ui'
 import { toLoginCards, usePrintCards } from '../print/printCards'
 import { CodesReady } from './CodesReady'
 import { PrintCardsView } from './PrintCardsView'
+import { StudentLevels } from './StudentLevels'
 import styles from './StudentsWindow.module.css'
 
 const PER_PAGE = 10
@@ -49,6 +50,10 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
   const [shownCodes, setShownCodes] = useState<ReadonlySet<string>>(() => new Set())
   // The Print login cards view, and where it was opened from (Back goes there).
   const [printFrom, setPrintFrom] = useState<PrintFrom | null>(null)
+  // The Student's page (Open →), and the round picked on it. Only while the
+  // window is open: it opens on the list next time.
+  const [openStudent, setOpenStudent] = useState<Student | null>(null)
+  const [pickedRound, setPickedRound] = useState<string | null>(null)
   const toggleCode = (id: string) =>
     setShownCodes((before) => {
       const next = new Set(before)
@@ -74,15 +79,28 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
     }
   }, [])
 
-  // Esc closes.
+  // Esc closes the round detail first, then the window.
   useEffect(() => {
     if (closing) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      if (pickedRound) setPickedRound(null)
+      else onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [closing, onClose])
+  }, [closing, onClose, pickedRound])
+
+  /** ← My Students: back to the list (same page and filter), focus on that row's Open. */
+  const backFromStudent = () => {
+    const id = openStudent?.id
+    setOpenStudent(null)
+    setPickedRound(null)
+    if (id)
+      requestAnimationFrame(() =>
+        sheetRef.current?.querySelector<HTMLElement>(`[data-open-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true }),
+      )
+  }
 
   const folded = !reduced && (unfolding || closing)
   const sheetClass = [
@@ -109,6 +127,11 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
       onToggleCode={toggleCode}
       printFrom={printFrom}
       onPrintView={setPrintFrom}
+      openStudent={openStudent}
+      onOpenStudent={setOpenStudent}
+      onBackFromStudent={backFromStudent}
+      pickedRound={pickedRound}
+      onPickRound={setPickedRound}
     />
   )
 
@@ -178,6 +201,13 @@ interface SheetContentProps {
   printFrom: PrintFrom | null
   /** Opens (or with null closes) the Print login cards view. */
   onPrintView: (from: PrintFrom | null) => void
+  /** The Student's page (Open →), or null for the list. */
+  openStudent: Student | null
+  onOpenStudent: (s: Student) => void
+  onBackFromStudent: () => void
+  /** The round picked on the Student's page (its detail shows). */
+  pickedRound: string | null
+  onPickRound: (roundId: string | null) => void
 }
 
 const matches = (s: Student, f: StudentFilter) =>
@@ -225,6 +255,11 @@ function SheetContent({
   onToggleCode,
   printFrom,
   onPrintView,
+  openStudent,
+  onOpenStudent,
+  onBackFromStudent,
+  pickedRound,
+  onPickRound,
 }: SheetContentProps) {
   const { students, loading, error, retry } = useStudentsLoad()
   const { active, loading: sectionsLoading, error: sectionsError, retry: retrySections } = useSection()
@@ -288,6 +323,21 @@ function SheetContent({
   }
 
   const sectionName = `Grade ${active.grade} – ${active.name}`
+
+  // The Student's page: inside the same window, like "Login codes are ready!".
+  if (openStudent) {
+    return (
+      <StudentLevels
+        titleId={titleId}
+        student={openStudent}
+        sectionName={sectionName}
+        picked={pickedRound}
+        onPick={onPickRound}
+        onBack={onBackFromStudent}
+      />
+    )
+  }
+
   if (loading || error) return <LoadNote titleId={titleId} sub={sectionName} error={error} onRetry={retry} />
 
   const sub = `${sectionName} · ${students.length} of ${MAX_STUDENTS_PER_SECTION} students`
@@ -400,6 +450,7 @@ function SheetContent({
               onToggleCode={() => onToggleCode(s.id)}
               onNewCode={() => newCode(s)}
               onCard={() => printOne(s)}
+              onOpen={() => onOpenStudent(s)}
             />
           ))}
           {rows.length === 0 && (
@@ -446,9 +497,11 @@ interface StudentRowProps {
   onNewCode: () => void
   /** Prints this Student's login card. */
   onCard: () => void
+  /** Opens the Student's page (their levels). */
+  onOpen: () => void
 }
 
-function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard }: StudentRowProps) {
+function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen }: StudentRowProps) {
   return (
     <tr className={styles.row}>
       <th scope="row" className={styles.who}>
@@ -530,13 +583,7 @@ function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard }: StudentRo
               >
                 <KeyRound size={16} aria-hidden="true" /> New code
               </Btn>
-              <Btn
-                variant="link"
-                aria-label={`Open ${s.schoolId}`}
-                onClick={() => {
-                  // TODO: open the Student's profile.
-                }}
-              >
+              <Btn variant="link" aria-label={`Open ${s.schoolId}`} data-open-id={s.id} onClick={onOpen}>
                 Open <ArrowRight size={17} aria-hidden="true" />
               </Btn>
             </>

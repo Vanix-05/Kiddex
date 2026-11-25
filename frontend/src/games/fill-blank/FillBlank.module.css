@@ -170,9 +170,11 @@
 
 /* ---------- The words ---------- */
 
+/* The 3 words: the same height, growing together when a word is long. */
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 20px;
   flex: none;
   margin-top: auto;
@@ -189,7 +191,9 @@
   display: grid;
   place-items: center;
   min-width: 0;
-  padding: 0 12px;
+  height: auto;
+  min-height: max(92px, calc(44px / var(--s)));
+  padding: 8px 12px;
   border: 3px solid var(--color-card-border);
   background: var(--color-input-bg);
   box-shadow: 0 5px 0 var(--color-game-shadow);
@@ -339,6 +343,9 @@
 }
 
 :global([data-short]) .tile {
+  height: auto;
+  min-height: max(54px, calc(44px / var(--s)));
+  padding: 4px 10px;
   font-size: max(22px, calc(15px / var(--s)));
 }
 
@@ -347,7 +354,7 @@
 }
 
 :global([data-short]) .smaller {
-  font-size: max(16px, calc(12px / var(--s)));
+  font-size: max(17px, calc(13px / var(--s)));
 }
 
 :global([data-short]) .rightTag {

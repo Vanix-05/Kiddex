@@ -4,6 +4,7 @@
 //   GET  /api/sections/:sectionId/students     the section's Students, School ID order
 //   POST /api/sections/:sectionId/students     { schoolIds } → 201 { added, skipped }
 //   POST /api/students/:studentId/new-code     a new one-time code → { student }
+//   GET  /api/students/:studentId/levels       the Student's level per topic and why (step 8)
 // A Teacher only ever sees their own: another Teacher's section is 404 SECTION_NOT_FOUND.
 // Students have NO names. Only counts are logged, never School IDs or codes.
 import { Router } from "express";
@@ -11,6 +12,7 @@ import { z } from "zod";
 import { currentTeacherId } from "../auth/currentTeacher";
 import { MAX_GRADE, MAX_SECTION_NAME, MAX_STUDENTS_PER_SECTION, MIN_GRADE } from "../sections/limits";
 import { sectionErrors } from "../sections/sectionErrors";
+import { studentLevels } from "../store/levelStore";
 import { addStudents, createSection, listSections, listStudents, makeNewCode } from "../store/sectionStore";
 
 export const sectionsRouter = Router();
@@ -64,6 +66,12 @@ sectionsRouter.post("/api/students/:studentId/new-code", async (req, res) => {
   const student = await makeNewCode(currentTeacherId(req), req.params.studentId);
   console.log("[students] new login code made");
   res.json({ student });
+});
+
+// The Student's levels per topic, worked out by fixed rules (not AI). Only right / helped
+// per answer is sent, never the questions. Another Teacher's Student: 404 STUDENT_NOT_FOUND.
+sectionsRouter.get("/api/students/:studentId/levels", async (req, res) => {
+  res.json(await studentLevels(currentTeacherId(req), req.params.studentId));
 });
 
 sectionsRouter.post("/api/sections/:sectionId/students", async (req, res) => {

@@ -7,6 +7,7 @@ import { useRoundEnd, useStartLevel, type RoundSummary } from '../roundEnd'
 import { MatchCornerScene } from '../scenes/MatchCornerScene'
 import { decisionLine, makeResult } from '../session'
 import type { GameProps } from '../types'
+import { cardSize, longAttr } from '../longText'
 import { slotsFor, useCalmMotion, useStageFit } from '../useStage'
 import {
   cardOf,
@@ -321,6 +322,7 @@ export function MatchUp({ player, lesson, cards, lessonCanPlay, demo, preview, l
         type="button"
         data-card={id}
         data-side={side}
+        data-long={longAttr(cardSize(text))}
         className={`${styles.card} ${side === 'left' ? styles.cardL : styles.cardR} ${state}`}
         style={{ left: side === 'left' ? geo.leftX : geo.rightX, top: rowY(i), width: geo.cardW, height: geo.cardH }}
         aria-pressed={isPicked}

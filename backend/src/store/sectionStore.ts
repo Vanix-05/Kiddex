@@ -5,6 +5,7 @@
 import { dbProblem, isDbUnreachable } from "../db/dbProblem";
 import { prisma } from "../db/prisma";
 import type { Prisma } from "../generated/prisma/client";
+import { phDay, shownStreak } from "../games/streak";
 import { AppError } from "../middleware/AppError";
 import { newCodeChanges } from "../sections/newCode";
 import { makeUniqueCodes, showOneTimeCode } from "../sections/oneTimeCode";
@@ -41,6 +42,10 @@ export interface StudentView {
   buddyName: string | null;
   lastLoginAt: string | null;
   registeredAt: string | null;
+  /** The endedAt of their newest saved round, or null (never played). */
+  lastPlayedAt: string | null;
+  /** The play streak as the screens show it: 0 once it stopped (Philippine days). */
+  streakDays: number;
 }
 
 const STUDENT_COLUMNS = {
@@ -52,11 +57,13 @@ const STUDENT_COLUMNS = {
   buddyName: true,
   lastLoginAt: true,
   registeredAt: true,
+  streakDays: true,
+  lastPlayDay: true,
 } satisfies Prisma.StudentSelect;
 
 type StudentRow = Prisma.StudentGetPayload<{ select: typeof STUDENT_COLUMNS }>;
 
-function studentView(s: StudentRow): StudentView {
+function studentView(s: StudentRow, lastPlayedAt: Date | null = null, now = new Date()): StudentView {
   const registered = s.pinHash !== null;
   return {
     id: s.id,
@@ -67,6 +74,8 @@ function studentView(s: StudentRow): StudentView {
     buddyName: s.buddyName,
     lastLoginAt: s.lastLoginAt?.toISOString() ?? null,
     registeredAt: s.registeredAt?.toISOString() ?? null,
+    lastPlayedAt: lastPlayedAt?.toISOString() ?? null,
+    streakDays: shownStreak(s.lastPlayDay, s.streakDays, phDay(now)),
   };
 }
 
@@ -74,7 +83,7 @@ function studentView(s: StudentRow): StudentView {
 const isUniqueClash = (err: unknown) => (err as { code?: unknown })?.code === "P2002";
 
 /** Runs database work; "can't reach the database" becomes 503 DB_UNAVAILABLE. */
-async function db<T>(work: () => Promise<T>): Promise<T> {
+export async function db<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (err) {
@@ -133,17 +142,26 @@ export async function createSection(teacherId: string, grade: number, name: stri
   }
 }
 
-/** The section's Students, in School ID order. */
+/** The section's Students, in School ID order, with when each last played (one query for all). */
 export function listStudents(teacherId: string, sectionId: string): Promise<StudentView[]> {
   return db(async () => {
     const section = await prisma.section.findFirst({ where: { id: sectionId, teacherId }, select: { id: true } });
     if (!section) throw sectionErrors.sectionNotFound();
-    const rows = await prisma.student.findMany({
-      where: { sectionId },
-      orderBy: { schoolId: "asc" },
-      select: STUDENT_COLUMNS,
-    });
-    return rows.map(studentView);
+    const [rows, lastRounds] = await Promise.all([
+      prisma.student.findMany({
+        where: { sectionId },
+        orderBy: { schoolId: "asc" },
+        select: STUDENT_COLUMNS,
+      }),
+      prisma.gameRound.groupBy({
+        by: ["studentId"],
+        where: { student: { sectionId } },
+        _max: { endedAt: true },
+      }),
+    ]);
+    const lastPlayed = new Map(lastRounds.map((r) => [r.studentId, r._max.endedAt]));
+    const now = new Date();
+    return rows.map((s) => studentView(s, lastPlayed.get(s.id) ?? null, now));
   });
 }
 
@@ -202,7 +220,13 @@ export async function makeNewCode(teacherId: string, studentId: string): Promise
           data: newCodeChanges(code, new Date()),
           select: STUDENT_COLUMNS,
         });
-        return studentView(row);
+        // Their progress is kept, so Last played stays too.
+        const last = await prisma.gameRound.findFirst({
+          where: { studentId: own.id },
+          orderBy: { endedAt: "desc" },
+          select: { endedAt: true },
+        });
+        return studentView(row, last?.endedAt ?? null);
       });
     } catch (err) {
       // Another request took the same code at the same moment: make another.
@@ -247,7 +271,7 @@ function addOnce(teacherId: string, sectionId: string, schoolIds: string[]): Pro
         orderBy: { schoolId: "asc" },
         select: STUDENT_COLUMNS,
       });
-      return { added: added.map(studentView), skipped: plan.skipped };
+      return { added: added.map((s) => studentView(s)), skipped: plan.skipped };
     },
     { maxWait: 10_000, timeout: 20_000 },
   );

@@ -31,6 +31,82 @@ export interface ServerStudent {
   buddyName: string | null
   lastLoginAt: string | null
   registeredAt: string | null
+  /** When their newest round ended (ISO), or null (never played). */
+  lastPlayedAt: string | null
+  /** The play streak as shown: 0 once it stopped. */
+  streakDays: number
+}
+
+// ---------- A Student's levels (GET /api/students/:id/levels, step 8) ----------
+// The difficulty engine is rule-based: the same answers always give the same levels.
+
+export type LevelName = 'easy' | 'medium' | 'hard'
+export type LevelChange = 'up' | 'down' | 'keep'
+
+/** One answer: only right / helped, never the question. */
+export interface LevelAnswer {
+  right: boolean
+  helped: boolean
+}
+
+/** One check made every 4 answers during a round (none for Match Up). */
+export interface LevelCheck {
+  from: number
+  to: number
+  answers: LevelAnswer[]
+  /** Answers counted as right (Buddy Help answers don't count). */
+  counted: number
+  levelBefore: LevelName
+  levelAfter: LevelName
+  change: LevelChange
+  /** false: the leftover answers at the end (fewer than 4), no decision. */
+  decided: boolean
+  /** e.g. "3 of 4 right, already the hardest level" */
+  reason: string
+}
+
+export interface LevelRound {
+  id: string
+  game: TemplateId
+  startedAt: string
+  endedAt: string
+  startLevel: LevelName
+  endLevel: LevelName
+  change: LevelChange
+  /** e.g. "7 of 8 right (88%)" */
+  reason: string
+  right: number
+  total: number
+  helpsUsed: number
+  answers: LevelAnswer[]
+  checks: LevelCheck[]
+}
+
+export interface LevelTopic {
+  topic: string
+  /** Where the next round starts. */
+  level: LevelName
+  /** The review pack name, or the lesson title. */
+  lesson: string
+  roundCount: number
+  ups: number
+  downs: number
+  /** The newest 6, oldest first. */
+  rounds: LevelRound[]
+}
+
+export interface StudentLevelsAnswer {
+  student: {
+    id: string
+    schoolId: string
+    buddy: string | null
+    buddyName: string | null
+    /** "Grade 4 – Sampaguita" */
+    sectionName: string
+    lastPlayedAt: string | null
+    streakDays: number
+  }
+  topics: LevelTopic[]
 }
 
 export type SkipReason = 'BAD_FORMAT' | 'DUPLICATE_IN_LIST' | 'ALREADY_IN_SECTION' | 'IN_ANOTHER_SECTION'
@@ -80,6 +156,8 @@ export const sectionsApi = {
   /** A new one-time code (lost card or forgotten PIN code). Their buddy and progress are kept. */
   newCode: (studentId: string) =>
     api<{ student: ServerStudent }>(`/api/students/${enc(studentId)}/new-code`, { method: 'POST' }).then((a) => a.student),
+  /** A Student's level per topic and why (newest played topic first). */
+  levels: (studentId: string) => api<StudentLevelsAnswer>(`/api/students/${enc(studentId)}/levels`),
 }
 
 /** React Query keys. */
@@ -87,4 +165,5 @@ export const sectionKeys = {
   list: ['sections'] as const,
   students: (sectionId: string) => ['sections', sectionId, 'students'] as const,
   assignments: (sectionId: string) => ['sections', sectionId, 'assignments'] as const,
+  studentLevels: (studentId: string) => ['teacher', 'student-levels', studentId] as const,
 }

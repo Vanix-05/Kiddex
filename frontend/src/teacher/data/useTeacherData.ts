@@ -22,6 +22,7 @@ import {
   type ServerSection,
   type ServerStudent,
 } from '../api/sectionsApi'
+import { playedLabel, streakShown } from './levels'
 import { toScreenLesson } from './lessonMapping'
 import { useTeacherStore } from './teacherDataContext'
 import type {
@@ -72,14 +73,23 @@ const toSection = (s: ServerSection): Section => ({
   registeredCount: s.registeredCount,
 })
 
-/** lastPlayed, mastery, streak and needsHelp stay empty until games save progress. */
-export const toStudent = (s: ServerStudent): Student => ({
+/** A buddy head the screens have a picture for, else undefined. */
+export const toBuddyHead = (buddy: string | null | undefined): BuddyHead | undefined =>
+  BUDDY_HEADS.includes(buddy as BuddyHead) ? (buddy as BuddyHead) : undefined
+
+/**
+ * Last played ("Today", "Yesterday", "Nov 21") and the streak (0 shows the dash)
+ * come from the saved rounds. Mastery and needsHelp stay empty until step 9.
+ */
+export const toStudent = (s: ServerStudent, now: Date = new Date()): Student => ({
   id: s.id,
   schoolId: s.schoolId,
   registered: s.registered,
   oneTimeCode: s.oneTimeCode ?? undefined,
-  buddy: BUDDY_HEADS.includes(s.buddy as BuddyHead) ? (s.buddy as BuddyHead) : undefined,
+  buddy: toBuddyHead(s.buddy),
   buddyName: s.buddyName ?? undefined,
+  lastPlayed: playedLabel(s.lastPlayedAt, now),
+  streak: streakShown(s.streakDays),
 })
 
 /**
@@ -134,9 +144,23 @@ export function useStudentsLoad() {
     queryFn: () => sectionsApi.students(sectionId),
     enabled: !!sectionId,
   })
-  const students = useMemo(() => (query.data ?? []).map(toStudent), [query.data])
+  const students = useMemo(() => (query.data ?? []).map((s) => toStudent(s)), [query.data])
   const retry = useCallback(() => void query.refetch(), [query])
   return { students, loading: !!sectionId && query.isPending, error: query.data ? null : query.error, retry }
+}
+
+/**
+ * One Student's level per topic and why (the Student's page in My Students).
+ * Read only: rounds are saved by the games. A refresh of the page loads it again.
+ */
+export function useStudentLevels(studentId: string) {
+  const query = useQuery({
+    queryKey: sectionKeys.studentLevels(studentId),
+    queryFn: () => sectionsApi.levels(studentId),
+    enabled: !!studentId,
+  })
+  const retry = useCallback(() => void query.refetch(), [query])
+  return { data: query.data, loading: query.isPending, error: query.data ? null : query.error, retry }
 }
 
 /** The open section's Students (empty while loading). */
@@ -160,7 +184,7 @@ export function useAddStudents() {
         queryClient.invalidateQueries({ queryKey: sectionKeys.list }),
       ])
       if (answer.added.length > 0) {
-        update((d) => ({ ...d, justAdded: { sectionId, added: answer.added.map(toStudent), skipped: answer.skipped } }))
+        update((d) => ({ ...d, justAdded: { sectionId, added: answer.added.map((s) => toStudent(s)), skipped: answer.skipped } }))
       }
       return answer
     },

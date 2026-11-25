@@ -184,6 +184,16 @@ export const theme = {
     sheetBorder: '#D9C3A3',
     clip: '#2B2A2E', // binder clips
 
+    // A Student's level per topic (My Students → Open, step 8). Fill = path dots and
+    // lanes; text = words and chips (on the cream cards #FFFDF8 / #FFF6E6).
+    levelEasy: '#3F8F54',
+    levelEasyText: '#2F7A45', // 5.2:1 on the topic card, 4.9:1 on the side card
+    levelMedium: '#E39B3C',
+    levelMediumText: '#A3600F', // 4.9:1 on the topic card, 4.6:1 on the side card
+    levelHard: '#7D5BC4',
+    levelHardText: '#6446AC', // 6.9:1 on the topic card, 6.5:1 on the side card
+    levelTrail: '#C9A983', // the step line joining the dots
+
     // Main Lobby (the classroom): the HUD and cards over the game canvas.
     // Borders reuse cardBorder, text reuses text / textMuted, orange reuses the buttons.
     lobbySea: '#7FCBE6', // behind the canvas (same as the game's background)

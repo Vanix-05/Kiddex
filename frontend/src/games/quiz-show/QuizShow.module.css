@@ -79,15 +79,18 @@
   place-items: center;
   flex: 1;
   margin: 0;
+  min-height: 0;
   padding: 8px 40px;
   font: 600 max(40px, calc(15px / var(--s))) / 1.15 var(--font-display);
   color: var(--color-text);
   text-align: center;
 }
 
+/* All 4 tiles the same height: they grow together to fit the longest text. */
 .tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
   gap: 20px;
   flex: none;
   padding: 0 28px 28px;
@@ -98,8 +101,8 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  height: max(98px, calc(44px / var(--s)));
-  padding: 0 20px;
+  min-height: max(98px, calc(44px / var(--s)));
+  padding: 10px 20px;
   border: 3px solid var(--color-card-border);
   border-radius: 20px;
   background: var(--color-input-bg);
@@ -165,6 +168,22 @@
   min-width: 0;
   font: 600 max(32px, calc(15px / var(--s))) / 1.1 var(--font-display);
   color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+/* Long answers (longText.ts): one smaller size for all 4 tiles, by the longest
+   choice. 25–44 characters → 26px, 45 or more → 22px (never smaller). */
+.question[data-long='1'] .choice {
+  font-size: max(26px, calc(15px / var(--s)));
+}
+
+.question[data-long='2'] .choice {
+  font-size: max(22px, calc(15px / var(--s)));
+}
+
+/* A question over 60 characters: a smaller prompt. */
+.question[data-long-prompt] .prompt {
+  font-size: max(34px, calc(15px / var(--s)));
 }
 
 /* ---------- After a pick ---------- */
@@ -264,8 +283,8 @@
 
 :global([data-short]) .tile {
   gap: 10px;
-  height: max(56px, calc(44px / var(--s)));
-  padding: 0 10px;
+  min-height: max(56px, calc(44px / var(--s)));
+  padding: 4px 10px;
   border-radius: 14px;
 }
 
@@ -277,6 +296,19 @@
 }
 
 :global([data-short]) .choice {
+  font-size: max(23px, calc(15px / var(--s)));
+}
+
+/* Long answers on short windows: the same steps (23 → 19 → 17), never under 17px. */
+:global([data-short]) .question[data-long='1'] .choice {
+  font-size: max(19px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .question[data-long='2'] .choice {
+  font-size: max(17px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .question[data-long-prompt] .prompt {
   font-size: max(23px, calc(15px / var(--s)));
 }
 

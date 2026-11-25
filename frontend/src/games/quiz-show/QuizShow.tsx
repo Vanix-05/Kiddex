@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { Check, PawPrint, X } from 'lucide-react'
 import { STREAK_FOR_HELP, streakLine } from '../buddyHelp'
 import { FeedbackStrip } from '../FeedbackStrip'
+import { answerSize, isLongPrompt, longAttr } from '../longText'
 import { GameFrame, ProgressPill, type DotState } from '../GameFrame'
 import { MissionPill, ResultsBoard } from '../ResultsScreen'
 import { useRoundEnd, useStartLevel, type RoundSummary } from '../roundEnd'
@@ -286,7 +287,11 @@ function Question({
 }) {
   const answered = q.picked !== null
   return (
-    <div className={styles.question}>
+    <div
+      className={styles.question}
+      data-long={longAttr(answerSize(q.choices))}
+      data-long-prompt={isLongPrompt(q.card.prompt) ? '1' : undefined}
+    >
       <div className={styles.head}>
         <span className={styles.num} aria-hidden="true">
           {number}

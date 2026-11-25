@@ -119,7 +119,8 @@ export interface StudentGames {
   } | null;
 }
 
-const lessonTitle = (topic: string | null, fileName: string) => topic?.trim() || fileName.replace(/\.[^.]+$/, "");
+/** A lesson's title: its topic, else the file name without its ending. */
+export const lessonTitle = (topic: string | null, fileName: string) => topic?.trim() || fileName.replace(/\.[^.]+$/, "");
 
 /**
  * Three queries, run together (never one per lesson): the Student with their topic

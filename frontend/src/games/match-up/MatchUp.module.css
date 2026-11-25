@@ -110,11 +110,25 @@
   cursor: default;
 }
 
+/* Never cut off with "…": long text wraps onto 2 or 3 lines, smaller (longText.ts).
+   The cards keep their place, so they can't grow. */
 .cardText {
-  overflow: hidden;
   max-width: 100%;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.card[data-long] {
+  padding: 0 18px;
+  line-height: 1.05;
+}
+
+.card[data-long='1'] {
+  font-size: max(21px, calc(14px / var(--s)));
+}
+
+.card[data-long='2'] {
+  font-size: max(18px, calc(13px / var(--s)));
 }
 
 /* The round pin on the card's inner side. */
@@ -281,6 +295,18 @@
   padding: 0 18px;
   border-radius: 13px;
   font-size: max(20px, calc(15px / var(--s)));
+}
+
+:global([data-short]) .card[data-long] {
+  padding: 0 14px;
+}
+
+:global([data-short]) .card[data-long='1'] {
+  font-size: max(17px, calc(13px / var(--s)));
+}
+
+:global([data-short]) .card[data-long='2'] {
+  font-size: max(15px, calc(12px / var(--s)));
 }
 
 :global([data-short]) .pin {

@@ -278,7 +278,7 @@ School ID + PIN code are two credentials, like a username and a password. Rules 
 
 Saved by `POST /api/student/rounds`, read by `GET /api/student/games` (addresses in `src/routes/studentGames.ts`, database work in `src/store/gameStore.ts`). The rules are small pure functions in `src/games/`, checked by `npm run test-game-rounds`.
 
-**What is saved:** each finished round (`GameRound`) with every answer (`RoundAnswer`), the Student's level per topic (`TopicLevel`), and the Student's totals (`xp`, `stars`, `streakDays`, `lastPlayDay` on `Student`). The Teacher Preview never calls these addresses, so it never saves anything. Showing the engine (step 8) and Teacher reports (step 9) will read these tables later; they are not built yet.
+**What is saved:** each finished round (`GameRound`) with every answer (`RoundAnswer`), the Student's level per topic (`TopicLevel`), and the Student's totals (`xp`, `stars`, `streakDays`, `lastPlayDay` on `Student`). The Teacher Preview never calls these addresses, so it never saves anything. Showing the engine (step 8, below) reads these tables; Teacher reports (step 9: mastery, weakest topics, completion) will read them too, but are not built yet.
 
 **The difficulty engine is rule-based, not AI.** `src/games/difficulty.ts` is a copy of the end-of-round rule in `frontend/src/games/difficulty.ts` (keep them in sync; the test compares them): 80% or more counting as right → one level up for that topic, under 50% → one level down, otherwise keep. A Buddy-helped answer counts as not right. Easy never goes lower, hard never higher. Everyone starts on easy. A round's topic is the most common topic among its questions (a tie goes to the first one played).
 
@@ -297,6 +297,15 @@ Saved by `POST /api/student/rounds`, read by `GET /api/student/games` (addresses
 **Honest limit:** whether an answer was right is decided in the browser; the backend trusts that flag but checks everything else.
 
 The server log only says `[rounds] saved (quiz-show, 8 answers)`: never ids, School IDs or answers.
+
+### Showing the levels (step 8)
+
+`GET /api/students/:studentId/levels` lets the Teacher see how a Student's level changed per topic, and why (database work in `src/store/levelStore.ts`, rules in `src/games/levelPath.ts`). It only **reads**: nothing about saving rounds or deciding levels changed, and there is no new table.
+
+- Topics are grouped like `TopicLevel.topicKey` (trimmed + lowercase), newest played first. Each shows where the next round starts (`TopicLevel.level`), all its rounds' count and ups/downs, and the newest 6 rounds.
+- **The checks made every 4 answers are worked out again from the saved answers, not stored.** The engine is rule-based and gives the same result every time: the answers in `position` order, starting at the round's `startLevel`, with `decideAfterFour` (a copy of the frontend's, kept in sync and compared by the test) after every 4. A helped answer counts as not right. Leftover answers (fewer than 4 at the end) are a last group with `change: "keep"` and `decided: false`. Match Up never changes level during a round, so it has no checks. `RoundAnswer.level` is **not** used here: it is the card's level, which can be a nearby level when the lesson has too few cards (rule 2).
+- Only right / helped per answer is sent: never the question text or the choices.
+- `GET /api/sections/:sectionId/students` now also has `lastPlayedAt` and `streakDays` per Student (one `groupBy` for the whole section).
 
 ## Addresses
 
@@ -342,9 +351,10 @@ Every address below needs a Teacher login token. A Teacher only ever sees and ch
 | --- | --- |
 | `GET /api/sections` | My sections, oldest first: `id, grade, name, color, icon, studentCount, registeredCount`. |
 | `POST /api/sections` | Body `{ "grade": 3-6, "name": 1-30 characters }`. The server picks the next tab look: yellow/flower, pink/tulip, coral/rose, then again. Same grade + name already mine (any capitals): `409 SECTION_TAKEN`. Answers `201` `{ section }`. |
-| `GET /api/sections/:sectionId/students` | The section's Students in School ID order: `id, schoolId` (`2026-0144`), `registered` (has a PIN code), `oneTimeCode` (`482-915`, only while not registered, else `null`), `buddy, buddyName, lastLoginAt, registeredAt`. Never a hash. |
+| `GET /api/sections/:sectionId/students` | The section's Students in School ID order: `id, schoolId` (`2026-0144`), `registered` (has a PIN code), `oneTimeCode` (`482-915`, only while not registered, else `null`), `buddy, buddyName, lastLoginAt, registeredAt`, `lastPlayedAt` (the `endedAt` of their newest round, or `null`) and `streakDays` (as shown: `0` once the streak stopped, Philippine days). Never a hash. |
 | `POST /api/sections/:sectionId/students` | Body `{ "schoolIds": [...] }` (1 to 45). Adds the good ones, each with a new one-time code, and answers `201` `{ added, skipped: [{ schoolId, reason }] }`. Reasons: `BAD_FORMAT` (not 8 digits), `DUPLICATE_IN_LIST`, `ALREADY_IN_SECTION`, `IN_ANOTHER_SECTION` (any other section, also another Teacher's; it never says whose). |
 | `POST /api/students/:studentId/new-code` | A new one-time code for one of my Students (lost card or forgotten PIN code). The PIN code is removed, `tokenVersion` goes up (any open Student login ends), wrong tries and the lock are cleared. `registeredAt`, the buddy, the setup and all progress are **kept**. Also works for a Student who has a code but no PIN code yet (the old code stops working). Answers `{ student }` (same shape as the list, with the new `oneTimeCode`). Another Teacher's Student: `404 STUDENT_NOT_FOUND`. |
+| `GET /api/students/:studentId/levels` | The Student's level per topic and why (step 8, see "Showing the levels"). Answers `{ student: { id, schoolId, buddy, buddyName, sectionName, lastPlayedAt, streakDays }, topics: [{ topic, level, lesson, roundCount, ups, downs, rounds: [{ id, game, startedAt, endedAt, startLevel, endLevel, change, reason, right, total, helpsUsed, answers: [{ right, helped }], checks: [{ from, to, answers: [{ right, helped }], counted, levelBefore, levelAfter, change, decided, reason }] }] }] }`. `rounds` are the newest 6, oldest first. Another Teacher's Student, or an unknown one: `404 STUDENT_NOT_FOUND`. |
 
 - **School IDs:** `2026-0144`, `20260144` or with spaces are all fine; saved as 8 digits (`20260144`), shown as `2026-0144`.
 - **One-time codes:** 6 random digits from `crypto.randomInt`, never used by another Student at the same time.

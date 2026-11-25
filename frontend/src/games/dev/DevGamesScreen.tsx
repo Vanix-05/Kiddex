@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { GameRoute } from '../GameRoute'
 import { SAMPLE_PLAYER as ANA } from '../samplePlayer'
-import { SAMPLE_LESSONS } from './sampleCards'
+import { LONG_ANSWERS_LESSON, SAMPLE_LESSONS } from './sampleCards'
 import { GAMES, isGameId } from '../session'
 import { DEMO_STATES, type DemoState } from '../types'
 import styles from './DevGamesScreen.module.css'
@@ -10,7 +10,7 @@ import styles from './DevGamesScreen.module.css'
 // with a sample Student (the same look as /dev/lobby) and the sample lessons
 // (sampleCards.ts). Nothing is ever saved here (only the Student /play saves).
 
-const STATES: { game: string; state?: DemoState; label: string }[] = [
+const STATES: { game: string; state?: DemoState; lesson?: string; label: string }[] = [
   { game: 'quiz-show', label: 'Quiz Show: play a round' },
   { game: 'quiz-show', state: 'question', label: 'Quiz Show: a question (q1)' },
   { game: 'quiz-show', state: 'right', label: 'Quiz Show: right answer (q2)' },
@@ -34,6 +34,9 @@ const STATES: { game: string; state?: DemoState; label: string }[] = [
   { game: 'quiz-show', state: 'help-none', label: 'Buddy Help: 0 helps left (Quiz Show)' },
   { game: 'match-up', state: 'match-help', label: 'Buddy Help: a card picked, its partner glows (Match Up)' },
   { game: 'quiz-show', state: 'results', label: 'Buddy Help on Results: 7 of 8, 1 with the buddy’s help (Quiz Show)' },
+  { game: 'quiz-show', lesson: 'long-answers', label: 'Quiz Show: long answers' },
+  { game: 'match-up', lesson: 'long-answers', label: 'Match Up: long text on the cards' },
+  { game: 'fill-blank', lesson: 'long-answers', label: 'Fill the Blank: long words' },
 ]
 
 /** /dev/all-games samples (see DevAllGamesScreen). */
@@ -56,7 +59,7 @@ export function DevGamesScreen() {
       <ul>
         {STATES.map((s) => (
           <li key={s.label}>
-            <Link to={`/dev/play/${s.game}?from=dev${s.state ? `&state=${s.state}` : ''}`}>{s.label}</Link>
+            <Link to={`/dev/play/${s.game}?from=dev${s.state ? `&state=${s.state}` : ''}${s.lesson ? `&lesson=${s.lesson}` : ''}`}>{s.label}</Link>
           </li>
         ))}
         <li>
@@ -75,11 +78,14 @@ export function DevGamesScreen() {
   )
 }
 
+/** The dev games play the sample lessons, and the long-answers one (?lesson=long-answers). */
+const DEV_LESSONS = [...SAMPLE_LESSONS, LONG_ANSWERS_LESSON]
+
 /** /dev/play/:gameId?state=…: a game with the sample Student, no login. */
 export function DevPlayScreen() {
   const { gameId } = useParams()
   const [params] = useSearchParams()
   if (!isGameId(gameId) || !GAMES[gameId].built) return <Navigate to="/dev/games" replace />
   const state = params.get('state')
-  return <GameRoute gameId={gameId} player={ANA} lessons={SAMPLE_LESSONS} base="/dev/play" lobby="/dev/lobby" games="/dev/all-games" demo={isDemo(state) ? state : undefined} />
+  return <GameRoute gameId={gameId} player={ANA} lessons={DEV_LESSONS} base="/dev/play" lobby="/dev/lobby" games="/dev/all-games" demo={isDemo(state) ? state : undefined} />
 }
