@@ -1,5 +1,5 @@
 import { useMemo, useRef, type CSSProperties } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { SceneBackground } from '../../components/SceneBackground/SceneBackground'
 import { KiddexLogo } from '../../components/KiddexLogo/KiddexLogo'
 import { SignPost } from '../../components/SignPost/SignPost'
@@ -7,6 +7,8 @@ import { BeachCrab } from '../../components/BeachCrab/BeachCrab'
 import { girlFoxLayers } from '../../assets/art'
 import { useBlinks } from '../../hooks/useBlinks'
 import { useMouseTilt, type LookPart } from '../../hooks/useMouseTilt'
+import { InstallHint } from '../../components/InstallHint/InstallHint'
+import { paths } from '../../routes/paths'
 import styles from './LoginScreen.module.css'
 
 // The layer images are all 371x474. Aim points are in those pixels.
@@ -75,6 +77,8 @@ export function LoginScreen() {
   )
 
   const kidsRef = useMouseTilt<HTMLDivElement>({ lookAt })
+  // Phones: "Play like an app" on the Welcome step only (not on the Teacher login).
+  const onWelcome = useLocation().pathname === paths.welcome
 
   // The eye area masks keep the eyes on the face as they move.
   const girlEyeMask = maskStyle(girlFoxLayers.girlEyeArea)
@@ -123,6 +127,8 @@ export function LoginScreen() {
         {/* The login card for the current step (see steps/ and router.tsx). */}
         <Outlet />
       </div>
+
+      {onWelcome && <InstallHint />}
     </SceneBackground>
   )
 }
