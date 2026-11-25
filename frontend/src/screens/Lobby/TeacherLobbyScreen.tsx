@@ -5,14 +5,10 @@ import { GAMES, xpFor } from '../../games/session'
 import { makeBoard, noMission, soonestAssignment } from '../../games/studentData'
 import { sectionKeys, sectionsApi } from '../../teacher/api/sectionsApi'
 import { useLessonLoad, useSection } from '../../teacher/data/useTeacherData'
-import type { Classmate, Mission, StudentProgress } from './lobbyData'
+import type { Mission, StudentProgress } from './lobbyData'
 import { MainLobby } from './MainLobby'
 import { OpeningClassroom } from './OpeningClassroom'
 import { lobbyDataFrom } from './useLobbyData'
-
-// FAKE: comes from the server when the backend is connected (the section's
-// Students who are in the classroom right now). Empty for now: no multiplayer yet.
-const STUDENTS_IN_ROOM: Classmate[] = []
 
 /** The Teacher's view shows no Student numbers (its top bar has none anyway). */
 const NO_PROGRESS: StudentProgress = { level: 1, xp: 0, xpGoal: 300, stars: 0, streakDays: 0 }
@@ -57,10 +53,12 @@ export function TeacherLobbyScreen({ teacherName, section, onBack }: { teacherNa
     }
   }, [pick, lesson, teacherName, assignments.data])
 
-  const data = useMemo(() => ({ ...lobbyDataFrom(NO_PROGRESS, mission), classmates: STUDENTS_IN_ROOM }), [mission])
+  const data = useMemo(() => lobbyDataFrom(NO_PROGRESS, mission), [mission])
+  // The section's Students who have the Lobby open right now (the live Lobby, view only).
+  const live = useMemo(() => (sectionId ? { role: 'teacher' as const, sectionId } : undefined), [sectionId])
   const viewer = useMemo(() => ({ name: teacherName, section, onBack }), [teacherName, section, onBack])
 
   // Wait for the mission, so the room's chalkboard is written once.
   if ((sectionId && assignments.isPending) || (pick && loading)) return <OpeningClassroom />
-  return <MainLobby viewer={viewer} data={data} />
+  return <MainLobby viewer={viewer} data={data} live={live} />
 }

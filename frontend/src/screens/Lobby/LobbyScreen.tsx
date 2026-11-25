@@ -13,9 +13,13 @@ import { useLobbyData } from './useLobbyData'
 /**
  * Rene Island, the class Lobby (/lobby): the logged-in Student walks around
  * their section's classroom with their buddy, in their Customize look.
- * Their progress and mission are real (useLobbyData); classmates are still fake.
+ * Their progress and mission are real (useLobbyData), and so are their classmates
+ * (the section's Students who have the Lobby open now: the live Lobby).
  * onReady: the classroom is on screen (or couldn't open), so a loading screen over it can go.
  */
+/** The Student joins their own section's live Lobby (the server knows which from the login). */
+const STUDENT_LIVE = { role: 'student' } as const
+
 export function LobbyScreen({ onReady }: { onReady?: () => void }) {
   const navigate = useNavigate()
   const { avatar, companionId, buddyName, look, logOut } = useSession()
@@ -49,6 +53,7 @@ export function LobbyScreen({ onReady }: { onReady?: () => void }) {
       data={data}
       startAt={at === 'stage' || at === 'match' ? at : undefined}
       onReady={onReady}
+      live={STUDENT_LIVE}
       onPlay={(game, from) =>
         mission.lessonId ? navigate(`${paths.play}/${game}?from=${from}&lesson=${mission.lessonId}`) : navigate(paths.games)
       }

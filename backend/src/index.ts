@@ -1,6 +1,8 @@
 // Starts the KIDDEX API server. The app itself is built in src/app.ts.
 import { env } from "./config/env";
+import { createServer } from "node:http";
 import { app } from "./app";
+import { attachLobby } from "./lobby/lobbySocket";
 import { failStaleMaking } from "./store/lessonStore";
 
 /** How often to look for lessons cut off while "making". */
@@ -18,8 +20,12 @@ async function failCutOffLessons(): Promise<void> {
   }
 }
 
+// One web server for both: the API (Express) and the live Lobby (Socket.IO, /socket.io/).
+const server = createServer(app);
+attachLobby(server);
+
 // All addresses (0.0.0.0), on the port Render gives in PORT (3000 on this computer).
-app.listen(env.port, "0.0.0.0", () => {
+server.listen(env.port, "0.0.0.0", () => {
   console.log(
     env.isProduction
       ? `KIDDEX API running on port ${env.port} (production)`

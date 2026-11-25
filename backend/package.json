@@ -12,6 +12,7 @@
     "make-questions": "tsx src/scripts/makeQuestions.ts",
     "test-checks": "tsx src/scripts/testChecks.ts",
     "test-students": "tsx src/scripts/testStudents.ts",
+    "test-lobby": "tsx src/scripts/testLobby.ts",
     "test-teacher-password": "tsx src/scripts/testTeacherPassword.ts",
     "test-game-rounds": "tsx src/scripts/testGameRounds.ts",
     "cleanup": "tsx src/scripts/cleanup.ts",
@@ -49,6 +50,7 @@
     "mammoth": "^1.13.0",
     "multer": "^2.5.0",
     "pg": "^8.23.1",
+    "socket.io": "^4.8.4",
     "unpdf": "^2.2.1",
     "zod": "^4.6.7"
   },

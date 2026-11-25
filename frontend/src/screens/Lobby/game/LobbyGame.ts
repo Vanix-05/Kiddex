@@ -7,7 +7,9 @@
  * - The game sends events (LobbyEvents): what the Student is near, who or what
  *   was tapped, bubbles to show, toasts.
  * - React calls methods: setAngle, setZoom, setOptions, walkToZone, runAction,
- *   emote, wave, setFollow, ...
+ *   emote, wave, and for real classmates addClassmate, moveClassmate, ...
+ * - Real classmates (the live Lobby, useLiveLobby.ts) come and go while the
+ *   room is open; their pages send where they are, the game walks them there.
  * - Tags, bubbles, zone labels and the action button are React elements that
  *   React hands over with setAnchor(key, element). The game moves them every
  *   frame by writing `transform`, so there is no React state per frame.
@@ -27,6 +29,7 @@ import {
   DESK_SEAT,
   floorHeight,
   insideRoom,
+  isFree,
   OLLIE_AT,
   onDoorMat,
   SEATS,
@@ -62,8 +65,14 @@ export interface CastMember {
 export interface LobbyCast {
   /** The Student and their buddy. null in the Teacher's view: Ollie is the Teacher there. */
   me: CastMember | null
-  classmates: CastMember[]
   ollie: HTMLImageElement
+}
+
+/** Where someone is: a floor spot, and the chair they sit on (its number in SEATS), or null. */
+export interface FloorSpot {
+  x: number
+  y: number
+  seat: number | null
 }
 
 /** The Teacher's Ollie, as a walker id (and its name tag's anchor key). */
@@ -72,7 +81,7 @@ export const TEACHER_ID = 'teacher'
 export interface LobbyOptions {
   angle: Angle
   zoom: Zoom
-  /** Classmates show a random emote now and then. */
+  /** Show the classmates' emotes (Settings). */
   classmateEmotes: boolean
   /** Moving effects: Less. No parallax, bob or drifting clouds. */
   lessMotion: boolean
@@ -122,6 +131,10 @@ export interface LobbyEvents {
   toast: (text: string) => void
   /** The Student moved for the first time. */
   moved: () => void
+  /** Where the Student is now (the live Lobby sends it to the classmates). A few times a second while it changes. */
+  spot?: (spot: FloorSpot) => void
+  /** The Student showed an emote (its number in EMOTES): the live Lobby sends it too. */
+  emoted?: (emote: number) => void
 }
 
 const WALK_KEYS: Record<string, readonly [number, number]> = {
@@ -159,7 +172,10 @@ const fontsReady: Promise<unknown> = Promise.all(
 ).catch(() => {})
 
 const STUDENT_SPEED = 3.4
-const CLASSMATE_SPEED = 1.5
+/** A bit faster than the Student, so a classmate catches up with where their page says they are. */
+const CLASSMATE_SPEED = STUDENT_SPEED * 1.15
+/** How often the Student's spot goes to the classmates while it changes (seconds). */
+const SPOT_EVERY_S = 0.16
 const BUBBLE_S = 2.6
 const HAPPY_S = 2.4
 const OLLIE_HEIGHT = 98
@@ -184,6 +200,21 @@ interface Particle {
   vx: number
   vy: number
   life: number
+}
+
+/**
+ * A free spot near `spot`, a little different each time: classmates coming in
+ * (or back from a game) don't all stand on the very same spot.
+ */
+function nearbyFreeSpot(spot: Point): Point {
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2
+    const r = 0.3 + Math.random() * 0.6
+    const x = spot.x + Math.cos(angle) * r
+    const y = spot.y + Math.sin(angle) * r
+    if (insideRoom(x, y) && isFree(x, y)) return { x, y }
+  }
+  return spot
 }
 
 export class LobbyGame {
@@ -219,6 +250,10 @@ export class LobbyGame {
   private me: Walker | null = null
   private classmates: Walker[] = []
   private names = new Map<string, CastMember>()
+  /** Each classmate's textures, destroyed when they leave. */
+  private mateTextures = new Map<string, Texture[]>()
+  private spotIn = 0
+  private lastSpot = ''
 
   private keys = new Set<string>()
   /** The joystick (touch screens): a screen direction, 0..1 long (1 = full walking speed). */
@@ -231,10 +266,8 @@ export class LobbyGame {
   private hasMoved = false
   private onMat = false
   private happyLeft = 0
-  private emoteIn = 5
   private action: (NearAction & { run: () => void }) | null = null
   private bubbles = new Map<string, number>()
-  private later: { at: number; run: () => void }[] = []
   private particles: Particle[] = []
 
   private anchors = new Map<string, HTMLElement>()
@@ -254,7 +287,7 @@ export class LobbyGame {
     this.camera = new Camera(this.world, this.proj)
     this.camera.mode = options.zoom
     this.osReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    for (const member of [...(cast.me ? [cast.me] : []), ...cast.classmates]) this.names.set(member.id, member)
+    if (cast.me) this.names.set(cast.me.id, cast.me)
   }
 
   private get viewer() {
@@ -335,6 +368,8 @@ export class LobbyGame {
     // The pictures' canvases are cached by look; only the GPU copies go.
     for (const texture of this.textures) texture.destroy(true)
     this.textures = []
+    for (const textures of this.mateTextures.values()) for (const texture of textures) texture.destroy(true)
+    this.mateTextures.clear()
   }
 
   private focusCanvas = () => {
@@ -367,7 +402,7 @@ export class LobbyGame {
   }
 
   private makeCast() {
-    const { me, classmates, ollie } = this.cast
+    const { me, ollie } = this.cast
     this.ollieTexture = this.textureOf(ollie)
 
     if (me && !this.viewer) {
@@ -385,7 +420,7 @@ export class LobbyGame {
         onTapKid: () => this.petBuddy(),
         onTapBuddy: () => this.petBuddy(),
       })
-      const start = this.options.startAt ? ZONES[this.options.startAt].spot : START
+      const start = nearbyFreeSpot(this.options.startAt ? ZONES[this.options.startAt].spot : START)
       this.me.place(start.x, start.y)
     } else {
       // The Teacher is Ollie: no walking art, so he hops. He starts sitting on
@@ -414,20 +449,6 @@ export class LobbyGame {
       this.me.sit(DESK_SEAT, true)
     }
 
-    this.classmates = classmates.map((mate, i) => {
-      const walker: Walker = new Walker({
-        id: mate.id,
-        you: false,
-        speed: CLASSMATE_SPEED,
-        kid: this.artOf(mate.kid),
-        buddy: this.artOf(mate.buddy),
-        seats: this.seats,
-        onTapKid: () => this.inputEnabled && this.events.tapPerson(mate.id),
-        onTapBuddy: () => this.inputEnabled && this.events.tapPerson(mate.id),
-      })
-      walker.place(START.x + 2.2 + i, START.y - 1 + i * 0.6)
-      return walker
-    })
   }
 
   /** Draws the room for the current angle. Everyone keeps their place. */
@@ -660,7 +681,10 @@ export class LobbyGame {
 
   /** The Student's emote: a bubble over their head. */
   emote(text: string, emoji: boolean) {
-    if (this.me) this.say(this.me, 'kid', text, emoji)
+    if (!this.me) return
+    this.say(this.me, 'kid', text, emoji)
+    const i = EMOTES.findIndex((e) => e.text === text)
+    if (i >= 0 && !this.viewer) this.events.emoted?.(i)
   }
 
   /** A happy moment for the Student (a prize): happy face, hop and hearts. */
@@ -671,36 +695,93 @@ export class LobbyGame {
     this.hearts(me.kid)
   }
 
-  /** You wave, and they wave back. */
-  wave(classmateId: string) {
-    const mate = this.classmates.find((c) => c.id === classmateId)
-    if (!this.me || !mate) return
-    this.say(this.me, 'kid', '👋', true)
-    this.after(0.7, () => this.say(mate, 'kid', '👋', true))
+  /** You wave at a classmate (everyone sees your 👋). */
+  wave() {
+    this.emote('👋', true)
   }
 
-  isFollowing(classmateId: string) {
-    return this.classmates.some((c) => c.id === classmateId && c.leader !== null)
-  }
+  // ---------- Real classmates (the live Lobby) ----------
 
-  /** Walk with me / Stop. */
-  setFollow(classmateId: string, follow: boolean) {
-    const mate = this.classmates.find((c) => c.id === classmateId)
-    const name = this.names.get(classmateId)?.name ?? 'Your classmate'
-    if (!this.me || !mate) return
-    if (follow) {
-      for (const other of this.classmates) other.leader = null
-      mate.leader = this.me
-      mate.wait = 0
-      mate.stand()
-      this.say(mate, 'kid', 'Okay! 😄', false)
-      this.events.toast(`${name} is walking with you`)
-    } else {
-      mate.leader = null
-      mate.wait = 3
-      this.say(mate, 'kid', 'Bye! 👋', false)
-      this.events.toast(`${name} stopped walking with you`)
+  /** A classmate came in (or was already here when the Student came in). */
+  addClassmate(mate: CastMember, at: FloorSpot) {
+    if (this.dead || this.classmates.some((c) => c.id === mate.id)) return
+    const textures: Texture[] = []
+    const art = (picture: CharacterPicture): FigureArt => {
+      const texture = new Texture({ source: new ImageSource({ resource: picture.canvas }) })
+      textures.push(texture)
+      return { texture, anchorX: picture.anchorX, anchorY: picture.anchorY, bodyPx: picture.bodyPx }
     }
+    const walker = new Walker({
+      id: mate.id,
+      you: false,
+      speed: CLASSMATE_SPEED,
+      kid: art(mate.kid),
+      buddy: art(mate.buddy),
+      seats: this.seats,
+      onTapKid: () => this.inputEnabled && this.events.tapPerson(mate.id),
+      onTapBuddy: () => this.inputEnabled && this.events.tapPerson(mate.id),
+    })
+    walker.place(at.x, at.y)
+    const seat = at.seat === null ? null : (SEATS[at.seat] ?? null)
+    if (seat) walker.sit(seat, true)
+    this.mateTextures.set(mate.id, textures)
+    this.names.set(mate.id, mate)
+    this.classmates.push(walker)
+    if (this.scene) walker.attach(this.scene)
+    this.depthDirty = true
+  }
+
+  /** A classmate left. */
+  removeClassmate(id: string) {
+    const i = this.classmates.findIndex((c) => c.id === id)
+    if (i < 0) return
+    const [walker] = this.classmates.splice(i, 1)
+    walker.stand()
+    walker.detach()
+    walker.destroy()
+    for (const texture of this.mateTextures.get(id) ?? []) texture.destroy(true)
+    this.mateTextures.delete(id)
+    this.names.delete(id)
+    for (const key of [id, `${id}:buddy`]) {
+      if (this.bubbles.delete(key)) this.events.bubble(key, null)
+    }
+    this.depthDirty = true
+  }
+
+  /** A classmate's page sent where they are now: they walk there. */
+  moveClassmate(id: string, to: FloorSpot) {
+    const walker = this.classmates.find((c) => c.id === id)
+    if (!walker) return
+    walker.moveTo(to.x, to.y, to.seat === null ? null : (SEATS[to.seat] ?? null))
+  }
+
+  /** A classmate showed an emote (its number in EMOTES). Hidden when Settings turns classmates' emotes off. */
+  classmateEmote(id: string, emote: number) {
+    const walker = this.classmates.find((c) => c.id === id)
+    const pick = EMOTES[emote]
+    if (!walker || !pick || !this.options.classmateEmotes) return
+    this.say(walker, 'kid', pick.text, pick.emoji)
+  }
+
+  /** Sends the Student's spot when it changed (at most every SPOT_EVERY_S), or now with `force`. */
+  private sendSpot(dt: number, force = false) {
+    const me = this.me
+    const send = this.events.spot
+    if (!me || !send || this.viewer) return
+    this.spotIn -= dt
+    if (!force && this.spotIn > 0) return
+    const seat = me.seat ? SEATS.indexOf(me.seat) : -1
+    const spot: FloorSpot = { x: Math.round(me.x * 100) / 100, y: Math.round(me.y * 100) / 100, seat: seat >= 0 ? seat : null }
+    const key = `${spot.x},${spot.y},${spot.seat}`
+    if (!force && key === this.lastSpot) return
+    this.lastSpot = key
+    this.spotIn = SPOT_EVERY_S
+    send(spot)
+  }
+
+  /** The live Lobby (re)connected: send the Student's spot now. */
+  resendSpot() {
+    this.sendSpot(0, true)
   }
 
   // ---------- Input ----------
@@ -824,10 +905,6 @@ export class LobbyGame {
 
   // ---------- Things that happen ----------
 
-  private after(seconds: number, run: () => void) {
-    this.later.push({ at: this.time + seconds, run })
-  }
-
   /** A bubble over a kid or a buddy, with a small happy jump. */
   private say(walker: Walker, part: 'kid' | 'buddy', text: string, emoji: boolean) {
     const key = part === 'kid' ? walker.id : `${walker.id}:buddy`
@@ -900,7 +977,7 @@ export class LobbyGame {
       const d = Math.hypot(mate.x - me.x, mate.y - me.y)
       if (d < 1.3 && d < bestDist) {
         bestDist = d
-        best = { id: `wave:${mate.id}`, label: `Wave to ${this.names.get(mate.id)?.name ?? 'them'}`, run: () => this.wave(mate.id) }
+        best = { id: `wave:${mate.id}`, label: `Wave to ${this.names.get(mate.id)?.name ?? 'them'}`, run: () => this.wave() }
       }
     }
     for (const spot of ACTION_SPOTS) {
@@ -939,12 +1016,6 @@ export class LobbyGame {
     const still = this.still
     this.time += dt
 
-    for (let i = this.later.length - 1; i >= 0; i--) {
-      if (this.later[i].at > this.time) continue
-      const [due] = this.later.splice(i, 1)
-      due.run()
-    }
-
     // Everyone walks.
     me.update(dt, this.proj, still, this.keyDirection())
     // Ollie's hop onto or off the desk moves him without a step: re-sort then too.
@@ -965,6 +1036,8 @@ export class LobbyGame {
         this.depthDirty = true
       }
     }
+
+    this.sendSpot(dt)
 
     // Walking onto the door mat asks "Go outside?" (once per visit to the mat).
     const onMat = !me.seat && !this.viewer && onDoorMat(me.x, me.y)
@@ -990,17 +1063,6 @@ export class LobbyGame {
         this.wheelSpin = Math.max(0, this.wheelSpin - dt)
         wheel.rotation += dt * (2 + this.wheelSpin * 6)
       } else if (!still && this.news.stage) wheel.rotation += dt * 0.6
-    }
-
-    // The classmate shows a random emote every so often.
-    this.emoteIn -= dt
-    if (this.emoteIn <= 0) {
-      this.emoteIn = 9 + Math.random() * 9
-      const mate = this.classmates[Math.floor(Math.random() * this.classmates.length)]
-      if (mate && this.options.classmateEmotes && !this.bubbles.has(mate.id)) {
-        const pick = EMOTES[Math.floor(Math.random() * EMOTES.length)]
-        this.say(mate, 'kid', pick.text, pick.emoji)
-      }
     }
 
     if (this.happyLeft > 0) {

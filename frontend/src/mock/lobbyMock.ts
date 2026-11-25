@@ -1,29 +1,15 @@
 // FAKE DATA: delete each part when it becomes real (later steps).
 //
 // The Student's progress and today's mission are REAL now (GET /api/student/games).
-// Still fake: the classmates, the Class Garden, the Prize Wheel slices and Ollie's lines.
+// Classmates are REAL too (the live Lobby, screens/Lobby/live/).
+// Still fake: the Class Garden, the Prize Wheel slices and Ollie's lines.
 // Screens never import this file. The Lobby reads it through
 // src/screens/Lobby/useLobbyData.ts, so the real API can replace it later
 // without touching the screen.
 
 import type { LobbyData } from '../screens/Lobby/lobbyData'
 
-export const lobbyMock: Pick<LobbyData, 'classmates' | 'garden' | 'wheel'> = {
-  // Only 1 classmate for now (no server or multiplayer yet).
-  classmates: [
-    {
-      id: 'classmate-1',
-      // Students have no names: the name tag shows the buddy's name.
-      name: 'Bubbles',
-      avatar: 'boy',
-      look: { skin: 'skin4', hair: 'black', shirt: 'blue' },
-      buddy: 'kitty',
-      buddyName: 'Bubbles',
-      level: 6,
-      badges: 2,
-    },
-  ],
-
+export const lobbyMock: Pick<LobbyData, 'garden' | 'wheel'> = {
   // The whole section's sampaguita: 9 of 12 missions so far (it shows buds).
   garden: { done: 9, goal: 12 },
 

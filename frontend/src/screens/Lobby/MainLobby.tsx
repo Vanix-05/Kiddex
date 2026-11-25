@@ -23,6 +23,8 @@ import { SettingsCard } from './ui/SettingsCard'
 import { StarShopCard } from './ui/StarShopCard'
 import { Toast } from './ui/Toast'
 import { useLobbyCast, type LobbyStudent } from './useLobbyCast'
+import type { LiveWho } from './live/liveLobby'
+import { useLiveClassmates } from './live/useLiveClassmates'
 import { useLobbySettings } from './useLobbySettings'
 import { ViewerHud } from './ui/ViewerHud'
 import styles from './LobbyScreen.module.css'
@@ -110,14 +112,15 @@ export function MainLobby({
   onAllGames,
   startAt,
   onReady,
+  live,
 }: {
   /** The logged-in Student and their buddy (not in the Teacher's view). */
   student?: LobbyStudent
   /**
    * The Teacher's view-only visit: the Teacher is Ollie (with their name tag),
    * starting on the Teacher's Desk. No kid or buddy, and nothing only for
-   * Students (emotes, sit, pet, Walk with me, the Prize Wheel spin, All
-   * games, My Room, the door). Settings has no Log out.
+   * Students (emotes, sit, pet, the Prize Wheel spin, All games, My Room,
+   * the door). Settings has no Log out. Students never see the Teacher.
    */
   viewer?: LobbyViewer
   data: LobbyData
@@ -131,10 +134,12 @@ export function MainLobby({
   startAt?: ZoneId
   /** The classroom is on screen, or couldn't open (called once). */
   onReady?: () => void
+  /** Real classmates: who connects to the live Lobby. None (the dev Lobby): no classmates. */
+  live?: LiveWho
 }) {
-  const { mission, classmates, ollieLines, garden, wheel } = data
+  const { mission, ollieLines, garden, wheel } = data
   const [settings, changeSettings] = useLobbySettings()
-  const { cast, failed: castFailed } = useLobbyCast(viewer ? null : (student ?? null), classmates)
+  const { cast, failed: castFailed } = useLobbyCast(viewer ? null : (student ?? null))
 
   const hostRef = useRef<HTMLDivElement>(null)
   const [game, setGame] = useState<LobbyGame | null>(null)
@@ -145,13 +150,30 @@ export function MainLobby({
   const [bubbles, setBubbles] = useState<Record<string, BubbleContent>>({})
   const [toast, setToast] = useState<{ text: string; id: number } | null>(null)
   const [hasMoved, setHasMoved] = useState(false)
-  const [walkingWith, setWalkingWith] = useState<string | null>(null)
   const [ollieLine, setOllieLine] = useState(0)
   const [scale, setScale] = useState(hudScale)
   const [fps] = useState(showFps)
   const [spun, setSpun] = useState<WheelPrize | null>(readSpin)
   /** Stars won on the wheel this visit (FAKE: the backend will add them to the Student's count). */
   const [bonusStars, setBonusStars] = useState(() => readSpin()?.stars ?? 0)
+
+  // Real classmates (the live Lobby). The game sends the Student's spot and emotes through liveRef.
+  const liveClassmates = useLiveClassmates(live ?? null, game)
+  const { classmates, status: liveStatus } = liveClassmates
+  const liveRef = useRef(liveClassmates)
+  useEffect(() => {
+    liveRef.current = liveClassmates
+  }, [liveClassmates])
+
+  // Their Buddy card closes when the classmate leaves.
+  if (card?.type === 'buddy' && !classmates.some((c) => c.id === card.id)) setCard(null)
+
+  // The same Student opened the Lobby in another tab: classmates show there now.
+  const [shownStatus, setShownStatus] = useState(liveStatus)
+  if (liveStatus !== shownStatus) {
+    setShownStatus(liveStatus)
+    if (liveStatus === 'elsewhere') setToast({ text: 'Your classroom is open in another tab, so your classmates show there', id: -1 })
+  }
 
   // Finishing Ollie's mission earns one spin a day, and waters the Class Garden.
   // The Teacher's view shows the section's garden as it is, and no news (they only look).
@@ -245,6 +267,8 @@ export function MainLobby({
           }),
         toast: (text) => setToast({ text, id: ++toasts }),
         moved: () => setHasMoved(true),
+        spot: (spot) => liveRef.current.sendSpot(spot),
+        emoted: (emote) => liveRef.current.sendEmote(emote),
       },
     )
     void created.start()
@@ -307,7 +331,6 @@ export function MainLobby({
   const startMission = () =>
     mission.state === 'none' || !nextMissionGame ? allGames(null) : onPlay ? onPlay(nextMissionGame, 'mission') : soon('mission')
   const buddyCardOf = card?.type === 'buddy' ? classmates.find((c) => c.id === card.id) : undefined
-  const buddyCardArt = buddyCardOf && cast?.classmates.find((c) => c.id === buddyCardOf.id)
   const failed = castFailed || gameFailed
 
   // Tell whoever is covering the Lobby (the loading video) that it can go.
@@ -474,28 +497,18 @@ export function MainLobby({
           )}
           {card?.type === 'garden' && <GardenCard garden={{ ...garden, done: gardenDone }} stage={gardenStage} section={section} onClose={close} />}
           {card?.type === 'soon' && <ComingSoonCard kind={card.kind} onClose={close} />}
-          {buddyCardOf && buddyCardArt && (
+          {buddyCardOf && (
             <BuddyCard
               classmate={buddyCardOf}
-              kidUrl={buddyCardArt.kid.url}
-              buddyUrl={buddyCardArt.buddy.url}
-              walking={walkingWith === buddyCardOf.id}
-              // The Teacher's view: the same card, without Wave or Walk with me.
+              kidUrl={buddyCardOf.kidUrl}
+              buddyUrl={buddyCardOf.buddyUrl}
+              // The Teacher's view: the same card, without Wave.
               onWave={
                 viewer
                   ? undefined
                   : () => {
                       close()
-                      game.wave(buddyCardOf.id)
-                    }
-              }
-              onWalk={
-                viewer
-                  ? undefined
-                  : (walk) => {
-                      close()
-                      game.setFollow(buddyCardOf.id, walk)
-                      setWalkingWith(walk ? buddyCardOf.id : null)
+                      game.wave()
                     }
               }
               onClose={close}

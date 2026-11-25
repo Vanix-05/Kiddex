@@ -1,6 +1,6 @@
 /**
  * A kid and their buddy in the room: walking (keys or a path), sitting, and
- * following. The buddy trails about 0.85 tiles behind and stops when the kid
+ * (a real classmate) following the spots their own page sends (moveTo). The buddy trails about 0.85 tiles behind and stops when the kid
  * stops. All motion is done here in Pixi (bob, breathing, flip, shadow); the
  * pictures themselves never change.
  *
@@ -11,7 +11,7 @@ import { Container, Graphics, Rectangle, Sprite, type Texture } from 'pixi.js'
 import type { DepthItem } from './depth'
 import { findPath, type Point } from './pathfind'
 import type { Projection } from './projection'
-import { floorHeight, isFree, RD, SEATS, WANDER_SPOTS, type Seat } from './room'
+import { floorHeight, isFree, RD, type Seat } from './room'
 import type { Scene } from './scene'
 
 /** A character picture as a Pixi texture, with where its feet are. */
@@ -209,10 +209,6 @@ export class Walker {
   x = 0
   y = 0
   seat: Seat | null = null
-  /** A classmate walking with someone follows this walker. */
-  leader: Walker | null = null
-  /** Seconds until a classmate picks something new to do. */
-  wait = 2 + Math.random() * 4
   private path: Point[] = []
   private onArrive: (() => void) | null = null
   private trail: Point[] = []
@@ -416,8 +412,6 @@ export class Walker {
         this.x += vx
         this.y += vy
       }
-    } else if (!this.you) {
-      this.think(dt)
     }
 
     kid.moving = Math.abs(vx) + Math.abs(vy) > 1e-4
@@ -465,26 +459,36 @@ export class Walker {
     drawFigure(buddy, dt, proj, still, null)
   }
 
-  /** A classmate with nothing to do: follow their leader, or wander and sometimes sit. */
-  private think(dt: number) {
-    this.wait -= dt
-    if (this.wait > 0) return
-    const leader = this.leader
-    if (leader) {
-      this.wait = 0.5
-      if (Math.hypot(this.x - leader.x, this.y - leader.y) > 1.7) {
-        const spot = trailPoint(leader.trail, 1.9)
-        this.goTo(spot.x, spot.y)
+  /**
+   * A real classmate: walk to the spot their page sent (it sends one several
+   * times a second while they move). Close by: straight there. Further (a
+   * missed message): around the desks. Too far, or no way there: jump there.
+   * `seat`: they sit on it once they get there (if it's free here).
+   */
+  moveTo(x: number, y: number, seat: Seat | null) {
+    if (seat && this.seat === seat) return
+    const d = Math.hypot(this.x - x, this.y - y)
+    if (seat) {
+      // Sitting down where they stand (their page put them on the chair already).
+      if (d < 1.2 || !this.goTo(seat.ax, seat.ay, () => this.sit(seat))) {
+        this.stand()
+        this.stop()
+        this.place(seat.ax, seat.ay)
+        this.sit(seat, true)
       }
       return
     }
-    this.wait = 6 + Math.random() * 8
-    if (Math.random() < 0.35) {
-      const chairs = SEATS.filter((s) => s.kind === 'chair' && !this.seats.has(s))
-      if (chairs.length && this.sitAt(chairs[Math.floor(Math.random() * chairs.length)])) return
+    if (this.seat) this.stand()
+    if (d < 0.02) return
+    if (d > 6) {
+      this.stop()
+      this.place(x, y)
+    } else if (d <= 2) {
+      this.path = [{ x, y }]
+      this.onArrive = null
+    } else if (!this.goTo(x, y)) {
+      this.place(x, y)
     }
-    const spot = WANDER_SPOTS[Math.floor(Math.random() * WANDER_SPOTS.length)]
-    this.goTo(spot.x + (Math.random() - 0.5) * 0.8, spot.y + (Math.random() - 0.5) * 0.6)
   }
 
   destroy() {

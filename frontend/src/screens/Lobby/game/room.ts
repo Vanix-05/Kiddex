@@ -169,14 +169,3 @@ export const ACTION_SPOTS: readonly { id: SpotId; x: number; y: number; r: numbe
 /** Where the Student starts. */
 export const START = { x: 13.6, y: 6.6 }
 
-/** Open spots a classmate wanders between. */
-export const WANDER_SPOTS: readonly { x: number; y: number }[] = [
-  { x: 13.4, y: 5.8 },
-  { x: 8.9, y: 6.9 },
-  { x: 13.6, y: 10.4 },
-  { x: 16.0, y: 13.5 },
-  { x: 21.4, y: 6.5 },
-  { x: 15.8, y: 4.8 },
-  { x: 16.0, y: 2.0 },
-  { x: 4.2, y: 6.4 },
-]

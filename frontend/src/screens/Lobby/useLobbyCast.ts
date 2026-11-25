@@ -6,7 +6,6 @@ import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras, type Look }
 import type { BuddyId } from '../../setup/quizData'
 import { characterPicture } from './characterTexture'
 import type { CastMember, LobbyCast } from './game/LobbyGame'
-import type { Classmate } from './lobbyData'
 
 /** The logged-in Student, as the Lobby needs them. */
 export interface LobbyStudent {
@@ -17,10 +16,10 @@ export interface LobbyStudent {
   look: Look
 }
 
-const kidPicture = (avatar: CompanionId, look: Look, mood?: 'happy') =>
+export const kidPicture = (avatar: CompanionId, look: Look, mood?: 'happy') =>
   characterPicture(avatar, { colors: lookColors(look), extras: lookYouExtras(look) }, mood)
 
-const buddyPicture = (buddy: CompanionId, look: Look) =>
+export const buddyPicture = (buddy: CompanionId, look: Look) =>
   characterPicture(buddy, { buddyColor: lookBuddyColor(look), extras: lookBuddyExtras(look) })
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -46,12 +45,12 @@ async function loadImage(src: string) {
 }
 
 /**
- * Everyone's pictures for the room: the Student and their buddy in their
- * Customize look (plus the Student's happy face), each classmate, and Ollie.
- * `cast` is null while they are being drawn. With no Student (the Teacher's
- * view-only visit), only the classmates and Ollie are drawn.
+ * The pictures the room needs to open: the Student and their buddy in their
+ * Customize look (plus the Student's happy face), and Ollie. `cast` is null
+ * while they are being drawn. With no Student (the Teacher's view-only visit),
+ * only Ollie. Classmates come and go later (useLiveClassmates.ts).
  */
-export function useLobbyCast(student: LobbyStudent | null, classmates: readonly Classmate[]) {
+export function useLobbyCast(student: LobbyStudent | null) {
   const [cast, setCast] = useState<LobbyCast | null>(null)
   const [failed, setFailed] = useState(false)
   const name = student?.name
@@ -71,17 +70,7 @@ export function useLobbyCast(student: LobbyStudent | null, classmates: readonly 
     }
     const load = async (): Promise<LobbyCast> => {
       const [me, ollie] = await Promise.all([loadMe(), loadImage(characterArt.ollie)])
-      const mates: CastMember[] = []
-      for (const mate of classmates) {
-        mates.push({
-          id: mate.id,
-          name: mate.name,
-          buddyName: mate.buddyName,
-          kid: await kidPicture(mate.avatar, mate.look),
-          buddy: await buddyPicture(mate.buddy, mate.look),
-        })
-      }
-      return { me, classmates: mates, ollie }
+      return { me, ollie }
     }
     load().then(
       (loaded) => alive && setCast(loaded),
@@ -90,7 +79,7 @@ export function useLobbyCast(student: LobbyStudent | null, classmates: readonly 
     return () => {
       alive = false
     }
-  }, [name, avatar, buddy, buddyName, lookKey, classmates])
+  }, [name, avatar, buddy, buddyName, lookKey])
 
   return { cast, failed }
 }

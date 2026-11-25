@@ -25,7 +25,7 @@ export const lobbyDataFrom = (student: StudentProgress, mission: Mission): Lobby
 /**
  * Everything the Student's Lobby shows. REAL: the Student's level, XP, stars and
  * streak, today's mission and the chalkboard (GET /api/student/games). Still
- * fake (lobbyMock.ts): classmates, the Class Garden, the Prize Wheel slices and Ollie's lines.
+ * fake (lobbyMock.ts): the Class Garden, the Prize Wheel slices and Ollie's lines.
  * Students only: the Teacher's view-only Lobby builds its own (TeacherLobbyScreen).
  */
 export function useLobbyData() {

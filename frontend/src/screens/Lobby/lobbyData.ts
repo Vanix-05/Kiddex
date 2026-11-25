@@ -18,7 +18,9 @@ export interface StudentProgress {
   streakDays: number
 }
 
+/** A classmate in the Lobby right now (the live Lobby, live/useLiveClassmates.ts). */
 export interface Classmate {
+  /** Made by the server when they came in: not their School ID or database id. */
   id: string
   /** What their name tag shows: their BUDDY's name (Students have no names in KIDDEX). */
   name: string
@@ -26,8 +28,8 @@ export interface Classmate {
   look: Look
   buddy: BuddyId
   buddyName: string
+  /** Their real level (from their XP). */
   level: number
-  badges: number
 }
 
 /** Today's mission: the assignment the Lobby puts first (from GET /api/student/games). */
@@ -78,7 +80,6 @@ export interface WheelPrize {
 
 export interface LobbyData {
   student: StudentProgress
-  classmates: Classmate[]
   mission: Mission
   garden: ClassGarden
   /** The Prize Wheel's slices, clockwise from the top. */
