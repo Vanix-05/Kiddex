@@ -24,7 +24,7 @@ export function HowToPlayCard({ buddyName, onClose }: { buddyName: string; onClo
         ['Tap the button', 'Do the action near you: sit, talk, play'],
         ['Tap a classmate', 'See their Buddy card, wave, walk together'],
         [`Tap ${buddyName}`, 'Give your buddy some love'],
-        phone ? ['Gear button', 'Settings (and Close / Far camera)'] : ['Round buttons', 'Zoom in or out, and Settings'],
+        phone ? ['😊 and gear', 'Send an emote, and Settings (Close / Far camera)'] : ['Round buttons', 'Zoom in or out, and Settings'],
       ]
     : [
         [

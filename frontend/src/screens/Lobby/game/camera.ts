@@ -51,8 +51,8 @@ export class Camera {
     const diag = this.proj.diag
     if (this.mode === 'far') return diag ? Math.min(W / 2200, H / 1330) : Math.min(W / 1860, H / 1090)
     const z = diag ? Math.min(W / 1280, H / 800) : Math.min(W / 1300, H / 810)
-    // Phones in landscape: a little closer, so the kid isn't tiny.
-    return H < 520 ? z * 1.2 : z
+    // Phones in landscape: closer, so the kid and buddy are easy to see.
+    return H < 520 ? z * 1.6 : z
   }
 
   /** `snap`: jump there (first frame, angle change, reduced motion). */

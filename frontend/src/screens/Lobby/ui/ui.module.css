@@ -1062,59 +1062,12 @@
   }
 }
 
-/* ---------- Phone held sideways: no Zoom button, a smaller emote bar ----------
-   Less clutter on a small screen. Zoom stays in Settings (Camera: Close / Far),
-   so Settings and All games simply close up. The emote bar keeps the same
-   buttons and look, just smaller (34px instead of 44px); each button keeps an
-   invisible tap area 44px tall (::before), and the 6px gap keeps neighbours'
-   tap areas apart, so a tap always hits the button under the finger.
+/* ---------- Phone held sideways: no Zoom button ----------
+   Zoom stays in Settings (Camera: Close / Far). The Student's Lobby uses its
+   own folded-up HUD on phones (PhoneHud.tsx); this is for the Teacher's view.
    Laptops and tablets are not affected. */
 @media (orientation: landscape) and (max-height: 500px) {
   .zoomButton {
     display: none;
-  }
-
-  .tray {
-    gap: 6px;
-    padding: 3px 5px;
-    border-width: 2px;
-    border-radius: 24px;
-    box-shadow: 0 3px 0 var(--color-lobby-shadow);
-  }
-
-  .emo,
-  .phrase {
-    position: relative;
-    height: 34px;
-    border-width: 2px;
-  }
-
-  .emo {
-    width: 34px;
-    font-size: 22px;
-    overflow: visible; /* so the tap area below is not cut off */
-  }
-
-  .phrase {
-    padding: 0 9px;
-    font-size: 12px;
-    border-radius: 17px;
-  }
-
-  /* The invisible tap area: 30px inside the border + 7px above and below = 44px,
-     and 3px to each side (half of the 6px gap, so neighbours never overlap). */
-  .emo::before,
-  .phrase::before {
-    content: '';
-    position: absolute;
-    inset: -7px -3px;
-  }
-
-  /* A pressed button moves down 3px (the :active translate above): move its tap
-     area back up the same 3px, so it stays still under the finger and a tap near
-     the top edge still lands on the button when the finger lifts. */
-  .emo:active::before,
-  .phrase:active::before {
-    inset: -10px -3px -4px;
   }
 }

@@ -417,7 +417,7 @@ export function MainLobby({
               </span>
             ))}
 
-            {near && !card && <ActionButton key={near.id} label={near.label} anchorRef={game.anchorRef('action')} onRun={() => game.runAction()} />}
+            {near && !card && <ActionButton key={near.id} id={near.id} label={near.label} anchorRef={game.anchorRef('action')} onRun={() => game.runAction()} />}
           </div>
 
           {viewer ? (

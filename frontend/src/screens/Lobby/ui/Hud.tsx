@@ -6,6 +6,8 @@ import { dueText } from '../../../games/studentData'
 import { EmoteBar } from './EmoteBar'
 import { LobbyIcon } from './icons'
 import { IS_TOUCH } from './touch'
+import { usePhoneSideways } from '../../../hooks/usePhoneSideways'
+import { PhoneHud } from './PhoneHud'
 import styles from './ui.module.css'
 
 /**
@@ -13,8 +15,8 @@ import styles from './ui.module.css'
  * top left the Student card, top right today's mission and who's here,
  * bottom left My Room (under the Student card on touch screens, where the
  * joystick takes the bottom left), bottom middle the emote bar, bottom right Zoom, the
- * Settings gear and All games. On a phone held sideways there is no Zoom button
- * (Settings has Camera: Close / Far) and the emote bar is smaller.
+ * Settings gear and All games. A phone held sideways gets the folded-up PhoneHud
+ * instead (no Zoom button there: Settings has Camera: Close / Far).
  */
 export function Hud({
   student,
@@ -53,6 +55,15 @@ export function Hud({
   /** The toast. */
   children?: ReactNode
 }) {
+  const phone = usePhoneSideways()
+  if (phone) {
+    return (
+      <PhoneHud {...{ student, headUrl, mission, classmatesHere, showHint, onStart, onMission, onMyRoom, onAllGames, onSettings, onEmote }}>
+        {children}
+      </PhoneHud>
+    )
+  }
+
   const xpPercent = Math.min(100, Math.round((student.xp / student.xpGoal) * 100))
   const studentCard = (
     <section className={styles.board} aria-label="You">
