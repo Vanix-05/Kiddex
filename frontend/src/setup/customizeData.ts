@@ -1,7 +1,7 @@
 /**
  * Customize Bridge items (/customize): what the Student can change on their
  * own character (You) and on their buddy. Edit freely: the tray shows the
- * items in this order. `level` = locked until the Student reaches that level.
+ * items in this order. Every item here is free: nothing is locked.
  */
 
 /**
@@ -10,7 +10,11 @@
  */
 export const SECTION = 'Grade 4 – Sampaguita'
 
-/** A drawn accessory (see companions/rig/Accessories.tsx). */
+/**
+ * A drawn accessory (see companions/rig/Accessories.tsx). Cap and crown stay here
+ * and in Accessories.tsx, but are not on the Bridge: they come back on the real
+ * Customize page.
+ */
 export type AccessoryId = 'glasses' | 'starClip' | 'flowerYellow' | 'scarf' | 'bow' | 'flowerPink' | 'cap' | 'crown'
 
 export interface CustomizeItem {
@@ -21,8 +25,6 @@ export interface CustomizeItem {
   swatch?: string
   /** Emoji on the tile (extras). */
   icon?: string
-  /** Locked until this level. */
-  level?: number
   /** Extras: what it draws on the character (null = none). */
   accessory?: AccessoryId | null
 }
@@ -51,7 +53,7 @@ const hair: CustomizeItem[] = [
   { id: 'dark', label: 'Dark', swatch: '#6a4636' },
   { id: 'ginger', label: 'Ginger', swatch: '#d7834e' },
   { id: 'blond', label: 'Blond', swatch: '#e3c07a' },
-  { id: 'purple', label: 'Purple', swatch: '#9c86cf', level: 3 },
+  { id: 'purple', label: 'Purple', swatch: '#9c86cf' },
 ]
 
 const shirt: CustomizeItem[] = [
@@ -59,8 +61,8 @@ const shirt: CustomizeItem[] = [
   { id: 'blue', label: 'Blue', swatch: '#a9d2f5' },
   { id: 'mint', label: 'Mint', swatch: '#b9ead2' },
   { id: 'pink', label: 'Pink', swatch: '#ffc4cf' },
-  { id: 'purple', label: 'Purple', swatch: '#d6c5f2', level: 3 },
-  { id: 'red', label: 'Red', swatch: '#f4877c', level: 5 },
+  { id: 'purple', label: 'Purple', swatch: '#d6c5f2' },
+  { id: 'red', label: 'Red', swatch: '#f4877c' },
 ]
 
 const youExtra: CustomizeItem[] = [
@@ -68,8 +70,6 @@ const youExtra: CustomizeItem[] = [
   { id: 'glasses', label: 'Glasses', icon: '👓', accessory: 'glasses' },
   { id: 'starClip', label: 'Star clip', icon: '⭐', accessory: 'starClip' },
   { id: 'flower', label: 'Flower', icon: '🌼', accessory: 'flowerYellow' },
-  { id: 'cap', label: 'Cap', icon: '🧢', accessory: 'cap', level: 3 },
-  { id: 'crown', label: 'Crown', icon: '👑', accessory: 'crown', level: 5 },
 ]
 
 // ---------- Buddy ----------
@@ -82,7 +82,7 @@ const buddyColor: CustomizeItem[] = [
   { id: 'blue', label: 'Blue' },
   { id: 'mint', label: 'Mint' },
   { id: 'purple', label: 'Purple' },
-  { id: 'gold', label: 'Gold', level: 5 },
+  { id: 'gold', label: 'Gold' },
 ]
 
 const buddyExtra: CustomizeItem[] = [
@@ -90,8 +90,6 @@ const buddyExtra: CustomizeItem[] = [
   { id: 'scarf', label: 'Scarf', icon: '🧣', accessory: 'scarf' },
   { id: 'bow', label: 'Bow', icon: '🎀', accessory: 'bow' },
   { id: 'flower', label: 'Flower', icon: '🌸', accessory: 'flowerPink' },
-  { id: 'cap', label: 'Cap', icon: '🧢', accessory: 'cap', level: 3 },
-  { id: 'crown', label: 'Crown', icon: '👑', accessory: 'crown', level: 5 },
 ]
 
 export const ITEMS: Record<LookKey, CustomizeItem[]> = { skin, hair, shirt, youExtra, buddyColor, buddyExtra }
@@ -120,35 +118,9 @@ export const TABS: Record<Side, CustomizeTab[]> = {
   ],
 }
 
-// ---------- XP and levels ----------
-
-// FAKE until rewards are built (backend owns XP)
-export const FAKE_XP = 40
-/** XP needed to reach each level. */
-export const LEVEL_XP: Record<number, number> = { 1: 0, 2: 50, 3: 100, 4: 200, 5: 300 }
-
-export function levelFromXp(xp: number): number {
-  let level = 1
-  for (const [lv, need] of Object.entries(LEVEL_XP)) if (xp >= need) level = Math.max(level, Number(lv))
-  return level
-}
-
-export const isLocked = (item: CustomizeItem, xp = FAKE_XP) => (item.level ?? 0) > levelFromXp(xp)
-
-/**
- * The next locked item in a tab, how much XP is still needed, and the progress
- * bar (0..1) from the current level's XP to that item's level. null = nothing locked.
- */
-export function nextUnlock(items: CustomizeItem[], xp = FAKE_XP) {
-  const locked = items.filter((i) => isLocked(i, xp)).sort((a, b) => (a.level ?? 0) - (b.level ?? 0))[0]
-  if (!locked) return null
-  const need = LEVEL_XP[locked.level ?? 1] ?? 0
-  const from = LEVEL_XP[levelFromXp(xp)] ?? 0
-  return { item: locked, xpNeeded: Math.max(0, need - xp), progress: need > from ? (xp - from) / (need - from) : 1 }
-}
-
 // ---------- Look helpers ----------
 
+/** The item with this id, or undefined (e.g. an old saved "cap" or "crown": shown as None / as drawn). */
 export const findItem = (key: LookKey, id: string | undefined) => (id ? ITEMS[key].find((i) => i.id === id) : undefined)
 
 /** Avatar recolor targets for the rig (undefined = the art's own color). */
@@ -173,14 +145,14 @@ export const lookBuddyExtras = (look: Look): AccessoryId[] => {
 /** The buddy's color id for the rig (undefined = the buddy as drawn). */
 export const lookBuddyColor = (look: Look) => findItem('buddyColor', look.buddyColor)?.id
 
-/** A saved look with only known, unlocked item ids (e.g. from sessionStorage). */
+/** A saved look with only known item ids (e.g. from sessionStorage); unknown ones (cap, crown) are dropped. */
 export function cleanLook(raw: unknown): Look {
   const out: Look = {}
   if (!raw || typeof raw !== 'object') return out
   for (const key of Object.keys(ITEMS) as LookKey[]) {
     const id = (raw as Record<string, unknown>)[key]
     const item = typeof id === 'string' ? findItem(key, id) : undefined
-    if (item && !isLocked(item)) out[key] = item.id
+    if (item) out[key] = item.id
   }
   return out
 }

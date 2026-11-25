@@ -485,6 +485,7 @@
   background: var(--color-card-bg);
 }
 
+/* Every item is free: the tiles sit in the middle of the tray (no XP box any more). */
 .tray {
   position: absolute;
   left: 36px;
@@ -492,6 +493,7 @@
   z-index: 23;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   width: 1000px;
   height: 136px;
@@ -558,35 +560,6 @@
   font-weight: 700;
 }
 
-.tileLocked {
-  border-style: dashed;
-  background: #efe7da;
-  color: #8f7f6b;
-  cursor: not-allowed;
-}
-
-.tileLocked .icon,
-.tileLocked .swatch,
-.tileLocked .colorHead {
-  opacity: 0.45;
-  filter: grayscale(1);
-}
-
-.tileLocked:hover {
-  transform: none;
-}
-
-.lockTag {
-  position: absolute;
-  bottom: -12px;
-  padding: 1px 9px;
-  border-radius: 999px;
-  background: #6b5848;
-  color: #fff;
-  font-size: 16px;
-  white-space: nowrap;
-}
-
 .icon {
   display: grid;
   place-items: center;
@@ -615,62 +588,6 @@
 
 .tileLabel {
   line-height: 1.1;
-}
-
-/* Locked tile tapped: a small shake. */
-.shake {
-  animation: shake 0.42s ease-in-out;
-}
-
-@keyframes shake {
-  20% {
-    transform: translateX(-6px);
-  }
-  40% {
-    transform: translateX(5px);
-  }
-  60% {
-    transform: translateX(-3px);
-  }
-  80% {
-    transform: translateX(2px);
-  }
-}
-
-/* XP box */
-.xp {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 10px;
-  width: 236px;
-  margin-left: auto;
-  padding: 12px 14px;
-  border: 2.5px dashed var(--line);
-  border-radius: 16px;
-  font-size: 17px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.xpStar {
-  font-size: 30px;
-}
-
-.bar {
-  display: block;
-  height: 12px;
-  margin-top: 8px;
-  overflow: hidden;
-  border: 2px solid var(--line);
-  border-radius: 99px;
-  background: #efe3cf;
-}
-
-.bar i {
-  display: block;
-  height: 100%;
-  background: var(--color-button-bg);
 }
 
 /* ---------- Buttons ---------- */
@@ -743,8 +660,7 @@
   .happy,
   .hop,
   .lean,
-  .spark,
-  .shake {
+  .spark {
     animation: none;
   }
 

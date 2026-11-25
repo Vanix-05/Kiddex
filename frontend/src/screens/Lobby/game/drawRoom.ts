@@ -6,8 +6,6 @@
 import { Container, Graphics, Matrix, Text } from 'pixi.js'
 import { WALL, type Projection } from './projection'
 import {
-  BEAN_BAGS,
-  BOOKSHELF,
   CHAIR_BACK_DY,
   CHAIR_DX,
   CHAIR_FRONT_DY,
@@ -23,9 +21,123 @@ import {
   RW,
   STAGE,
   STAR_BOARD,
+  STAR_SHOP,
   TEACHER_DESK,
 } from './room'
 import { box, cylinder, flat, floorCircle, OUTLINE, shade, type Scene } from './scene'
+
+/**
+ * The Star Shop stall, a small sari-sari style shop: a back panel with 2 shelves
+ * of boxes, a striped counter with a gold star, a cap, a bow and a jar of stars
+ * on it, 2 posts holding a red and cream awning, and the yellow STAR SHOP sign.
+ * The side facing the room is the right side (x1) when diagonal, the front (y1)
+ * when straight. Buying is not built yet: the stall opens a Coming soon card.
+ */
+function drawStarShop(proj: Projection): Container {
+  const { P, diag } = proj
+  const view = new Container()
+  const g = new Graphics()
+  view.addChild(g)
+  const s = STAR_SHOP
+  const H = 46 // counter height (px)
+  const x0 = s.x0
+  const x1 = s.x1 + 0.15
+  const y0 = s.y0 + 0.2
+  const y1 = s.y1 - 0.2
+  const stroke = (width: number) => ({ width, color: OUTLINE })
+
+  // The back panel (light wood) against the wall, with 2 shelves of colorful boxes.
+  box(g, proj, x0, y0, 0, 0.18, y1 - y0, 150, 0xdba26a, { top: 0xe8b882 })
+  const boxColors = [0xef6f5e, 0x7fc4ea, 0xffc94d, 0xc9b6f0, 0x7dbf7a, 0xf0a050, 0xff9fbf]
+  ;[74, 108].forEach((z, row) => {
+    g.poly(flat(P(0.18, y0 + 0.1, z), P(0.18, y1 - 0.1, z), P(0.42, y1 - 0.1, z), P(0.42, y0 + 0.1, z)))
+      .fill(0xa86c3a)
+      .stroke(stroke(1.3))
+    const count = row === 0 ? 4 : 3
+    for (let i = 0; i < count; i++) {
+      const y = y0 + 0.45 + ((y1 - y0 - 0.9) * (i + (row === 0 ? 0 : 0.5))) / (count - (row === 0 ? 1 : 0))
+      const [X, Y] = P(0.3, y, z + 2)
+      g.roundRect(X - 9, Y - 16, 18, 16, 5).fill(boxColors[(i + row * 4) % boxColors.length]).stroke(stroke(1.5))
+    }
+  })
+
+  // The counter, with pale yellow stripes and a gold star on the side facing the room.
+  box(g, proj, x0 + 0.2, y0, 0, x1 - x0 - 0.2, y1 - y0, H, 0xc98f5a, { top: 0xe8b882 })
+  const stripes = diag ? 6 : 3
+  for (let i = 0; i < stripes; i += 2) {
+    if (diag) {
+      const ya = y0 + ((y1 - y0) * i) / stripes
+      const yb = y0 + ((y1 - y0) * (i + 1)) / stripes
+      g.poly(flat(P(x1, ya, 6), P(x1, yb, 6), P(x1, yb, H - 8), P(x1, ya, H - 8))).fill({ color: 0xffe3a3, alpha: 0.85 })
+    } else {
+      const xa = x0 + 0.2 + ((x1 - x0 - 0.2) * i) / stripes
+      const xb = x0 + 0.2 + ((x1 - x0 - 0.2) * (i + 1)) / stripes
+      g.poly(flat(P(xa, y1, 6), P(xb, y1, 6), P(xb, y1, H - 8), P(xa, y1, H - 8))).fill({ color: 0xffe3a3, alpha: 0.85 })
+    }
+  }
+  const [sx, sy] = diag ? P(x1, (y0 + y1) / 2, H / 2) : P((x0 + 0.2 + x1) / 2, y1, H / 2)
+  g.star(sx, sy, 5, 13, 6).fill(0xffd34d).stroke(stroke(2))
+
+  // On the counter: a red cap, a pink bow and a glass jar of gold stars.
+  const onTop = (t: number) => (diag ? P(x0 + 0.55, y0 + (y1 - y0) * t, H) : P(x0 + 0.5, y0 + (y1 - y0) * t, H))
+  const [cx, cy] = onTop(0.2)
+  g.ellipse(cx, cy - 6, 12, 9).fill(0xef6f5e).stroke(stroke(1.6))
+  g.ellipse(cx + 9, cy - 2, 8, 3).fill(0xd8584a).stroke(stroke(1.4))
+  const [bx, by] = onTop(0.55)
+  g.poly([bx - 13, by - 12, bx, by - 6, bx - 13, by]).fill(0xff9fbf).stroke(stroke(1.5))
+  g.poly([bx + 13, by - 12, bx, by - 6, bx + 13, by]).fill(0xff9fbf).stroke(stroke(1.5))
+  g.circle(bx, by - 6, 4).fill(0xff7fa8).stroke(stroke(1.4))
+  const [jx, jy] = onTop(0.85)
+  g.roundRect(jx - 10, jy - 26, 20, 26, 6).fill({ color: 0xe8f6ff, alpha: 0.9 }).stroke(stroke(1.6))
+  g.star(jx - 3, jy - 10, 5, 5, 2.4).fill(0xffd34d)
+  g.star(jx + 4, jy - 16, 5, 5, 2.4).fill(0xffd34d)
+  g.star(jx + 1, jy - 5, 5, 4, 2).fill(0xffd34d)
+
+  // 2 wooden posts at the front corners.
+  const posts = diag
+    ? [P(x1 + 0.05, y0, H), P(x1 + 0.05, y0, 128), P(x1 + 0.05, y1, H), P(x1 + 0.05, y1, 128)]
+    : [P(x0 + 0.22, y1 + 0.05, H), P(x0 + 0.22, y1 + 0.05, 128), P(x1, y1 + 0.05, H), P(x1, y1 + 0.05, 128)]
+  for (let i = 0; i < 4; i += 2) {
+    g.moveTo(...posts[i]).lineTo(...posts[i + 1]).stroke(stroke(5))
+    g.moveTo(...posts[i]).lineTo(...posts[i + 1]).stroke({ width: 3, color: 0xa86c3a })
+  }
+
+  // The red and cream striped awning, sloping from the wall down to the posts, with a scalloped front edge.
+  const segs = 7
+  for (let i = 0; i < segs; i++) {
+    const ya = y0 - 0.15 + ((y1 - y0 + 0.3) * i) / segs
+    const yb = y0 - 0.15 + ((y1 - y0 + 0.3) * (i + 1)) / segs
+    const color = i % 2 ? 0xfff6e6 : 0xef6f5e
+    g.poly(flat(P(x0, ya, 150), P(x0, yb, 150), P(x1 + 0.35, yb, 124), P(x1 + 0.35, ya, 124))).fill(color).stroke(stroke(1.6))
+    const [mx, my] = P(x1 + 0.35, (ya + yb) / 2, 124)
+    // Straight view: the scallops hang along the side; the front edge gets them below.
+    if (diag) g.ellipse(mx, my + 3, 11, 6).fill(color).stroke(stroke(1.4))
+  }
+  if (!diag) {
+    // The awning's front edge faces the room in the straight view.
+    const n = 3
+    for (let i = 0; i < n; i++) {
+      const xa = x0 + ((x1 + 0.35 - x0) * i) / n
+      const xb = x0 + ((x1 + 0.35 - x0) * (i + 1)) / n
+      const za = 150 - (26 * (xa - x0)) / (x1 + 0.35 - x0)
+      const zb = 150 - (26 * (xb - x0)) / (x1 + 0.35 - x0)
+      const [ax, ay] = P(xa, y1 + 0.15, za)
+      const [bx2, by2] = P(xb, y1 + 0.15, zb)
+      g.ellipse((ax + bx2) / 2, (ay + by2) / 2 + 4, (bx2 - ax) / 2, 7).fill(i % 2 ? 0xfff6e6 : 0xef6f5e).stroke(stroke(1.4))
+    }
+  }
+
+  // The yellow sign above the awning: a white star and STAR SHOP.
+  // Straight view: it hangs at the back of the stall, so a Student at the counter (and their action button) doesn't cover it.
+  const [tx, ty] = diag ? P(0.12, (y0 + y1) / 2, 168) : P(0.95, y0 + 0.3, 175)
+  g.roundRect(tx - 70, ty - 20, 140, 34, 10).fill(0xffd34d).stroke(stroke(2.4))
+  g.star(tx - 50, ty - 3, 5, 9, 4.2).fill(0xffffff).stroke(stroke(1.5))
+  const label = new Text({ text: 'STAR SHOP', style: { fontFamily: 'Fredoka', fontWeight: '700', fontSize: 17, fill: 0x4a3426 }, resolution: 2 })
+  label.anchor.set(0.5)
+  label.position.set(tx + 12, ty - 3)
+  view.addChild(label)
+  return view
+}
 
 /** The words on the walls. */
 export interface RoomText {
@@ -71,7 +183,7 @@ export function drawFloor({ proj, layers }: Scene): Container {
   beam(P(1.1, 0), P(2.7, 0), P(4.6, 3.3), P(3, 3.3))
   beam(P(12.4, 0), P(13.6, 0), P(15.4, 3.1), P(14.2, 3.1))
 
-  // Rugs: Teacher's Desk, Word Nook, Match Corner.
+  // Rugs: Teacher's Desk, the pink one in front of the Star Shop (a welcome mat), Match Corner.
   const rug = (x: number, y: number, r: number, color: number) => {
     floorCircle(g, proj, x, y, r).fill(color).stroke({ width: 2.5, color: OUTLINE })
     floorCircle(g, proj, x, y, r - 0.5).stroke({ width: 2, color: 0xffffff, alpha: 0.7 })
@@ -296,37 +408,9 @@ export function drawFurniture(scene: Scene, gardenStage: number): Furniture {
     g.poly([px - 14, py, px, py - 7, px + 14, py, px, py + 7]).fill(0xfffaf0).stroke({ width: 1.5, color: OUTLINE })
   })
 
-  // Word Nook: a bookshelf along the left wall, and bean bags.
-  const bs = BOOKSHELF
-  prop(bs.x0, bs.y0, bs.x1, bs.y1, (g) => {
-    box(g, proj, bs.x0, bs.y0, 0, bs.x1 - bs.x0, bs.y1 - bs.y0, 92, 0xc98f5a, { top: 0xdba26a })
-    const colors = [0xef6f5e, 0x7fc4ea, 0xffc94d, 0x7dbf7a, 0xc9b6f0, 0xf0a050, 0xffffff]
-    for (let row = 0; row < 3; row++) {
-      const z = 10 + row * 28
-      // The books show on the side facing the room: the right side when
-      // diagonal, the front when straight (where only 3 fit).
-      for (let i = 0; i < (diag ? 9 : 3); i++) {
-        const h = 16 + ((i * 7 + row * 3) % 6)
-        const y = 8.15 + i * 0.31
-        const x = 0.06 + i * 0.22
-        const book = diag
-          ? flat(P(bs.x1, y, z), P(bs.x1, y + 0.24, z), P(bs.x1, y + 0.24, z + h), P(bs.x1, y, z + h))
-          : flat(P(x, bs.y1, z), P(x + 0.18, bs.y1, z), P(x + 0.18, bs.y1, z + h), P(x, bs.y1, z + h))
-        g.poly(book).fill(colors[(i + row * 2) % colors.length]).stroke({ width: 1.3, color: OUTLINE })
-      }
-      const shelf = diag
-        ? flat(P(bs.x1, bs.y0, z - 2), P(bs.x1, bs.y1, z - 2), P(bs.x1, bs.y1, z), P(bs.x1, bs.y0, z))
-        : flat(P(bs.x0, bs.y1, z - 2), P(bs.x1, bs.y1, z - 2), P(bs.x1, bs.y1, z), P(bs.x0, bs.y1, z))
-      g.poly(shelf).fill(0xa86c3a)
-    }
-  })
-  for (const bag of BEAN_BAGS) {
-    prop(bag.x - 0.4, bag.y - 0.4, bag.x + 0.4, bag.y + 0.4, (g) => {
-      const [X, Y] = P(bag.x, bag.y)
-      g.ellipse(X, Y - 10, 30, 19).fill(bag.color).stroke({ width: 2.2, color: OUTLINE })
-      g.ellipse(X - 6, Y - 18, 12, 6).fill({ color: 0xffffff, alpha: 0.45 })
-    })
-  }
+  // The Star Shop stall along the left wall (was the bookshelf).
+  const shop = STAR_SHOP
+  scene.add(drawStarShop(proj), shop.x0, shop.y0, shop.x1, shop.y1)
 
   // Quiz Stage: the Prize Wheel on its stand. The wheel's slices turn (see LobbyGame).
   const wheel = drawWheel(scene)

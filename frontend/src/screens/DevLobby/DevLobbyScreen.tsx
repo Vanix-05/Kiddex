@@ -45,7 +45,7 @@ export function DevLobbyScreen() {
       student={student}
       data={data}
       onLogOut={() => window.location.assign('/')}
-      startAt={at === 'stage' || at === 'match' ? at : undefined}
+      startAt={at === 'stage' || at === 'match' || at === 'shop' ? at : undefined}
       onPlay={(game, from) => navigate(`/dev/play/${game}?from=${from}&lesson=${data.mission.lessonId ?? ''}`)}
       onAllGames={() => navigate('/dev/all-games')}
     />

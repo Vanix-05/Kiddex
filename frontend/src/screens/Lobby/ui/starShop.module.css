@@ -1,0 +1,92 @@
+/* The Star Shop card (StarShopCard.tsx, mockup 2-star-shop-card). */
+
+.desc {
+  max-width: 330px;
+  margin: 8px auto 0;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+/* 4 tiles in one row; 2 × 2 when the card is too narrow. */
+.items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Not for sale yet: a dashed border and a dark faded shadow of the item. */
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border: 2px dashed var(--color-neutral-line);
+  border-radius: 14px;
+  background: var(--color-admin-surface);
+}
+
+.pic {
+  width: 40px;
+  height: 34px;
+  fill: var(--color-text);
+  opacity: 0.42;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text-subtle);
+}
+
+.price {
+  font: 600 14px/1.2 var(--font-display);
+  color: var(--color-level-medium-text);
+}
+
+.have {
+  margin: 14px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.have b {
+  font-family: var(--font-display);
+  color: var(--color-level-medium-text);
+}
+
+@media (max-width: 380px) {
+  .items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Phone held sideways: a little tighter (the card scrolls like the others). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .desc {
+    margin-top: 4px;
+    font-size: 15px;
+  }
+
+  .items {
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .item {
+    padding: 6px 4px;
+  }
+
+  .pic {
+    height: 26px;
+  }
+
+  .have {
+    margin-top: 8px;
+  }
+}

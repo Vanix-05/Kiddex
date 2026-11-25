@@ -20,6 +20,7 @@ import { LobbyIcon, type LobbyIconName } from './ui/icons'
 import { MissionCard } from './ui/MissionCard'
 import { OpeningClassroom } from './OpeningClassroom'
 import { SettingsCard } from './ui/SettingsCard'
+import { StarShopCard } from './ui/StarShopCard'
 import { Toast } from './ui/Toast'
 import { useLobbyCast, type LobbyStudent } from './useLobbyCast'
 import { useLobbySettings } from './useLobbySettings'
@@ -27,7 +28,7 @@ import { ViewerHud } from './ui/ViewerHud'
 import styles from './LobbyScreen.module.css'
 
 type Card =
-  | { type: 'howto' | 'settings' | 'door' | 'mission' | 'board' | 'wheel' | 'garden' }
+  | { type: 'howto' | 'settings' | 'door' | 'mission' | 'board' | 'wheel' | 'garden' | 'shop' }
   | { type: 'buddy'; id: string }
   | { type: 'soon'; kind: SoonKind }
 
@@ -35,7 +36,7 @@ type Card =
 const ZONE_UI: Record<ZoneId, { name: string; sub?: string; icon: LobbyIconName; tint?: string }> = {
   ollie: { name: 'Ollie', icon: 'owl' },
   // The corners don't start games (every game is in All games): each one does its own small thing.
-  nook: { name: 'Buddy Corner', sub: 'Rest with your buddy', icon: 'paw', tint: '--color-tint-pink' },
+  shop: { name: 'Star Shop', sub: 'Trade stars for new looks', icon: 'star', tint: '--color-tint-peach' },
   stage: { name: 'Prize Wheel', icon: 'wheel', tint: '--color-tint-lavender' },
   match: { name: 'Class Garden', icon: 'sprout', tint: '--color-tint-mint' },
   door: { name: 'Outside', sub: 'To the island', icon: 'palm' },
@@ -126,8 +127,8 @@ export function MainLobby({
   onPlay?: (game: LobbyGameId, from: LobbyGameFrom) => void
   /** Opens All games; `spot`: the game corner the Student is at, for coming back. */
   onAllGames?: (spot: LobbySpot | null) => void
-  /** Back from a mini game: start at that game's corner. */
-  startAt?: 'stage' | 'match'
+  /** Back from a mini game: start at that game's corner (the dev Lobby can start at any zone, e.g. ?at=shop). */
+  startAt?: ZoneId
   /** The classroom is on screen, or couldn't open (called once). */
   onReady?: () => void
 }) {
@@ -231,8 +232,8 @@ export function MainLobby({
             else setCard({ type: 'wheel' })
           }
           else if (id === 'match') setCard({ type: 'garden' })
-          // Buddy Corner with every bean bag taken (walkToZone sits down when one is free).
-          else setToast({ text: 'Every bean bag is taken right now', id: ++toasts })
+          // The Star Shop: a Coming soon card (also in the Teacher's view, without the stars line).
+          else if (id === 'shop') setCard({ type: 'shop' })
         },
         atDoor: () => setCard({ type: 'door' }),
         bubble: (who, bubble) =>
@@ -444,6 +445,7 @@ export function MainLobby({
               onClose={close}
             />
           )}
+          {card?.type === 'shop' && <StarShopCard stars={viewer ? undefined : data.student.stars + bonusStars} onClose={close} />}
           {card?.type === 'door' && <DoorCard onGo={() => soon('island')} onClose={close} />}
           {card?.type === 'mission' && (
             <MissionCard mission={mission} viewOnly={viewOnly} onPlay={startMission} onAllGames={() => allGames(null)} onClose={close} />

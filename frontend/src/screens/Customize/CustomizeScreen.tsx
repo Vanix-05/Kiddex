@@ -11,15 +11,12 @@ import { paths } from '../../routes/paths'
 import { useSession } from '../../session/session'
 import type { Avatar } from '../../setup/avatar'
 import {
-  FAKE_XP,
+  findItem,
   ITEMS,
-  isLocked,
-  levelFromXp,
   lookBuddyExtras,
   lookColors,
   lookBuddyColor,
   lookYouExtras,
-  nextUnlock,
   SECTION,
   TABS,
   type CustomizeItem,
@@ -51,7 +48,6 @@ const BUDDY = { x: 585, body: (370 * 56) / 86 }
 
 const FIRST_HOP_MS = 1000
 const IDLE_EVERY_MS = 3600
-const LOCK_MESSAGE_MS = 2000
 const SPARKLE_MS = 900
 
 const DEFAULT_BUBBLE = 'Let’s sail to the Lobby! ⛵'
@@ -177,15 +173,12 @@ function Bridge({
   const { section } = useSession()
   const pet = petById(buddy)
   const name = buddyName || pet?.name || 'Buddy'
-  const level = levelFromXp(FAKE_XP)
 
   const [layout, setLayout] = useState(layoutFor)
   // A phone held sideways: "Not you? Log out" moves to the top-right corner.
   const phone = usePhoneSideways()
   const [side, setSide] = useState<Side>('you')
   const [tab, setTab] = useState<LookKey>(TABS.you[0].key)
-  const [bubble, setBubble] = useState<string | null>(null)
-  const [shake, setShake] = useState<{ id: string; key: number } | null>(null)
   const [cheer, setCheer] = useState<Record<Side, number>>({ you: 0, buddy: 0 })
   const [sparkles, setSparkles] = useState<Sparkle[]>([])
   const [idle, setIdle] = useState<IdleMove>(null)
@@ -241,24 +234,18 @@ function Bridge({
 
   /** The picked item in a tab; with no pick yet, the one closest to the art as drawn. */
   const pickedId = (key: LookKey): string | undefined => {
-    if (look[key]) return look[key]
+    // An old saved id that is no longer on the Bridge (cap, crown) shows as None.
+    if (look[key] && findItem(key, look[key])) return look[key]
     if (key === 'skin' || key === 'hair' || key === 'shirt') {
       const art = ART_KEYS[avatar][key]?.main
       if (!art) return undefined
-      const open = ITEMS[key].filter((i) => i.swatch && !isLocked(i))
+      const open = ITEMS[key].filter((i) => i.swatch)
       return open.sort((a, b) => colorDistance(a.swatch!, art) - colorDistance(b.swatch!, art))[0]?.id
     }
     return ITEMS[key][0]?.id // None / Original
   }
 
   const pick = (item: CustomizeItem) => {
-    if (isLocked(item)) {
-      setShake({ id: item.id, key: ++counter.current })
-      setBubble(`Reach Lv ${item.level} to unlock it!`)
-      const shown = counter.current
-      later(LOCK_MESSAGE_MS, () => setBubble((b) => (counter.current === shown ? null : b)))
-      return
-    }
     saveLook({ ...look, [tab]: item.id })
     celebrate(side)
   }
@@ -301,7 +288,6 @@ function Bridge({
   // ---------- Bits for the page ----------
 
   const items = ITEMS[tab]
-  const unlock = nextUnlock(items)
   const colors = lookColors(look)
   const youExtras = lookYouExtras(look)
   const buddyExtras = lookBuddyExtras(look)
@@ -389,7 +375,7 @@ function Bridge({
         })}
 
         <p className={styles.bubble} aria-live="polite">
-          {bubble ?? DEFAULT_BUBBLE}
+          {DEFAULT_BUBBLE}
         </p>
 
         {/* ---------- Name ribbon + chip ---------- */}
@@ -440,7 +426,7 @@ function Bridge({
           <span className={`${styles.head} ${styles.chipHead}`} aria-hidden="true">
             <Companion id={buddy} still buddyColor={buddyColor} className={styles.headFigure} />
           </span>
-          {name} · Lv {level}
+          {name} · Lv 1
           <span className={styles.chipPen} aria-hidden="true">
             ✏️
           </span>
@@ -499,20 +485,15 @@ function Bridge({
         <div id="cb-tray" className={styles.tray} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
           <ul className={styles.tiles}>
             {items.map((item, i) => {
-              const locked = isLocked(item)
-              const on = !locked && item.id === current
-              const shaking = shake?.id === item.id
+              const on = item.id === current
               const label = item.label || `${tab === 'skin' ? 'Skin' : 'Color'} ${i + 1}`
               return (
-                <li key={`${tab}-${item.id}-${shaking ? shake.key : 0}`}>
+                <li key={`${tab}-${item.id}`}>
                   <button
                     type="button"
-                    className={[styles.tile, on && styles.tileOn, locked && styles.tileLocked, shaking && styles.shake]
-                      .filter(Boolean)
-                      .join(' ')}
-                    aria-pressed={locked ? undefined : on}
-                    aria-disabled={locked || undefined}
-                    aria-label={locked ? `${label}, locked until level ${item.level}` : label}
+                    className={on ? `${styles.tile} ${styles.tileOn}` : styles.tile}
+                    aria-pressed={on}
+                    aria-label={label}
                     onClick={() => pick(item)}
                   >
                     {tab === 'buddyColor' ? (
@@ -532,37 +513,11 @@ function Bridge({
                       </span>
                     )}
                     {item.label && <span className={styles.tileLabel}>{item.label}</span>}
-                    {locked && <span className={styles.lockTag}>🔒 Lv {item.level}</span>}
                   </button>
                 </li>
               )
             })}
           </ul>
-
-          <div className={styles.xp}>
-            <span className={styles.xpStar} aria-hidden="true">
-              ⭐
-            </span>
-            <div>
-              {unlock ? (
-                <>
-                  Earn <b>{unlock.xpNeeded} XP</b> more to unlock the {unlock.item.label}!
-                </>
-              ) : (
-                <>Every one here is yours!</>
-              )}
-              <span
-                className={styles.bar}
-                role="progressbar"
-                aria-label="XP"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round((unlock?.progress ?? 1) * 100)}
-              >
-                <i style={{ width: `${(unlock?.progress ?? 1) * 100}%` }} />
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* ---------- Buttons ---------- */}

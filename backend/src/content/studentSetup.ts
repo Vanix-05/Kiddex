@@ -14,14 +14,14 @@ export const BUDDY_IDS = ["otter", "fox", "kitty", "axolotl", "dog", "monkey", "
 /** A buddy name: letters and spaces only, at most this many characters (trimmed; empty = the buddy's own name). */
 export const MAX_NICKNAME = 12;
 
-/** Every Customize Bridge item id, per look key. Locked items are allowed here (levels are not saved yet). */
+/** Every Customize Bridge item id, per look key (same as frontend/src/setup/customizeData.ts). Nothing is locked. */
 export const LOOK_ITEMS = {
   skin: ["skin1", "skin2", "skin3", "skin4", "skin5", "skin6", "skin7"],
   hair: ["brown", "black", "dark", "ginger", "blond", "purple"],
   shirt: ["yellow", "blue", "mint", "pink", "purple", "red"],
-  youExtra: ["none", "glasses", "starClip", "flower", "cap", "crown"],
+  youExtra: ["none", "glasses", "starClip", "flower"],
   buddyColor: ["original", "pink", "blue", "mint", "purple", "gold"],
-  buddyExtra: ["none", "scarf", "bow", "flower", "cap", "crown"],
+  buddyExtra: ["none", "scarf", "bow", "flower"],
 } as const;
 
 export type LookKey = keyof typeof LOOK_ITEMS;

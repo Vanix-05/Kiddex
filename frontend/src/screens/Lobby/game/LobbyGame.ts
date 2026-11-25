@@ -140,6 +140,7 @@ const SPOT_LABELS: Record<SpotId, string> = {
   ollie: 'Talk to Ollie',
   board: 'Read the board',
   stars: 'Star Students',
+  shop: 'Open Star Shop',
   stage: 'Prize Wheel',
   match: 'Class Garden',
   door: 'Go outside',
@@ -147,8 +148,6 @@ const SPOT_LABELS: Record<SpotId, string> = {
 
 /** A zone's label shows when the Student is this close (tiles), or when it has news. */
 const LABEL_NEAR = 4.2
-/** Bubbles the buddy shows while resting in the Buddy Corner. */
-const REST_BUBBLES = ['📖', '💤', '💖', '🎵']
 
 /**
  * The fonts for the words on the walls. Asked for as soon as this file loads
@@ -213,7 +212,6 @@ export class LobbyGame {
   private furniture: Furniture | null = null
   private news: ZoneNews = {}
   private wheelSpin = 0
-  private restIn = 0
   private marker: Graphics | null = null
   private markerAge = 0
 
@@ -631,23 +629,11 @@ export class LobbyGame {
 
   /** Walks to a game corner, Ollie or the door, then opens its card. */
   walkToZone(id: ZoneId) {
-    const me = this.me
     // The Teacher only looks: walk there, and the corner may show its card (React decides).
     if (this.viewer) {
-      if (id === 'door' || id === 'nook' || id === 'ollie') this.walkTo(ZONES[id].spot, () => {})
+      if (id === 'door' || id === 'ollie') this.walkTo(ZONES[id].spot, () => {})
       else this.walkTo(ZONES[id].spot, () => this.events.tapZone(id))
       return
-    }
-    // Buddy Corner: walk to a free bean bag and sit down there.
-    if (id === 'nook' && me) {
-      const bags = SEATS.filter((s) => s.kind === 'bag' && !this.seats.has(s))
-      bags.sort((a, b) => Math.hypot(a.ax - me.x, a.ay - me.y) - Math.hypot(b.ax - me.x, b.ay - me.y))
-      const bag = bags[0]
-      if (bag) {
-        this.noteMoved()
-        if (me.sitAt(bag, () => this.sitDown(bag))) this.showMarker(bag.ax, bag.ay, true)
-        return
-      }
     }
     this.walkTo(ZONES[id].spot, () => {
       if (id === 'door') this.reachDoor()
@@ -886,13 +872,6 @@ export class LobbyGame {
     const me = this.me
     if (!me || !me.sit(seat)) return
     this.depthDirty = true
-    if (seat.kind === 'bag') {
-      // Buddy Corner: the buddy comes and curls up next to the Student.
-      me.rest({ x: seat.x + 0.6, y: seat.y + 0.1 })
-      this.say(me, 'kid', '📖', true)
-      this.restIn = 2.5
-      this.events.toast(`${this.cast.me?.buddyName ?? 'Your buddy'} curled up next to you`)
-    }
   }
 
   private reachDoor() {
@@ -911,7 +890,6 @@ export class LobbyGame {
         label: 'Stand up',
         run: () => {
           me.stand()
-          me.rest(null)
           this.depthDirty = true
         },
       }
@@ -1012,15 +990,6 @@ export class LobbyGame {
         this.wheelSpin = Math.max(0, this.wheelSpin - dt)
         wheel.rotation += dt * (2 + this.wheelSpin * 6)
       } else if (!still && this.news.stage) wheel.rotation += dt * 0.6
-    }
-
-    // Resting in the Buddy Corner: the buddy shows a little bubble now and then.
-    if (me.resting) {
-      this.restIn -= dt
-      if (this.restIn <= 0) {
-        this.restIn = 5 + Math.random() * 3
-        this.say(me, 'buddy', REST_BUBBLES[Math.floor(Math.random() * REST_BUBBLES.length)], true)
-      }
     }
 
     // The classmate shows a random emote every so often.
