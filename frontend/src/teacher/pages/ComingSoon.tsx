@@ -28,6 +28,5 @@ function ComingSoonRight() {
   )
 }
 
-export const ProgressLeft = () => <ComingSoonLeft title="Progress" line="Charts for each student and topic will show up here." />
 export const LobbyLeft = () => <ComingSoonLeft title="Lobby" line="Here you’ll see your class on Rene Island." />
 export { ComingSoonRight }

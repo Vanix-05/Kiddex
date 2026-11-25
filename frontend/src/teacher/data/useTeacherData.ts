@@ -23,6 +23,7 @@ import {
   type ServerStudent,
 } from '../api/sectionsApi'
 import { playedLabel, streakShown } from './levels'
+import { autoTodos, phToday } from './reports'
 import { toScreenLesson } from './lessonMapping'
 import { useTeacherStore } from './teacherDataContext'
 import type {
@@ -42,9 +43,9 @@ import type {
 /**
  * The only way Teacher screens read and change data.
  *
- * Lessons, their questions, sections and Students come from the backend (React
- * Query). To dos, stats and the open section tab are still kept in memory
- * (TeacherDataProvider): they start empty and a refresh clears them.
+ * Lessons, their questions, sections, Students and the class's progress come from
+ * the backend (React Query). Which To dos were ticked and the open section tab are
+ * kept in memory (TeacherDataProvider): they start empty and a refresh clears them.
  */
 
 /** "4 – Sampaguita" */
@@ -78,8 +79,8 @@ export const toBuddyHead = (buddy: string | null | undefined): BuddyHead | undef
   BUDDY_HEADS.includes(buddy as BuddyHead) ? (buddy as BuddyHead) : undefined
 
 /**
- * Last played ("Today", "Yesterday", "Nov 21") and the streak (0 shows the dash)
- * come from the saved rounds. Mastery and needsHelp stay empty until step 9.
+ * Last played ("Today", "Yesterday", "Nov 21"), the streak (0 shows the dash) and
+ * mastery (rule-based; null → undefined, "not enough yet") come from the saved rounds.
  */
 export const toStudent = (s: ServerStudent, now: Date = new Date()): Student => ({
   id: s.id,
@@ -90,6 +91,8 @@ export const toStudent = (s: ServerStudent, now: Date = new Date()): Student => 
   buddyName: s.buddyName ?? undefined,
   lastPlayed: playedLabel(s.lastPlayedAt, now),
   streak: streakShown(s.streakDays),
+  mastery: s.mastery ?? undefined,
+  needsHelp: s.needsHelp,
 })
 
 /**
@@ -219,19 +222,39 @@ export function useJustAdded() {
   return { justAdded, clear }
 }
 
-/** Numbers for Home: stats, weakest topics, the week chart and Ollie's note. */
+/** Today's date line and the registered count for Home. The class's numbers come from useSectionProgress. */
 export function useClassSummary() {
   const { data } = useTeacherStore()
   const students = useStudents()
   return {
     todayLabel: data.todayLabel,
-    weekSubject: data.weekSubject,
     registered: students.filter((s) => s.registered).length,
     total: students.length,
-    stats: data.stats,
-    weakTopics: data.weakTopics,
-    week: data.week,
-    ollieNote: data.ollieNote,
+  }
+}
+
+/**
+ * The open section's progress (GET /api/sections/:id/progress): mastery, who needs
+ * help, study days and review packs, for Home and Progress. Asked again when the
+ * window gets focus, so a round played in another tab shows up.
+ */
+export function useSectionProgress() {
+  const { active } = useSection()
+  const sectionId = active?.id ?? ''
+  const query = useQuery({
+    queryKey: sectionKeys.progress(sectionId),
+    queryFn: () => sectionsApi.progress(sectionId),
+    enabled: !!sectionId,
+    refetchOnWindowFocus: 'always',
+  })
+  const retry = useCallback(() => void query.refetch(), [query])
+  return {
+    progress: query.data,
+    /** "2026-11-25": today in the Philippines, like the backend. */
+    today: phToday(),
+    loading: !!sectionId && query.isPending,
+    error: query.data ? null : query.error,
+    retry,
   }
 }
 
@@ -409,7 +432,12 @@ const checkTitle = (n: number) => `Check ${n} AI-drafted question${n === 1 ? '' 
 export function useTodos() {
   const { data, update } = useTeacherStore()
   const { lessons } = useLessons()
+  const { progress, today } = useSectionProgress()
   const todos = useMemo(() => {
+    // Made from the class's progress (rule-based); ticked ones stay done for this session.
+    const autos = (progress ? autoTodos(progress, today) : []).map(
+      (t): ShownTodo => ({ ...t, done: t.id in data.autoDone, doneAt: data.autoDone[t.id] }),
+    )
     // One "Check" item per lesson with drafts, from the backend's counts.
     const checks = lessons
       .filter((l) => l.toCheck > 0 && (l.status === 'toCheck' || l.status === 'ready'))
@@ -432,17 +460,23 @@ export function useTodos() {
         // "Assign …": done once the lesson is really assigned to this section.
         return t.target.kind === 'games' && !t.done && assigned.has(t.target.lessonId) ? { ...shown, done: true } : shown
       })
-    return [...checks, ...others]
-  }, [lessons, data.todos])
+    return [...autos, ...checks, ...others]
+  }, [lessons, data.todos, data.autoDone, progress, today])
   const toggle = useCallback(
     (id: string) =>
-      update((d) => ({
-        ...d,
-        todos: d.todos.map((t) => (t.id === id ? { ...t, done: !t.done, doneAt: t.done ? undefined : nowLabel() } : t)),
-      })),
+      update((d) => {
+        if (id.startsWith('auto-')) {
+          const { [id]: was, ...rest } = d.autoDone
+          return { ...d, autoDone: was === undefined ? { ...rest, [id]: nowLabel() } : rest }
+        }
+        return {
+          ...d,
+          todos: d.todos.map((t) => (t.id === id ? { ...t, done: !t.done, doneAt: t.done ? undefined : nowLabel() } : t)),
+        }
+      }),
     [update],
   )
-  return { todos, upcoming: data.upcoming, toggle }
+  return { todos, toggle }
 }
 
 // ---------- Question cards ----------

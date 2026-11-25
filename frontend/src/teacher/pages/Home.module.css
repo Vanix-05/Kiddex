@@ -259,14 +259,15 @@
 }
 
 .week {
-  margin-top: 26px;
+  margin-top: 22px;
 }
 
 .chart {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 18px;
-  height: 160px;
+  /* Short enough that the topics and the chart stay above Ollie's note. */
+  height: 128px;
   margin-top: 8px;
   padding-bottom: 0;
   border-bottom: 0;
@@ -332,11 +333,11 @@
 }
 
 .topicsEmpty {
-  height: 160px;
+  height: 140px;
 }
 
 .chartEmpty {
-  height: 150px;
+  height: 128px;
 }
 
 /* ---------- Get started (first run) ---------- */

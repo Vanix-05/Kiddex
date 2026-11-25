@@ -7,7 +7,7 @@
 // Never log ids, School IDs or answers.
 import { fromDb } from "../auth/authErrors";
 import { loginNeeded } from "../auth/accountLogin";
-import { MIN_CARDS, TEMPLATE_FOR_TYPE, type CardType, type TemplateId } from "../content/questionCard";
+import { MIN_CARDS, type CardType, type TemplateId } from "../content/questionCard";
 import { prisma } from "../db/prisma";
 import type { Prisma } from "../generated/prisma/client";
 import { AppError } from "../middleware/AppError";
@@ -15,11 +15,12 @@ import { dueDateText } from "../sections/dueDate";
 import { makeBoard, type Board } from "../games/board";
 import { decideAfterRound, START_LEVEL, type Decision, type Level } from "../games/difficulty";
 import { pickMission, type MissionCandidate } from "../games/mission";
+import { cardCounts, GAMES, packGames } from "../games/packs";
 import { levelFromXp, missionMaxXp, ROUND_SIZE, starsEarned, starsFor, xpFor } from "../games/rewards";
 import { nextStreak, phDay, shownStreak } from "../games/streak";
 
-/** The games in their usual order. */
-export const GAMES = ["quiz-show", "match-up", "fill-blank"] as const satisfies readonly TemplateId[];
+/** The games in their usual order (they live in src/games/packs.ts). */
+export { GAMES };
 
 const TYPE_FOR_GAME: Record<TemplateId, CardType> = {
   "quiz-show": "multiple_choice",
@@ -180,12 +181,11 @@ export async function studentGames(studentId: string, now = new Date()): Promise
 
   const lessons = assignments.map((a) => {
     const { lesson } = a;
-    const counts: Record<TemplateId, number> = { "quiz-show": 0, "match-up": 0, "fill-blank": 0 };
-    for (const q of lesson.questions) counts[TEMPLATE_FOR_TYPE[q.type]]++;
-
-    const assigned = GAMES.filter((g) => a.games.includes(g));
-    const games: GameEntry[] = assigned.map((id) => {
-      const playable = counts[id] >= MIN_CARDS[id];
+    // "Playable" and "done" come from src/games/packs.ts, the same as the Teacher's reports.
+    const counts = cardCounts(lesson.questions);
+    const assignedGames = packGames(a.games, counts);
+    const assigned = assignedGames.map((g) => g.id);
+    const games: GameEntry[] = assignedGames.map(({ id, playable }) => {
       return {
         id,
         playable,

@@ -8,8 +8,23 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** The Philippine calendar day of a moment: "2026-11-23". */
 export const phDay = (date: Date) => new Date(date.getTime() + PH_OFFSET_MS).toISOString().slice(0, 10);
 
+/** "2026-11-23" plus `days` days (can be negative). */
+const addDays = (day: string, days: number) =>
+  new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+
 /** "2026-11-23" → "2026-11-22". */
-const dayBefore = (day: string) => new Date(Date.parse(`${day}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10);
+const dayBefore = (day: string) => addDays(day, -1);
+
+/**
+ * The 7 Philippine days, Monday to Sunday, of the week `now` is in:
+ * ["2026-11-23", …, "2026-11-29"].
+ */
+export function phWeekDays(now: Date): string[] {
+  const today = phDay(now);
+  const sinceMonday = (new Date(`${today}T00:00:00Z`).getUTCDay() + 6) % 7; // Monday 0 … Sunday 6
+  const monday = addDays(today, -sinceMonday);
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+}
 
 /**
  * The streak after a round saved on `today`:

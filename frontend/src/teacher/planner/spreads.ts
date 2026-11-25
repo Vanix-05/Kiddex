@@ -1,11 +1,12 @@
 import { createElement, type ComponentType } from 'react'
 import { useSection } from '../data/useTeacherData'
 import { CheckLeft, CheckRight } from '../pages/Check'
-import { ComingSoonRight, LobbyLeft, ProgressLeft } from '../pages/ComingSoon'
+import { ComingSoonRight, LobbyLeft } from '../pages/ComingSoon'
 import { GamesLeft, GamesRight } from '../pages/Games'
 import { HomeLeft, HomeRight } from '../pages/Home'
 import { LessonsLeft, MakingLeft, MakingRight, UploadRight } from '../pages/Lessons'
 import { NoSectionLeft, NoSectionRight } from '../pages/NoSection'
+import { ProgressLeft, ProgressRight } from '../pages/Progress'
 import type { PageKey, PageProps, Spread } from './pages'
 
 /** A spread that only makes sense with a section: before the first one, a friendly empty page. */
@@ -28,7 +29,7 @@ export const SPREADS: Record<PageKey, Spread> = {
   check: { Left: CheckLeft, Right: CheckRight },
   games: { Left: GamesLeft, Right: GamesRight },
   progress: needsSection(
-    { Left: ProgressLeft, Right: ComingSoonRight },
+    { Left: ProgressLeft, Right: ProgressRight },
     'Progress',
     'Your sections become the tabs on top of this planner. Their progress shows up here.',
   ),

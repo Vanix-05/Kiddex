@@ -35,6 +35,10 @@ export interface ServerStudent {
   lastPlayedAt: string | null
   /** The play streak as shown: 0 once it stopped. */
   streakDays: number
+  /** Overall mastery (rule-based), or null while there aren't enough answers yet. */
+  mastery: number | null
+  /** A topic under 50%. */
+  needsHelp: boolean
 }
 
 // ---------- A Student's levels (GET /api/students/:id/levels, step 8) ----------
@@ -89,6 +93,8 @@ export interface LevelTopic {
   /** The review pack name, or the lesson title. */
   lesson: string
   roundCount: number
+  /** Rule-based: percent is null while there are fewer than 8 answers. */
+  mastery: { percent: number | null; answers: number }
   ups: number
   downs: number
   /** The newest 6, oldest first. */
@@ -105,8 +111,64 @@ export interface StudentLevelsAnswer {
     sectionName: string
     lastPlayedAt: string | null
     streakDays: number
+    level: number
+    xp: number
+    xpIntoLevel: number
+    xpGoal: number
+    stars: number
+    /** Different days this week (Mon–Sun, Philippine time) with a round: 0 to 7. */
+    studyDaysThisWeek: number
+    /** Review packs of their section they finished / all with a playable game. */
+    packsDone: number
+    packsTotal: number
+    /** Overall mastery, or null while no topic has enough answers. */
+    mastery: number | null
+    needsHelp: boolean
   }
   topics: LevelTopic[]
+}
+
+// ---------- A section's progress (GET /api/sections/:id/progress, step 9) ----------
+// Mastery is rule-based. Only registered Students count. Days are Philippine days
+// ("2026-11-23").
+
+export interface ProgressPack {
+  assignmentId: string
+  name: string
+  lessonTitle: string
+  /** The playable games. */
+  games: TemplateId[]
+  /** "2026-11-27", or null. */
+  dueDate: string | null
+  done: number
+  /** School ID order. */
+  notDone: { studentId: string; schoolId: string }[]
+}
+
+export interface SectionProgress {
+  registered: number
+  today: { played: number }
+  week: {
+    /** Monday and Sunday of this week. */
+    from: string
+    to: string
+    played: number
+    /** null when nobody is registered. */
+    studyDaysAverage: number | null
+    /** 0 to 5 days always, 6 and 7 only when someone has them. */
+    studyDays: { days: number; count: number }[]
+    /** Mon to Fri always, Sat and Sun only when someone played. Future days: count null. */
+    days: { day: string; weekday: string; count: number | null }[]
+  }
+  mastery: number | null
+  needHelpCount: number
+  /** Weakest first, topics without a percent last (A–Z). */
+  topics: { topic: string; lesson: string; percent: number | null; needHelp: number; played: number }[]
+  /** Lowest percent first. */
+  needHelp: { studentId: string; schoolId: string; buddy: string | null; buddyName: string | null; topic: string; percent: number }[]
+  /** Due soonest first, no due date last, then newest. */
+  packs: ProgressPack[]
+  neverPlayed: { studentId: string; schoolId: string; registeredAt: string | null }[]
 }
 
 export type SkipReason = 'BAD_FORMAT' | 'DUPLICATE_IN_LIST' | 'ALREADY_IN_SECTION' | 'IN_ANOTHER_SECTION'
@@ -158,6 +220,8 @@ export const sectionsApi = {
     api<{ student: ServerStudent }>(`/api/students/${enc(studentId)}/new-code`, { method: 'POST' }).then((a) => a.student),
   /** A Student's level per topic and why (newest played topic first). */
   levels: (studentId: string) => api<StudentLevelsAnswer>(`/api/students/${enc(studentId)}/levels`),
+  /** The section's mastery, study days and review packs (Home and Progress). */
+  progress: (sectionId: string) => api<SectionProgress>(`/api/sections/${enc(sectionId)}/progress`),
 }
 
 /** React Query keys. */
@@ -166,4 +230,5 @@ export const sectionKeys = {
   students: (sectionId: string) => ['sections', sectionId, 'students'] as const,
   assignments: (sectionId: string) => ['sections', sectionId, 'assignments'] as const,
   studentLevels: (studentId: string) => ['teacher', 'student-levels', studentId] as const,
+  progress: (sectionId: string) => ['teacher', 'section-progress', sectionId] as const,
 }

@@ -40,12 +40,22 @@ describe('My Students row', () => {
     registeredAt: null,
     lastPlayedAt: '2026-11-24T17:00:00Z',
     streakDays: 6,
+    mastery: 72,
+    needsHelp: false,
   }
 
-  it('fills Last played and Streak', () => {
+  it('fills Last played, Streak and Mastery', () => {
     const s = toStudent(server, NOW)
     expect(s.lastPlayed).toBe('Today')
     expect(s.streak).toBe(6)
+    expect(s.mastery).toBe(72)
+    expect(s.needsHelp).toBe(false)
+  })
+
+  it('mastery null (not enough answers yet) becomes undefined', () => {
+    const s = toStudent({ ...server, mastery: null, needsHelp: true }, NOW)
+    expect(s.mastery).toBeUndefined()
+    expect(s.needsHelp).toBe(true)
   })
 
   it('a streak of 0 and no rounds show the dash', () => {

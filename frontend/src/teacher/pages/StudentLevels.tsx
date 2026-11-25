@@ -1,12 +1,30 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
-import { ArrowLeft, Check, Flame, Lightbulb, Link2, ListChecks, Mic, Pencil, TrendingUp, X, type LucideIcon } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  Flame,
+  Target,
+  Lightbulb,
+  Link2,
+  ListChecks,
+  Mic,
+  Package,
+  Pencil,
+  Sparkles,
+  Star,
+  TrendingUp,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { errorMessage } from '../api/client'
-import type { LevelAnswer, LevelCheck, LevelName, LevelRound, LevelTopic } from '../api/sectionsApi'
+import type { LevelAnswer, LevelCheck, LevelName, LevelRound, LevelTopic, StudentLevelsAnswer } from '../api/sectionsApi'
 import { buddyHeads, GAME_INFO, gameThumbs } from '../assets'
 import { checkLine, endLine, LEVEL_NAME, phTime, playedLabel, reasonScore, roundMinutes, streakShown } from '../data/levels'
 import type { Student, TemplateId } from '../data/types'
 import { toBuddyHead, useStudentLevels } from '../data/useTeacherData'
-import { Btn, Chip, Title } from '../planner/ui'
+import { Bar, Btn, Chip, Pills, Title } from '../planner/ui'
+import { StatStrip } from './Home'
 import win from './StudentsWindow.module.css'
 import styles from './StudentLevels.module.css'
 
@@ -17,6 +35,9 @@ const gameIcon = (g: string) => GAME_ICON[g as TemplateId] ?? Mic
 const gameName = (g: string) => GAME_INFO[g as TemplateId]?.name ?? 'Game'
 
 const TONE: Record<LevelName, string> = { easy: styles.easy, medium: styles.medium, hard: styles.hard }
+
+/** The right card's tabs (the round detail replaces both; ✕ comes back to the one open). */
+type RulesTab = 'levels' | 'mastery'
 
 /** The rounds the page knows, by id (for the picked one). */
 const findRound = (topics: LevelTopic[], id: string | null) => {
@@ -39,14 +60,16 @@ interface StudentLevelsProps {
 /**
  * A Student's page inside My Students (no new route, no page flip): their level
  * per topic as a path over Easy, Medium and Hard, and why it changed. Tapping a
- * round dot shows the checks made during that round. The engine is rule-based:
- * the same answers always give the same levels.
+ * round dot shows the checks made during that round. Above, their totals and
+ * overall mastery. Levels and mastery are rule-based: the same answers always give
+ * the same result.
  */
 export function StudentLevels({ titleId, student, sectionName, picked, onPick, onBack }: StudentLevelsProps) {
   const { data, loading, error, retry } = useStudentLevels(student.id)
   const real = titleId !== undefined
   const rootRef = useRef<HTMLDivElement>(null)
   const headRef = useRef<HTMLDivElement>(null)
+  const [tab, setTab] = useState<RulesTab>('levels')
 
   // Opening the page: focus its title (only on the real sheet).
   useEffect(() => {
@@ -122,11 +145,13 @@ export function StudentLevels({ titleId, student, sectionName, picked, onPick, o
           </p>
         )
       ) : (
+        <div className={styles.body}>
+        {info && <Totals info={info} />}
         <div className={styles.cols}>
           <section className={styles.main} aria-labelledby={real ? `${titleId}-topics` : undefined}>
             <div className={styles.mainHead}>
               <h3 id={real ? `${titleId}-topics` : undefined} className={styles.h3}>
-                Level by topic
+                By topic
               </h3>
               <div className={styles.gameKey}>
                 {GAMES.map((g) => {
@@ -163,11 +188,67 @@ export function StudentLevels({ titleId, student, sectionName, picked, onPick, o
           {found ? (
             <RoundDetail topic={found.topic.topic} round={found.round} onClose={() => onPick(null)} />
           ) : (
-            <Rules />
+            <Rules tab={tab} onTab={setTab} />
           )}
+        </div>
         </div>
       )}
     </div>
+  )
+}
+
+// ---------- Totals ----------
+
+/** The stats strip (level, stars, study days, packs) and the overall mastery box. */
+function Totals({ info }: { info: StudentLevelsAnswer['student'] }) {
+  return (
+    <div className={styles.totals}>
+      <div className={styles.strip}>
+        <StatStrip
+          cells={[
+            { big: `Lv ${info.level}`, small: ` · ${info.xp} XP`, label: 'level', icon: Sparkles },
+            { big: String(info.stars), label: 'stars', icon: Star },
+            { big: String(info.studyDaysThisWeek), label: 'study days this week', icon: CalendarDays },
+            { big: String(info.packsDone), small: `/${info.packsTotal}`, label: 'review packs done', icon: Package },
+          ]}
+        />
+      </div>
+      <div className={styles.overall}>
+        <span className={styles.overallLabel}>
+          <Target size={15} strokeWidth={2.2} aria-hidden="true" /> overall mastery
+        </span>
+        {info.mastery === null ? (
+          <span className={styles.notEnough}>Not enough yet</span>
+        ) : (
+          <span className={styles.overallRow}>
+            <Bar percent={info.mastery} className={styles.overallBar} />
+            <strong className={styles.overallPct}>{info.mastery}%</strong>
+            {info.needsHelp && (
+              <Chip tone="bad" className={styles.helpChip}>
+                Needs help
+              </Chip>
+            )}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** "Mastery ▬ 38%", or "Mastery: not enough yet (5 of 8 answers)". */
+function TopicMasteryLine({ m }: { m: LevelTopic['mastery'] }) {
+  if (m.percent === null)
+    return (
+      <span className={styles.topicMastery}>
+        <span className={styles.notEnough}>Mastery: not enough yet ({m.answers} of 8 answers)</span>
+      </span>
+    )
+  return (
+    <span className={styles.topicMastery}>
+      Mastery
+      <Bar percent={m.percent} className={styles.topicBar} />
+      <strong className={m.percent < 50 ? styles.low : undefined}>{m.percent}%</strong>
+    </span>
   )
 }
 
@@ -184,8 +265,11 @@ function TopicCard({ t, picked, onPick }: { t: LevelTopic; picked: string | null
             {t.lesson} · {t.roundCount} {t.roundCount === 1 ? 'round' : 'rounds'} · went up {t.ups}, down {t.downs}
           </span>
         </div>
-        <span className={`${styles.now} ${TONE[t.level]}`}>
-          Next round: <b>{LEVEL_NAME[t.level]}</b>
+        <span className={styles.topicRight}>
+          <TopicMasteryLine m={t.mastery} />
+          <span className={`${styles.now} ${TONE[t.level]}`}>
+            Next round: <b>{LEVEL_NAME[t.level]}</b>
+          </span>
         </span>
       </header>
       <LevelPath rounds={t.rounds} earlier={earlier} picked={picked} onPick={onPick} />
@@ -289,13 +373,38 @@ function LevelPath({
 
 // ---------- The right card ----------
 
-function Rules() {
+function Rules({ tab, onTab }: { tab: RulesTab; onTab: (t: RulesTab) => void }) {
   return (
-    <aside className={styles.side} aria-label="How levels change">
+    <aside className={styles.side} aria-label={tab === 'levels' ? 'How levels change' : 'How mastery works'}>
+      <div className={styles.tabs}>
+        <Pills
+          label="Rules"
+          value={tab}
+          onChange={onTab}
+          items={[
+            { value: 'levels', label: 'Levels' },
+            { value: 'mastery', label: 'Mastery' },
+          ]}
+        />
+      </div>
+      {tab === 'levels' ? <LevelRules /> : <MasteryRules />}
+      <p className={styles.honest}>
+        <Lightbulb size={17} aria-hidden="true" />
+        <span>
+          Levels and mastery are <b>rule-based</b>: the same answers always give the same result. AI is only used to draft questions
+          from your lessons.
+        </span>
+      </p>
+    </aside>
+  )
+}
+
+function LevelRules() {
+  return (
+    <>
       <h3 className={styles.sideTitle}>
         <ListChecks size={21} aria-hidden="true" /> How levels change
       </h3>
-      <p className={styles.sideSub}>KIDDEX follows these fixed rules for every Student.</p>
       <ol className={styles.rules}>
         <li>
           <b>Everyone starts on Easy</b> for each topic.
@@ -310,13 +419,31 @@ function Rules() {
           <b>Buddy Help answers</b> don&rsquo;t count as right for the level.
         </li>
       </ol>
-      <p className={styles.honest}>
-        <Lightbulb size={17} aria-hidden="true" />
-        <span>
-          Levels are <b>rule-based</b>: the same answers always give the same result. AI is only used to draft questions from your lessons.
-        </span>
-      </p>
-    </aside>
+    </>
+  )
+}
+
+function MasteryRules() {
+  return (
+    <>
+      <h3 className={styles.sideTitle}>
+        <Target size={21} aria-hidden="true" /> How mastery works
+      </h3>
+      <ol className={styles.rules}>
+        <li>
+          <b>Mastery</b> = right answers out of the <b>last 20</b> in a topic, so old mistakes fade out.
+        </li>
+        <li>
+          A <b>Buddy Help</b> answer counts as <b>half</b> right.
+        </li>
+        <li>
+          It shows after <b>8 answers</b>. One good round isn&rsquo;t mastery yet.
+        </li>
+        <li>
+          <b>Under 50%</b> in any topic → <b>Needs help</b>. 70% or more is green.
+        </li>
+      </ol>
+    </>
   )
 }
 

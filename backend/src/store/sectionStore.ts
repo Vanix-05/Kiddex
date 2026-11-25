@@ -5,6 +5,7 @@
 import { dbProblem, isDbUnreachable } from "../db/dbProblem";
 import { prisma } from "../db/prisma";
 import type { Prisma } from "../generated/prisma/client";
+import { needsHelp, overallMastery } from "../games/mastery";
 import { phDay, shownStreak } from "../games/streak";
 import { AppError } from "../middleware/AppError";
 import { newCodeChanges } from "../sections/newCode";
@@ -12,6 +13,7 @@ import { makeUniqueCodes, showOneTimeCode } from "../sections/oneTimeCode";
 import { planAdd, type Skipped } from "../sections/planAdd";
 import { cleanSchoolId, showSchoolId } from "../sections/schoolId";
 import { sectionErrors } from "../sections/sectionErrors";
+import { loadRounds, topicsByStudent } from "./reportStore";
 
 /** New sections take the next tab look, in this order, then again. */
 const SECTION_LOOKS = [
@@ -46,6 +48,10 @@ export interface StudentView {
   lastPlayedAt: string | null;
   /** The play streak as the screens show it: 0 once it stopped (Philippine days). */
   streakDays: number;
+  /** Overall mastery (rule-based, src/games/mastery.ts), or null while there aren't enough answers yet. */
+  mastery: number | null;
+  /** A topic under 50%. */
+  needsHelp: boolean;
 }
 
 const STUDENT_COLUMNS = {
@@ -63,7 +69,14 @@ const STUDENT_COLUMNS = {
 
 type StudentRow = Prisma.StudentGetPayload<{ select: typeof STUDENT_COLUMNS }>;
 
-function studentView(s: StudentRow, lastPlayedAt: Date | null = null, now = new Date()): StudentView {
+const NO_MASTERY = { mastery: null, needsHelp: false };
+
+function studentView(
+  s: StudentRow,
+  lastPlayedAt: Date | null = null,
+  now = new Date(),
+  report: { mastery: number | null; needsHelp: boolean } = NO_MASTERY,
+): StudentView {
   const registered = s.pinHash !== null;
   return {
     id: s.id,
@@ -76,6 +89,8 @@ function studentView(s: StudentRow, lastPlayedAt: Date | null = null, now = new 
     registeredAt: s.registeredAt?.toISOString() ?? null,
     lastPlayedAt: lastPlayedAt?.toISOString() ?? null,
     streakDays: shownStreak(s.lastPlayDay, s.streakDays, phDay(now)),
+    mastery: report.mastery,
+    needsHelp: report.needsHelp,
   };
 }
 
@@ -142,26 +157,32 @@ export async function createSection(teacherId: string, grade: number, name: stri
   }
 }
 
-/** The section's Students, in School ID order, with when each last played (one query for all). */
+/**
+ * The section's Students, in School ID order, with when each last played and their
+ * mastery. One query for the section + Students, then the rounds + answers of the
+ * whole section at once (reportStore.loadRounds).
+ */
 export function listStudents(teacherId: string, sectionId: string): Promise<StudentView[]> {
   return db(async () => {
-    const section = await prisma.section.findFirst({ where: { id: sectionId, teacherId }, select: { id: true } });
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, teacherId },
+      select: { id: true, students: { orderBy: { schoolId: "asc" }, select: STUDENT_COLUMNS } },
+    });
     if (!section) throw sectionErrors.sectionNotFound();
-    const [rows, lastRounds] = await Promise.all([
-      prisma.student.findMany({
-        where: { sectionId },
-        orderBy: { schoolId: "asc" },
-        select: STUDENT_COLUMNS,
-      }),
-      prisma.gameRound.groupBy({
-        by: ["studentId"],
-        where: { student: { sectionId } },
-        _max: { endedAt: true },
-      }),
-    ]);
-    const lastPlayed = new Map(lastRounds.map((r) => [r.studentId, r._max.endedAt]));
+    const rows = section.students;
+    const rounds = await loadRounds(rows.map((s) => s.id));
+    // Rounds come newest first: the first one seen per Student is their last played.
+    const lastPlayed = new Map<string, Date>();
+    for (const r of rounds) if (!lastPlayed.has(r.studentId)) lastPlayed.set(r.studentId, r.endedAt);
+    const topicsOf = topicsByStudent(rounds);
     const now = new Date();
-    return rows.map((s) => studentView(s, lastPlayed.get(s.id) ?? null, now));
+    return rows.map((s) => {
+      const topics = (topicsOf.get(s.id) ?? []).map((t) => t.mastery);
+      return studentView(s, lastPlayed.get(s.id) ?? null, now, {
+        mastery: overallMastery(topics),
+        needsHelp: needsHelp(topics),
+      });
+    });
   });
 }
 

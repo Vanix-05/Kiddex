@@ -430,6 +430,7 @@ function Planner() {
             <StudentsWindow
               closing={win === 'closing'}
               initialFilter={new URLSearchParams(winQuery).get('filter')}
+              initialStudent={new URLSearchParams(winQuery).get('student')}
               onClose={closeWindow}
               onClosed={() => {
                 setWin('hidden')

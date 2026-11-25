@@ -1,10 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Check, Eye, Flame, KeyRound, Lock, Plus, Printer, Search, Users, X } from 'lucide-react'
 import { errorMessage } from '../api/client'
+import { masteryCell } from '../data/reports'
 import { MAX_STUDENTS_PER_SECTION } from '../data/schoolIds'
 import { useJustAdded, useSection, useStudentsLoad, useTeacher } from '../data/useTeacherData'
 import type { Student, StudentFilter } from '../data/types'
 import { buddyHeads } from '../assets'
+import { studentsPath } from '../planner/pages'
 import { usePlannerActions } from '../planner/plannerActions'
 import { Bar, Btn, Chip, Pills, Title } from '../planner/ui'
 import { toLoginCards, usePrintCards } from '../print/printCards'
@@ -27,6 +30,8 @@ interface StudentsWindowProps {
   closing: boolean
   /** From the URL, e.g. "help" for "See who" on Home. */
   initialFilter: string | null
+  /** From the URL: a Student's id to open their page (Home's To dos, Progress). */
+  initialStudent: string | null
   onClose: () => void
   /** The closing motion finished. */
   onClosed: () => void
@@ -37,8 +42,9 @@ interface StudentsWindowProps {
  * (no page turn). It drops in folded in half, then the right half unfolds.
  * Closing folds it and lifts it away. ✕, Esc or a click on the blur closes it.
  */
-export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: StudentsWindowProps) {
+export function StudentsWindow({ closing, initialFilter, initialStudent, onClose, onClosed }: StudentsWindowProps) {
   const titleId = useId()
+  const navigate = useNavigate()
   const [reduced] = useState(reducedMotion)
   // unfolding = the opening motion (half folded), open = flat, then closing.
   const [unfolding, setUnfolding] = useState(!reduced)
@@ -50,9 +56,9 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
   const [shownCodes, setShownCodes] = useState<ReadonlySet<string>>(() => new Set())
   // The Print login cards view, and where it was opened from (Back goes there).
   const [printFrom, setPrintFrom] = useState<PrintFrom | null>(null)
-  // The Student's page (Open →), and the round picked on it. Only while the
-  // window is open: it opens on the list next time.
-  const [openStudent, setOpenStudent] = useState<Student | null>(null)
+  // The Student's page (Open →, or ?student= in the URL), and the round picked on
+  // it. Open → is only while the window is open: it opens on the list next time.
+  const [openStudent, setOpenStudent] = useState<string | null>(initialStudent)
   const [pickedRound, setPickedRound] = useState<string | null>(null)
   const toggleCode = (id: string) =>
     setShownCodes((before) => {
@@ -67,6 +73,15 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
     setSeenFilter(initialFilter)
     setFilter(isFilter(initialFilter) ? initialFilter : 'all')
     setPage(0)
+  }
+  // A Student from the URL (e.g. "Open" on Home while it's open).
+  const [seenStudent, setSeenStudent] = useState(initialStudent)
+  if (seenStudent !== initialStudent) {
+    setSeenStudent(initialStudent)
+    if (initialStudent) {
+      setOpenStudent(initialStudent)
+      setPickedRound(null)
+    }
   }
 
   // Focus moves into the window, and back where it was after closing.
@@ -93,9 +108,11 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
 
   /** ← My Students: back to the list (same page and filter), focus on that row's Open. */
   const backFromStudent = () => {
-    const id = openStudent?.id
+    const id = openStudent
     setOpenStudent(null)
     setPickedRound(null)
+    // Opened from the URL: the list's address again, so a refresh shows the list.
+    if (initialStudent) navigate(studentsPath(filter === 'all' ? undefined : filter), { replace: true })
     if (id)
       requestAnimationFrame(() =>
         sheetRef.current?.querySelector<HTMLElement>(`[data-open-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true }),
@@ -128,7 +145,7 @@ export function StudentsWindow({ closing, initialFilter, onClose, onClosed }: St
       printFrom={printFrom}
       onPrintView={setPrintFrom}
       openStudent={openStudent}
-      onOpenStudent={setOpenStudent}
+      onOpenStudent={(s) => setOpenStudent(s.id)}
       onBackFromStudent={backFromStudent}
       pickedRound={pickedRound}
       onPickRound={setPickedRound}
@@ -201,8 +218,8 @@ interface SheetContentProps {
   printFrom: PrintFrom | null
   /** Opens (or with null closes) the Print login cards view. */
   onPrintView: (from: PrintFrom | null) => void
-  /** The Student's page (Open →), or null for the list. */
-  openStudent: Student | null
+  /** The Student's page (Open →) by id, or null for the list. */
+  openStudent: string | null
   onOpenStudent: (s: Student) => void
   onBackFromStudent: () => void
   /** The round picked on the Student's page (its detail shows). */
@@ -324,12 +341,14 @@ function SheetContent({
 
   const sectionName = `Grade ${active.grade} – ${active.name}`
 
-  // The Student's page: inside the same window, like "Login codes are ready!".
+  // The Student's page: inside the same window, like "Login codes are ready!". Opened
+  // from the URL before the list loads: the header fills in from their page.
   if (openStudent) {
+    const student = students.find((s) => s.id === openStudent) ?? { id: openStudent, schoolId: '', registered: true }
     return (
       <StudentLevels
         titleId={titleId}
-        student={openStudent}
+        student={student}
         sectionName={sectionName}
         picked={pickedRound}
         onPick={onPickRound}
@@ -489,6 +508,20 @@ function SheetContent({
   )
 }
 
+/** Mastery: the bar and %, "Not enough yet" (played, fewer than 8 answers), or the dash (never played). */
+function MasteryCellView({ s }: { s: Student }) {
+  const cell = masteryCell(s)
+  if (cell.kind === 'percent')
+    return (
+      <span className={styles.mastery}>
+        <Bar percent={cell.percent} className={styles.masteryBar} />
+        <strong>{cell.percent}%</strong>
+      </span>
+    )
+  if (cell.kind === 'notEnough') return <span className={styles.notEnough}>Not enough yet</span>
+  return <Dash />
+}
+
 interface StudentRowProps {
   s: Student
   codeShown: boolean
@@ -527,14 +560,7 @@ function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen }: S
       <td>{s.lastPlayed ?? <Dash />}</td>
       <td>
         {s.registered ? (
-          s.mastery !== undefined ? (
-            <span className={styles.mastery}>
-              <Bar percent={s.mastery} className={styles.masteryBar} />
-              <strong>{s.mastery}%</strong>
-            </span>
-          ) : (
-            <Dash />
-          )
+          <MasteryCellView s={s} />
         ) : (
           <span className={styles.code}>
             Code

@@ -1,7 +1,7 @@
 /**
- * The shapes of the Teacher Dashboard data. Lessons, sections and Students come
- * from the backend (src/teacher/api); To dos and stats are still kept in memory
- * (TeacherDataProvider) until they get their own addresses.
+ * The shapes of the Teacher Dashboard data. Lessons, sections, Students and the
+ * class's progress come from the backend (src/teacher/api); which To dos were
+ * ticked and the open section tab are kept in memory (TeacherDataProvider).
  */
 import type { QuestionCard, TemplateId } from '../../content/questionCard'
 
@@ -27,33 +27,14 @@ export interface Teacher {
   name: string
 }
 
-export interface ClassStats {
-  playedToday: number
-  /** Students who finished the current review pack (null = no pack yet). */
-  reviewPackDone: number | null
-  reviewPackTotal: number | null
-  /** Average study days this week (null = no activity yet). */
-  studyDays: number | null
-}
-
-export interface TopicMastery {
-  topic: string
-  /** 0–100 */
-  percent: number
-}
-
-export interface DayPlays {
-  day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri'
-  /** null = a day still to come */
-  count: number | null
-  today?: boolean
-}
-
 /** Where a To do button goes. */
 export type TodoTarget =
   | { kind: 'check'; lessonId: string }
   | { kind: 'students'; filter?: StudentFilter }
   | { kind: 'games'; lessonId: string }
+  /** One Student's page in My Students. */
+  | { kind: 'student'; studentId: string }
+  | { kind: 'progress' }
   | { kind: 'none' }
 
 export interface TodoItem {
@@ -75,20 +56,11 @@ export interface TodoItem {
   doneAt?: string
 }
 
-export interface UpcomingItem {
-  id: string
-  /** e.g. "FRI" */
-  weekday: string
-  date: number
-  title: string
-  detail: string
-}
-
 export type StudentFilter = 'all' | 'registered' | 'notYet' | 'help'
 
 /**
  * A Student. Students have NO names in KIDDEX (Master Brief 4.1): only a School ID.
- * lastPlayed, mastery, streak and needsHelp stay empty until games save progress.
+ * lastPlayed, mastery and streak stay empty until the Student plays.
  */
 export interface Student {
   id: string
@@ -103,7 +75,7 @@ export interface Student {
   buddyName?: string
   /** e.g. "Today", "Nov 4" */
   lastPlayed?: string
-  /** 0–100 */
+  /** Overall mastery 0–100 (rule-based); undefined while there aren't enough answers. */
   mastery?: number
   streak?: number
   needsHelp?: boolean
@@ -177,15 +149,9 @@ export interface TeacherData {
   activeSectionId: string
   /** e.g. "Thursday, November 6" */
   todayLabel: string
-  /** The subject the class is on this week, e.g. "Fractions" */
-  weekSubject: string
-  stats: ClassStats
   todos: TodoItem[]
-  upcoming: UpcomingItem[]
-  weakTopics: TopicMastery[]
-  week: DayPlays[]
-  /** Ollie's note on Home. */
-  ollieNote: string
+  /** Automatic To dos (made from the progress) ticked this session: id → "7:42 AM". */
+  autoDone: Record<string, string>
   /** The Students just added, shown as "Login codes are ready!" in My Students. */
   justAdded: JustAdded | null
   /** Screen-only notes on server lessons, by lesson id (review pack games, assigned). */

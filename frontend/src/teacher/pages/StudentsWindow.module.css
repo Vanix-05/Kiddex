@@ -438,6 +438,14 @@
   height: 12px;
 }
 
+/* Played, but fewer than 8 answers: small, grey, italic. */
+.notEnough {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
 .code {
   display: inline-flex;
   align-items: center;

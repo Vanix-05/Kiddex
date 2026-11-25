@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, CalendarDays, ChartNoAxesColumn, Check, Gamepad2, Package, User, Users, type LucideIcon } from 'lucide-react'
 import { paths } from '../../routes/paths'
+import type { SectionProgress } from '../api/sectionsApi'
+import { calendarOf, comingUp, currentPack, nobodyPlayed, ollieNote } from '../data/reports'
 import {
   useClassSummary,
   useLessons,
   useSection,
+  useSectionProgress,
   useStudents,
   useStudentsLoad,
   useTeacher,
@@ -12,7 +15,7 @@ import {
   type ShownTodo,
 } from '../data/useTeacherData'
 import type { TodoTarget } from '../data/types'
-import { lessonStepPath, studentsPath, type PageProps } from '../planner/pages'
+import { lessonStepPath, studentPagePath, studentsPath, type PageProps } from '../planner/pages'
 import { usePlannerActions } from '../planner/plannerActions'
 import { Bar, Btn, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Home.module.css'
@@ -63,19 +66,16 @@ export function HomeLeft({ live }: PageProps) {
   )
 }
 
-function Stats() {
-  const { registered, total, stats } = useClassSummary()
-  const cells: { big: string; small?: string; label: string; icon: LucideIcon }[] = [
-    { big: String(registered), small: `/${total}`, label: 'registered', icon: User },
-    { big: String(stats.playedToday), label: 'played today', icon: Gamepad2 },
-    {
-      big: stats.reviewPackDone === null ? '–' : String(stats.reviewPackDone),
-      small: stats.reviewPackTotal === null ? undefined : `/${stats.reviewPackTotal}`,
-      label: 'review pack',
-      icon: Package,
-    },
-    { big: stats.studyDays === null ? '–' : String(stats.studyDays), label: 'study days', icon: CalendarDays },
-  ]
+/** One box of a stats strip: a big number, a small "/7" after it, and a label with an icon. */
+export interface StatCell {
+  big: string
+  small?: string
+  label: string
+  icon: LucideIcon
+}
+
+/** The white stats strip (Home, Progress). */
+export function StatStrip({ cells }: { cells: StatCell[] }) {
   return (
     <dl className={styles.stats}>
       {cells.map(({ big, small, label, icon: Icon }) => (
@@ -94,18 +94,51 @@ function Stats() {
   )
 }
 
-const targetPath = (t: TodoTarget) =>
-  t.kind === 'check'
-    ? lessonStepPath(t.lessonId, 'check')
-    : t.kind === 'games'
-      ? lessonStepPath(t.lessonId, 'games')
-      : t.kind === 'students'
-        ? studentsPath(t.filter)
-        : null
+/** Home's stats: registered (the list), then played today, the soonest pack and study days (the progress). */
+function Stats() {
+  const { registered, total } = useClassSummary()
+  const { progress, today } = useSectionProgress()
+  const pack = progress ? currentPack(progress, today) : undefined
+  const avg = progress?.week.studyDaysAverage
+  return (
+    <StatStrip
+      cells={[
+        { big: String(registered), small: `/${total}`, label: 'registered', icon: User },
+        { big: progress ? String(progress.today.played) : '–', label: 'played today', icon: Gamepad2 },
+        {
+          big: pack ? String(pack.done) : '–',
+          small: pack && progress ? `/${progress.registered}` : undefined,
+          label: 'review pack',
+          icon: Package,
+        },
+        { big: avg == null ? '–' : String(avg), label: 'study days', icon: CalendarDays },
+      ]}
+    />
+  )
+}
+
+function targetPath(t: TodoTarget): string | null {
+  switch (t.kind) {
+    case 'check':
+      return lessonStepPath(t.lessonId, 'check')
+    case 'games':
+      return lessonStepPath(t.lessonId, 'games')
+    case 'students':
+      return studentsPath(t.filter)
+    case 'student':
+      return studentPagePath(t.studentId)
+    case 'progress':
+      return paths.teacher.progress
+    default:
+      return null
+  }
+}
 
 /** openOnly: under Get started, just the open items (up to 2) and no Coming up. */
 function TodoList({ live, openOnly = false }: { live: boolean; openOnly?: boolean }) {
-  const { todos, upcoming, toggle } = useTodos()
+  const { todos, toggle } = useTodos()
+  const { progress, today } = useSectionProgress()
+  const upcoming = progress ? comingUp(progress, today) : []
   const navigate = useNavigate()
   const left = todos.filter((t) => !t.done).length
   // Open items first, then up to 5 rows in all (the page has room for 5).
@@ -147,20 +180,26 @@ function TodoList({ live, openOnly = false }: { live: boolean; openOnly?: boolea
         <section className={styles.coming}>
           <Heading>Coming up</Heading>
           <ul className={styles.comingRows}>
-            {upcoming.map((u) => (
-              <li key={u.id} className={styles.comingRow}>
-                <span className={styles.cal} aria-hidden="true">
-                  <span className={styles.calDay}>{u.weekday}</span>
-                  <span className={styles.calDate}>{u.date}</span>
-                </span>
-                <span className="visually-hidden">
-                  {u.weekday} {u.date}:
-                </span>
-                <span>
-                  <strong>{u.title}</strong> <span className={styles.muted}>· {u.detail}</span>
-                </span>
-              </li>
-            ))}
+            {upcoming.map((u) => {
+              const cal = calendarOf(u.dueDate!)
+              return (
+                <li key={u.assignmentId} className={styles.comingRow}>
+                  <span className={styles.cal} aria-hidden="true">
+                    <span className={styles.calDay}>{cal.weekday}</span>
+                    <span className={styles.calDate}>{cal.date}</span>
+                  </span>
+                  <span className="visually-hidden">
+                    {cal.weekday} {cal.date}:
+                  </span>
+                  <span>
+                    <strong>{u.name}</strong>{' '}
+                    <span className={styles.muted}>
+                      · {u.done} of {progress?.registered ?? 0} done
+                    </span>
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
@@ -290,11 +329,13 @@ function GetStarted({ live }: { live: boolean }) {
 
 export function HomeRight() {
   const { active } = useSection()
-  const { weekSubject, weakTopics, week, ollieNote } = useClassSummary()
+  const { progress, today } = useSectionProgress()
   const navigate = useNavigate()
 
   // Nothing to show until the students play: empty boxes and a first step.
-  const empty = weakTopics.length === 0 && week.length === 0
+  const empty = !progress || nobodyPlayed(progress)
+  const weakTopics = progress && !empty ? progress.topics.filter((t) => t.percent !== null).slice(0, 3) : []
+  const subject = progress ? currentPack(progress, today)?.lessonTitle : undefined
 
   return (
     <PageBody side="R">
@@ -305,7 +346,11 @@ export function HomeRight() {
         </Btn>
       )}
       <Sub>
-        {empty || !active || !weekSubject ? 'Nothing here yet. It fills in as your students play.' : `How ${active.name} is doing on ${weekSubject}`}
+        {empty || !active
+          ? 'Nothing here yet. It fills in as your students play.'
+          : subject
+            ? `How ${active.name} is doing on ${subject}`
+            : `How ${active.name} is doing this week`}
       </Sub>
 
       <section className={styles.topics}>
@@ -313,51 +358,66 @@ export function HomeRight() {
         {weakTopics.length === 0 ? (
           <p className={`${styles.placeholder} ${styles.topicsEmpty}`}>
             <ChartNoAxesColumn size={34} strokeWidth={2} aria-hidden="true" />
-            Topics show up after your students play.
+            {empty ? 'Topics show up after your students play.' : 'Topics show up after 8 answers in a topic.'}
           </p>
         ) : (
           <ul className={styles.topicRows}>
-            {weakTopics.map((t) => (
-              <li key={t.topic} className={styles.topic}>
-                <span className={styles.topicName}>{t.topic}</span>
-                <span className={t.percent < 50 ? `${styles.pct} ${styles.pctLow}` : styles.pct}>{t.percent}%</span>
-                <Bar percent={t.percent} className={styles.topicBar} />
-              </li>
-            ))}
+            {weakTopics.map((t) => {
+              const percent = t.percent ?? 0
+              return (
+                <li key={t.topic} className={styles.topic}>
+                  <span className={styles.topicName}>{t.topic}</span>
+                  <span className={percent < 50 ? `${styles.pct} ${styles.pctLow}` : styles.pct}>{percent}%</span>
+                  <Bar percent={percent} className={styles.topicBar} />
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
 
       <section className={styles.week}>
         <Heading>Who played each day</Heading>
-        {week.length === 0 ? (
+        {empty || !progress ? (
           <p className={`${styles.placeholder} ${styles.chartEmpty}`}>
             <Users size={34} strokeWidth={2} aria-hidden="true" />
             Each day shows up after your students play.
           </p>
         ) : (
-          <WeekChart week={week} />
+          <WeekChart days={progress.week.days} today={today} />
         )}
       </section>
 
-      <OllieNote>{active ? ollieNote : 'Start with step 1. Your sections become the tabs on top of this planner.'}</OllieNote>
+      <OllieNote>
+        {!active
+          ? 'Start with step 1. Your sections become the tabs on top of this planner.'
+          : progress
+            ? ollieNote(progress, today)
+            : 'Your class’s progress will show here after the first game.'}
+      </OllieNote>
     </PageBody>
   )
 }
 
-function WeekChart({ week }: { week: ReturnType<typeof useClassSummary>['week'] }) {
-  const max = Math.max(...week.map((d) => d.count ?? 0), 1)
-  const spoken = week.map((d) => `${d.day}: ${d.count ?? 'not yet'}`).join(', ')
+/** Students who played each day: today highlighted, days still to come dashed. */
+function WeekChart({ days, today }: { days: SectionProgress['week']['days']; today: string }) {
+  const max = Math.max(...days.map((d) => d.count ?? 0), 1)
+  const spoken = days.map((d) => `${d.weekday}: ${d.count ?? 'not yet'}`).join(', ')
   return (
-    <div className={styles.chart} role="img" aria-label={`Students who played each day. ${spoken}`}>
-      {week.map((d) => {
-        const h = d.count === null ? 40 : Math.max(8, (d.count / max) * 108)
-        const className = [styles.col, d.today && styles.today, d.count === null && styles.future].filter(Boolean).join(' ')
+    <div
+      className={styles.chart}
+      style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}
+      role="img"
+      aria-label={`Students who played each day. ${spoken}`}
+    >
+      {days.map((d) => {
+        const h = d.count === null ? 34 : d.count === 0 ? 0 : Math.max(8, (d.count / max) * 84)
+        const className = [styles.col, d.day === today && styles.today, d.count === null && styles.future].filter(Boolean).join(' ')
         return (
           <div key={d.day} className={className}>
             <span className={styles.colNumber}>{d.count ?? ''}</span>
             <span className={styles.colBar} style={{ height: h }} />
-            <span className={styles.colDay}>{d.day}</span>
+            <span className={styles.colDay}>{d.weekday}</span>
           </div>
         )
       })}

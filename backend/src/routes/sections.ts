@@ -4,7 +4,8 @@
 //   GET  /api/sections/:sectionId/students     the section's Students, School ID order
 //   POST /api/sections/:sectionId/students     { schoolIds } → 201 { added, skipped }
 //   POST /api/students/:studentId/new-code     a new one-time code → { student }
-//   GET  /api/students/:studentId/levels       the Student's level per topic and why (step 8)
+//   GET  /api/students/:studentId/levels       the Student's level per topic and why (step 8), and mastery (step 9)
+//   GET  /api/sections/:sectionId/progress     the section's mastery, study days and review packs (step 9)
 // A Teacher only ever sees their own: another Teacher's section is 404 SECTION_NOT_FOUND.
 // Students have NO names. Only counts are logged, never School IDs or codes.
 import { Router } from "express";
@@ -13,6 +14,7 @@ import { currentTeacherId } from "../auth/currentTeacher";
 import { MAX_GRADE, MAX_SECTION_NAME, MAX_STUDENTS_PER_SECTION, MIN_GRADE } from "../sections/limits";
 import { sectionErrors } from "../sections/sectionErrors";
 import { studentLevels } from "../store/levelStore";
+import { sectionProgress } from "../store/reportStore";
 import { addStudents, createSection, listSections, listStudents, makeNewCode } from "../store/sectionStore";
 
 export const sectionsRouter = Router();
@@ -59,6 +61,12 @@ sectionsRouter.post("/api/sections", async (req, res) => {
 
 sectionsRouter.get("/api/sections/:sectionId/students", async (req, res) => {
   res.json(await listStudents(currentTeacherId(req), req.params.sectionId));
+});
+
+// The Teacher's reports (step 9). Mastery is rule-based, not AI. Only registered Students
+// count. Another Teacher's section: 404 SECTION_NOT_FOUND.
+sectionsRouter.get("/api/sections/:sectionId/progress", async (req, res) => {
+  res.json(await sectionProgress(currentTeacherId(req), req.params.sectionId));
 });
 
 // A new one-time code for one of my Students. Never logs the School ID or the code.

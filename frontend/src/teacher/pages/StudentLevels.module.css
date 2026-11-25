@@ -653,3 +653,155 @@
     top: -18px;
   }
 }
+
+/* ---------- Totals (step 9): the stats strip and overall mastery ---------- */
+
+/* The totals above the two columns. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 16px;
+}
+
+.body .cols {
+  margin-top: 0;
+}
+
+.totals {
+  display: flex;
+  gap: 22px;
+  flex: none;
+}
+
+.strip {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Home's stats strip, a little lower. */
+.strip > dl {
+  height: 72px;
+  margin: 0;
+}
+
+.overall {
+  flex: none;
+  width: 330px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 18px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-input-bg) 85%, transparent);
+}
+
+.overallLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.overallRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.overallBar {
+  flex: 1;
+  height: 14px;
+}
+
+.overallPct {
+  font: 600 24px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.helpChip {
+  height: 28px;
+  padding: 0 11px;
+}
+
+/* "Not enough yet": small, grey, italic (like My Students). */
+.notEnough {
+  font-size: 14.5px;
+  font-style: italic;
+  color: var(--color-text-subtle);
+}
+
+/* A topic card's right side: Mastery, then the Next round chip. */
+.topicRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: none;
+}
+
+.topicMastery {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+  white-space: nowrap;
+}
+
+.topicMastery strong {
+  font: 600 17px/1 var(--font-display);
+  color: var(--color-planner-ink);
+}
+
+.topicMastery .low {
+  color: var(--color-danger-text);
+}
+
+.topicBar {
+  width: 84px;
+  height: 10px;
+}
+
+/* Levels | Mastery on top of the right card. */
+.tabs {
+  margin-bottom: 12px;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Phone: the totals and both columns scroll together. */
+  .body {
+    overflow-y: auto;
+  }
+
+  .body .cols {
+    flex: none;
+    overflow: visible;
+  }
+
+  .totals {
+    flex-direction: column;
+  }
+
+  /* Home keeps its strip at 500px on a phone; here it has the window's width. */
+  .strip > dl {
+    max-width: none;
+  }
+
+  .overall {
+    width: auto;
+    min-height: 72px;
+  }
+
+  .topicHead {
+    flex-wrap: wrap;
+  }
+
+  .topicRight {
+    flex-wrap: wrap;
+  }
+}

@@ -25,6 +25,9 @@ export const lessonStepPath = (id: string, step: 'making' | 'check' | 'games') =
 
 export const studentsPath = (filter?: string) => (filter ? `${paths.teacher.students}?filter=${filter}` : paths.teacher.students)
 
+/** One Student's page in My Students (from Home's To dos and Progress). A refresh keeps it open. */
+export const studentPagePath = (studentId: string) => `${paths.teacher.students}?student=${encodeURIComponent(studentId)}`
+
 export interface ResolvedPage {
   key: PageKey
   lessonId?: string

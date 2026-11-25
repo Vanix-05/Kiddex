@@ -13,7 +13,7 @@ function nextFriday(today: Date) {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-/** A brand-new Teacher: no To dos or numbers yet. Lessons, sections and Students come from the backend. */
+/** A brand-new Teacher: nothing ticked yet. Lessons, sections, Students and progress come from the backend. */
 function emptyData(): TeacherData {
   const today = new Date()
   return {
@@ -21,13 +21,8 @@ function emptyData(): TeacherData {
     teacher: { name: '' },
     activeSectionId: '',
     todayLabel: dayLabel(today),
-    weekSubject: '',
-    stats: { playedToday: 0, reviewPackDone: null, reviewPackTotal: null, studyDays: null },
     todos: [],
-    upcoming: [],
-    weakTopics: [],
-    week: [],
-    ollieNote: 'Your class’s progress will show here after the first game.',
+    autoDone: {},
     justAdded: null,
     lessonNotes: {},
     checkSeenEnd: [],
