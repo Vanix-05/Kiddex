@@ -145,11 +145,17 @@ export function loadPiece(file: PieceFile): Promise<Partial<RigParts>> {
   return p
 }
 
+/**
+ * The bald body to draw: with its own shorts only for Shorts. Skirt, Pants and
+ * Cargo use the body with bare thighs, so no shorts stick out at their sides.
+ */
+export const baseFile = (look: KidLook): PieceFile => (findBottom(look.bottom)?.file ? 'base-noshorts' : 'base')
+
 /** Every piece file a kid wearing `look` needs: the base body, the kid's face, then the clothes. */
 export function lookFiles(kid: Kid, look: KidLook): PieceFile[] {
   const hair = findHair(look.hair)
   return [
-    'base',
+    baseFile(look),
     `face-${kid}`,
     hair?.back,
     hair?.front,

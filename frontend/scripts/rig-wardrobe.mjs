@@ -45,6 +45,7 @@ const OUTLINE = [0x7b, 0x50, 0x62]
 const chin = (x) => CHIN.girl(mirror(x))
 const LEGS_FROM = 1540
 const BODY_OVERLAP = 40
+const PANTS_REACH = 8 // view units: the bottoms' body part reaches this much past the base body
 const isHead = (x, y) => y < chin(x)
 const isLeg = (x, y) => y >= LEGS_FROM
 const isArm = (x, y) => isArmLeft(x, y) || isArmRight(x, y)
@@ -82,7 +83,9 @@ const CUTS = {
   skirt: { body: all },
   // Pants and cargo: body above the legs line, a leg each below it.
   pants: {
-    body: (x, y) => y < LEGS_FROM + BODY_OVERLAP,
+    // A little lower than the base body ends (PANTS_REACH): if both edges met on one line, their
+    // anti-aliasing would let the skin under them show as a light hairline across the pants.
+    body: (x, y) => y < LEGS_FROM + BODY_OVERLAP + PANTS_REACH,
     legLeft: (x, y) => isLeg(x, y) && x < MID,
     legRight: (x, y) => isLeg(x, y) && x >= MID,
   },
@@ -141,7 +144,7 @@ function topCut(id) {
 
 // ---- The pieces --------------------------------------------------------------------
 function kindOf(id) {
-  if (id === 'base') return 'base'
+  if (id === 'base' || id === 'base-noshorts') return 'base' // the same body, with or without its shorts
   if (id.startsWith('face-')) return 'head'
   if (id.startsWith('hair/')) return 'hair'
   if (id.startsWith('top/')) return 'top'
@@ -152,7 +155,7 @@ function kindOf(id) {
 }
 
 function allPieces() {
-  const ids = ['base', 'face-girl', 'face-boy']
+  const ids = ['base', 'base-noshorts', 'face-girl', 'face-boy']
   for (const folder of ['hair', 'top', 'bottom', 'shoes'])
     for (const f of readdirSync(resolve(srcDir, folder)).sort()) if (f.endsWith('.png')) ids.push(`${folder}/${f.slice(0, -4)}`)
   return ids

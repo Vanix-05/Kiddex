@@ -1,7 +1,7 @@
 import type { RigPart, RigParts, TracedPath } from '../TracedRig'
 import { buildRecolor, recolorFill, type ColorKeys, type ColorTargets } from '../rig/recolor'
 import { wardrobeColorKeys as K } from './colorKeys'
-import { findBottom, findHair, findShoes, findTop, type Kid, type KidLook, type PieceFile } from './items'
+import { baseFile, findBottom, findHair, findShoes, findTop, type Kid, type KidLook, type PieceFile } from './items'
 
 /** The layers a kid is drawn from. */
 export type Layer = 'hairBack' | 'base' | 'face' | 'hairFront' | 'bottom' | 'top' | 'shoes'
@@ -14,8 +14,9 @@ export const PART_LAYERS: Record<RigPart, readonly Layer[]> = {
   bodyFront: ['top'],
   armLeft: ['base', 'top'],
   armRight: ['base', 'top'],
-  legLeft: ['base', 'bottom', 'shoes'],
-  legRight: ['base', 'bottom', 'shoes'],
+  // Shoes under the bottom's legs, so pants hems sit over the tops of the shoes and socks.
+  legLeft: ['base', 'shoes', 'bottom'],
+  legRight: ['base', 'shoes', 'bottom'],
 }
 
 /** One layer: its piece, and the recolor it gets while merging. */
@@ -38,7 +39,7 @@ export function kidLayers(kid: Kid, look: KidLook): Partial<Record<Layer, LayerS
   return {
     hairBack: hairLayer(hair?.back),
     base: {
-      file: 'base',
+      file: baseFile(look),
       keys: shorts ? { skin: K.skin, shorts: K.shorts } : { skin: K.skin },
       targets: shorts ? { skin: look.skin, shorts: look.bottomColor } : { skin: look.skin },
     },

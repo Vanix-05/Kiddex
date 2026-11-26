@@ -10,6 +10,7 @@ import { DEFAULT_LOOK, lookFiles, type KidLook } from './items'
  */
 const PIECE_PARTS: Record<string, RigPart[]> = {
   base: ['head', 'body', 'armLeft', 'armRight', 'legLeft', 'legRight'],
+  'base-noshorts': ['head', 'body', 'armLeft', 'armRight', 'legLeft', 'legRight'],
   'face-girl': ['head'],
   'face-boy': ['head'],
   'hair-girl-pigtails-back': ['head'],
@@ -33,25 +34,40 @@ describe('buildKidParts', () => {
   const parts = buildKidParts('girl', girl, fakePiece)
 
   it('puts the layers back to front', () => {
-    expect(order(parts, 'head')).toEqual(['hair-girl-pigtails-back', 'base', 'face-girl', 'hair-girl-pigtails-front'])
-    expect(order(parts, 'body')).toEqual(['base', 'bottom-pants', 'top-hoodie'])
-    expect(order(parts, 'armLeft')).toEqual(['base', 'top-hoodie'])
-    expect(order(parts, 'armRight')).toEqual(['base', 'top-hoodie'])
-    expect(order(parts, 'legLeft')).toEqual(['base', 'bottom-pants', 'shoes-sneakers'])
-    expect(order(parts, 'legRight')).toEqual(['base', 'bottom-pants', 'shoes-sneakers'])
+    // Pants: the base without shorts; shoes under the pants legs.
+    expect(order(parts, 'head')).toEqual(['hair-girl-pigtails-back', 'base-noshorts', 'face-girl', 'hair-girl-pigtails-front'])
+    expect(order(parts, 'body')).toEqual(['base-noshorts', 'bottom-pants', 'top-hoodie'])
+    expect(order(parts, 'armLeft')).toEqual(['base-noshorts', 'top-hoodie'])
+    expect(order(parts, 'armRight')).toEqual(['base-noshorts', 'top-hoodie'])
+    expect(order(parts, 'legLeft')).toEqual(['base-noshorts', 'shoes-sneakers', 'bottom-pants'])
+    expect(order(parts, 'legRight')).toEqual(['base-noshorts', 'shoes-sneakers', 'bottom-pants'])
     expect(order(parts, 'bodyFront')).toEqual(['top-hoodie'])
     expect(parts.belly).toEqual([])
   })
 
-  it('draws Shorts with no layer (the base body has them)', () => {
+  it('uses the base without shorts for Skirt, Pants and Cargo, and only loads that one', () => {
+    for (const bottom of ['skirt', 'pants'] as const) {
+      const look = { ...girl, bottom }
+      expect(order(buildKidParts('girl', look, fakePiece), 'body')[0]).toBe('base-noshorts')
+      expect(lookFiles('girl', look)).toContain('base-noshorts')
+      expect(lookFiles('girl', look)).not.toContain('base')
+    }
+    const cargo = { ...DEFAULT_LOOK.boy, bottom: 'cargo' }
+    expect(lookFiles('boy', cargo)).toContain('base-noshorts')
+    expect(lookFiles('boy', cargo)).not.toContain('base')
+  })
+
+  it('draws Shorts with no layer (the base body with its shorts)', () => {
     const shorts = buildKidParts('girl', { ...girl, bottom: 'shorts' }, fakePiece)
     expect(order(shorts, 'body')).toEqual(['base', 'top-hoodie'])
     expect(order(shorts, 'legLeft')).toEqual(['base', 'shoes-sneakers'])
+    expect(lookFiles('girl', { ...girl, bottom: 'shorts' })).toContain('base')
+    expect(lookFiles('girl', { ...girl, bottom: 'shorts' })).not.toContain('base-noshorts')
   })
 
   it('gives Bald no hair shapes', () => {
     const bald = buildKidParts('boy', { ...DEFAULT_LOOK.boy, hair: 'bald' }, fakePiece)
-    expect(order(bald, 'head')).toEqual(['base', 'face-boy'])
+    expect(order(bald, 'head')).toEqual(['base-noshorts', 'face-boy'])
     expect(Object.values(bald).flat().some(([, , group]) => group === 'hair')).toBe(false)
     expect(lookFiles('boy', { ...DEFAULT_LOOK.boy, hair: 'bald' }).some(isHair)).toBe(false)
   })
