@@ -237,7 +237,7 @@ export const TABS: Record<Side, CustomizeTab[]> = {
 /** The item with this id, or undefined (e.g. an old saved "cap" or "crown": shown as None / as drawn). */
 export const findItem = (key: LookKey, id: string | undefined) => (id ? ITEMS[key].find((i) => i.id === id) : undefined)
 
-/** Avatar recolor targets for the rig (undefined = the art's own color). */
+/** Only for the old boy/girl rigs (the Bridge's loading fallback): the Student is drawn with kidLook + KidRig. */
 export function lookColors(look: Look) {
   return {
     skin: findItem('skin', look.skin)?.swatch,

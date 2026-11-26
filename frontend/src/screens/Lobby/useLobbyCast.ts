@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { characterArt } from '../../assets/art'
 import type { CompanionId } from '../../companions/registry'
 import type { Avatar } from '../../setup/avatar'
-import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras, type Look } from '../../setup/customizeData'
+import { DEFAULT_LOOK, loadKidPieces } from '../../companions/wardrobe/items'
+import { kidLook, lookBuddyColor, lookBuddyExtras, lookYouExtras, type Look } from '../../setup/customizeData'
 import type { BuddyId } from '../../setup/quizData'
-import { characterPicture } from './characterTexture'
+import { characterPicture, kidCharacterPicture } from './characterTexture'
 import type { CastMember, LobbyCast } from './game/LobbyGame'
 
 /** The logged-in Student, as the Lobby needs them. */
@@ -16,8 +17,21 @@ export interface LobbyStudent {
   look: Look
 }
 
-export const kidPicture = (avatar: CompanionId, look: Look, mood?: 'happy') =>
-  characterPicture(avatar, { colors: lookColors(look), extras: lookYouExtras(look) }, mood)
+/**
+ * The Student's (or a classmate's) kid in their wardrobe look. Old or other-kid
+ * looks are made to fit by kidLook. If a piece can't be downloaded, the kid is
+ * drawn in their default clothes and hair (keeping skin and eyes), never broken.
+ */
+export async function kidPicture(avatar: Avatar, look: Look, mood?: 'happy') {
+  const kl = kidLook(look, avatar)
+  const extras = lookYouExtras(look)
+  try {
+    return await kidCharacterPicture(avatar, kl, extras, mood)
+  } catch {
+    const plain = { ...DEFAULT_LOOK[avatar], skin: kl.skin, eyeColor: kl.eyeColor, eyes: kl.eyes }
+    return kidCharacterPicture(avatar, plain, extras, mood)
+  }
+}
 
 export const buddyPicture = (buddy: CompanionId, look: Look) =>
   characterPicture(buddy, { buddyColor: lookBuddyColor(look), extras: lookBuddyExtras(look) })
@@ -30,6 +44,8 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  * between, so the cutscene stays smooth. The pictures are cached by look.
  */
 export async function prewarmStudent(avatar: Avatar, buddy: BuddyId, look: Look, restMs = 400) {
+  // Start downloading the kid's wardrobe pieces now (the pictures below wait for them).
+  void loadKidPieces(avatar, kidLook(look, avatar)).catch(() => {})
   const draws = [() => kidPicture(avatar, look), () => kidPicture(avatar, look, 'happy'), () => buddyPicture(buddy, look)]
   for (const draw of draws) {
     if (restMs > 0) await pause(restMs)

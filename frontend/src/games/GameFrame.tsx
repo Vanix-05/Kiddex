@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Mic, Pause, PawPrint, PencilLine } from 'lucide-react'
 import { Companion } from '../companions/Companion'
-import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras } from '../setup/customizeData'
+import { KidRig } from '../companions/wardrobe/KidRig'
+import { kidLook, lookBuddyColor, lookBuddyExtras, lookYouExtras } from '../setup/customizeData'
 import { STREAK_FOR_HELP } from './buddyHelp'
 import { Confetti } from './Confetti'
 import { PauseCard } from './PauseCard'
@@ -307,7 +308,7 @@ function Characters({
       <div className={styles.kidSpot} inert aria-hidden="true">
         <span className={`${styles.figure} ${styles.kidFigure} ${jumpClass}`}>
           <span className={styles.floorShadow} />
-          <Companion id={player.avatar} className={styles.rig} emotion={kidFace} colors={lookColors(player.look)} extras={lookYouExtras(player.look)} />
+          <KidRig kid={player.avatar} look={kidLook(player.look, player.avatar)} className={styles.rig} emotion={kidFace} extras={lookYouExtras(player.look)} />
         </span>
       </div>
     </div>

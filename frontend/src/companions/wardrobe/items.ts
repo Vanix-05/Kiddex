@@ -158,3 +158,10 @@ export function lookFiles(kid: Kid, look: KidLook): PieceFile[] {
     findShoes(look.shoes)?.file,
   ].filter((f): f is PieceFile => !!f)
 }
+
+/**
+ * Downloads every piece a kid wearing `look` needs. KidRig waits for it, and so do
+ * the Lobby's flat pictures (they must never snapshot a kid whose pieces are missing).
+ */
+export const loadKidPieces = (kid: Kid, look: KidLook): Promise<void> =>
+  Promise.all(lookFiles(kid, look).map(loadPiece)).then(() => {})

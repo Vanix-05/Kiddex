@@ -4,7 +4,8 @@
  * Live SVG rigs are too heavy to walk around the room (2 of them ran at
  * 21-25 fps on the school laptop), so each character is drawn once:
  *
- * 1. <Companion still /> is rendered into a hidden DOM node with the look.
+ * 1. <Companion still /> (a buddy) or <KidRig still /> (the Student's kid, whose
+ *    pieces are downloaded first) is rendered into a hidden DOM node with the look.
  *    (Not renderToStaticMarkup: the rig sets its pose, blush and happy face
  *    in an effect, which never runs on the server renderer.)
  * 2. The posed <svg> is copied, cropped to the character and serialized.
@@ -13,11 +14,16 @@
  * The canvas is what Pixi turns into a texture; `url` is the same picture for
  * <img> (the Student card and the Buddy card). Pictures are cached by look.
  */
-import { createElement } from 'react'
+import { createElement, type ReactElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Companion } from '../../companions/Companion'
 import { companionRegistry, type CompanionId } from '../../companions/registry'
 import type { RigLook } from '../../companions/TracedRig'
+import { KidRig } from '../../companions/wardrobe/KidRig'
+import { loadKidPieces, type KidLook } from '../../companions/wardrobe/items'
+import type { Avatar } from '../../setup/avatar'
+import type { AccessoryId } from '../../setup/customizeData'
+import { kidPictureKey } from './pictureKey'
 
 export type CharacterMood = 'calm' | 'happy'
 
@@ -43,29 +49,46 @@ const cache = new Map<string, Promise<CharacterPicture>>()
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** A picture of a companion in a look. Cached, so asking again is free. */
-export function characterPicture(id: CompanionId, look: RigLook = {}, mood: CharacterMood = 'calm'): Promise<CharacterPicture> {
-  const { colors, extras, buddyColor } = look
-  const key = JSON.stringify([id, colors?.skin, colors?.hair, colors?.shirt, extras, buddyColor, mood])
+/** The picture for a key, drawn once. A failed one is not kept, so the next visit tries again. */
+function cached(key: string, draw: () => Promise<CharacterPicture>): Promise<CharacterPicture> {
   let picture = cache.get(key)
   if (!picture) {
-    picture = render(id, { colors, extras, buddyColor }, mood)
+    picture = draw()
     cache.set(key, picture)
-    // A failed picture is not kept, so the next visit tries again.
     picture.catch(() => cache.delete(key))
     if (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value!)
   }
   return picture
 }
 
-async function render(id: CompanionId, look: RigLook, mood: CharacterMood): Promise<CharacterPicture> {
+/** A picture of a companion (the buddies) in a look. Cached, so asking again is free. */
+export function characterPicture(id: CompanionId, look: RigLook = {}, mood: CharacterMood = 'calm'): Promise<CharacterPicture> {
+  const { colors, extras, buddyColor } = look
+  const key = JSON.stringify([id, colors?.skin, colors?.hair, colors?.shirt, extras, buddyColor, mood])
+  return cached(key, () => render(id, createElement(Companion, { id, still: true, emotion: mood, colors, extras, buddyColor })))
+}
+
+/**
+ * A picture of the Student's kid (or a classmate's) in their wardrobe look. The
+ * pieces are downloaded first, so it is never a half-loaded kid. Both kids share
+ * one body, so the girl's anchors fit both. Cached by the whole look.
+ */
+export function kidCharacterPicture(kid: Avatar, look: KidLook, extras: AccessoryId[], mood: CharacterMood = 'calm'): Promise<CharacterPicture> {
+  return cached(kidPictureKey(kid, look, extras, mood), async () => {
+    await loadKidPieces(kid, look)
+    return render('girl', createElement(KidRig, { kid, look, still: true, emotion: mood, extras }))
+  })
+}
+
+/** Draws a rig element still, crops it to the character and makes it a picture. `id`: whose anchors (feet, head top). */
+async function render(id: CompanionId, element: ReactElement): Promise<CharacterPicture> {
   const host = document.createElement('div')
   host.setAttribute('aria-hidden', 'true')
   host.style.cssText = 'position:fixed;left:-9999px;top:0;width:500px;height:500px;visibility:hidden;pointer-events:none'
   document.body.appendChild(host)
   const root = createRoot(host)
   try {
-    root.render(createElement(Companion, { id, still: true, emotion: mood, ...look }))
+    root.render(element)
     // The rig writes its pose in an effect: wait for it.
     let svg: SVGSVGElement | null = null
     for (let i = 0; i < 100; i++) {

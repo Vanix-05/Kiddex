@@ -1,6 +1,8 @@
 import { useId, type Ref } from 'react'
 import { Companion } from '../../../companions/Companion'
-import { lookBuddyColor, lookBuddyExtras, lookColors, lookYouExtras } from '../../../setup/customizeData'
+import { KidRig } from '../../../companions/wardrobe/KidRig'
+import { isAvatar } from '../../../setup/avatar'
+import { kidLook, lookBuddyColor, lookBuddyExtras, lookYouExtras } from '../../../setup/customizeData'
 import { BoatHull, BoatSails } from '../Scene'
 import { SEATS, type Cast, type Who } from './motion'
 import styles from './BridgeCutscene.module.css'
@@ -8,8 +10,9 @@ import styles from './BridgeCutscene.module.css'
 /** The Student's character or their buddy, dressed in their Customize picks. */
 export function Figure({ who, cast }: { who: Who; cast: Cast }) {
   const { avatar, buddy, look } = cast
-  return who === 'you' ? (
-    <Companion id={avatar} emotion="happy" className={styles.fill} colors={lookColors(look)} extras={lookYouExtras(look)} />
+  return who === 'you' && isAvatar(avatar) ? (
+    // The Bridge already downloaded the pieces, so this shows at once.
+    <KidRig kid={avatar} look={kidLook(look, avatar)} emotion="happy" className={styles.fill} extras={lookYouExtras(look)} />
   ) : (
     <Companion id={buddy} emotion="happy" className={styles.fill} buddyColor={lookBuddyColor(look)} extras={lookBuddyExtras(look)} />
   )

@@ -3,7 +3,7 @@ import { TracedRig, type Emotion, type RigFace, type RigLook, type RigParts, typ
 import { recolorOne } from '../rig/recolor'
 import { kidParts } from './buildKidParts'
 import { wardrobeColorKeys } from './colorKeys'
-import { loadedPiece, loadPiece, lookFiles, type EyeStyle, type Kid, type KidLook } from './items'
+import { loadedPiece, loadKidPieces, lookFiles, type EyeStyle, type Kid, type KidLook } from './items'
 
 /**
  * Joints: the girl's (both kids share one body), with the hips on the legs
@@ -67,21 +67,20 @@ export function KidRig({
   fallback?: ReactNode
 } & Pick<RigLook, 'extras' | 'still'>) {
   const files = useMemo(() => lookFiles(kid, look), [kid, look])
-  const filesKey = files.join(' ')
   // Re-render once a download lands (the pieces themselves live in items.ts's cache).
   const [, setLoadedKey] = useState('')
   const ready = piecesReady(files)
   useEffect(() => {
-    if (piecesReady(filesKey.split(' '))) return
+    if (piecesReady(lookFiles(kid, look))) return
     let live = true
-    Promise.all(filesKey.split(' ').map(loadPiece)).then(
-      () => live && setLoadedKey(filesKey),
+    loadKidPieces(kid, look).then(
+      () => live && setLoadedKey(lookFiles(kid, look).join(' ')),
       (e: unknown) => console.error(e),
     )
     return () => {
       live = false
     }
-  }, [filesKey])
+  }, [kid, look])
 
   // The last look that was fully loaded, shown while the next one downloads.
   const [shown, setShown] = useState<{ kid: Kid; look: KidLook } | null>(null)
