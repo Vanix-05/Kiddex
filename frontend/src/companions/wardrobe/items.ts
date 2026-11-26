@@ -1,3 +1,4 @@
+import { ITEMS, kidLook } from '../../setup/customizeData'
 import type { RigParts } from '../TracedRig'
 
 /**
@@ -80,7 +81,10 @@ export const WARDROBE: Record<Kid, { hair: readonly HairItem[]; tops: readonly C
   },
 }
 
-/** Everything a kid wears, and every color. Colors are hex; skin and eyes undefined = as drawn. */
+/** An eye style: Round is the eyes as drawn; Sparkly adds shine, Lashes adds lashes. */
+export type EyeStyle = 'round' | 'sparkly' | 'lashes'
+
+/** Everything a kid wears, and every color. Colors are hex; skin and eyeColor undefined = as drawn. */
 export interface KidLook {
   hair: string
   hairColor: string
@@ -92,45 +96,18 @@ export interface KidLook {
   shoesColor: string
   skin?: string
   eyeColor?: string
+  /** Undefined = round. */
+  eyes?: EyeStyle
 }
 
-/** The colors the Customize Bridge offers (from the approved mockups). */
-export const HAIR_COLORS: readonly string[] = [
-  '#9D756D', '#3D3034', '#D7834E', '#EDE3CB', '#9C86CF',
-  '#5E4232', '#A04A35', '#E3C07A', '#F2A7BD', '#7D9BE0',
-]
-export const CLOTH_COLORS: readonly string[] = [
-  '#FFDBA3', '#F4877C', '#F0A6BE', '#A9D2F5', '#8ED0CB', '#A8D49A', '#C9C9C9',
-  '#FFC9A0', '#FFC4CF', '#D6C5F2', '#6F86C0', '#B9EAD2', '#FEFAEE', '#5A5466',
-]
-export const EYE_COLORS: readonly string[] = ['#50322C', '#2E4A7A', '#6B5020', '#4A3570', '#2A2230', '#2F5E45', '#4A5566']
+/** The colors the Customize Bridge offers (setup/customizeData.ts). */
+const swatches = (key: 'hair' | 'shirt' | 'eyeColor') => ITEMS[key].map((i) => i.swatch!.toUpperCase())
+export const HAIR_COLORS: readonly string[] = swatches('hair')
+export const CLOTH_COLORS: readonly string[] = swatches('shirt')
+export const EYE_COLORS: readonly string[] = swatches('eyeColor')
 
-const LILAC = '#D6C5F2'
-const DARK = '#5A5466'
-
-/** Each kid's first look: together these look like today's kids. */
-export const DEFAULT_LOOK: Record<Kid, KidLook> = {
-  girl: {
-    hair: 'bob',
-    hairColor: '#9D756D',
-    top: 'blouse',
-    topColor: '#FFDBA3',
-    bottom: 'skirt',
-    bottomColor: LILAC,
-    shoes: 'maryjanes',
-    shoesColor: DARK,
-  },
-  boy: {
-    hair: 'classic',
-    hairColor: '#5F4B69',
-    top: 'polo',
-    topColor: '#FEFAEE',
-    bottom: 'pants',
-    bottomColor: LILAC,
-    shoes: 'school',
-    shoesColor: DARK,
-  },
-}
+/** Each kid's first look (customizeData's DEFAULT_PICKS): together these look like the kids before the wardrobe. */
+export const DEFAULT_LOOK: Record<Kid, KidLook> = { girl: kidLook({}, 'girl'), boy: kidLook({}, 'boy') }
 
 export const findHair = (id: string) => HAIR.find((h) => h.id === id)
 export const findTop = (id: string) => TOPS.find((t) => t.id === id)

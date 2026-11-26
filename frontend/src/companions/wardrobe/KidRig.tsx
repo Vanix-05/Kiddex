@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { TracedRig, type Emotion, type RigFace, type RigLook, type RigParts, type RigPivots } from '../TracedRig'
 import { recolorOne } from '../rig/recolor'
 import { kidParts } from './buildKidParts'
 import { wardrobeColorKeys } from './colorKeys'
-import { loadedPiece, loadPiece, lookFiles, type Kid, type KidLook } from './items'
+import { loadedPiece, loadPiece, lookFiles, type EyeStyle, type Kid, type KidLook } from './items'
 
 /**
  * Joints: the girl's (both kids share one body), with the hips on the legs
@@ -40,8 +40,10 @@ const piecesReady = (files: readonly string[]) => files.every((f) => loadedPiece
 
 /**
  * A kid drawn from wardrobe pieces (hair, top, bottom, shoes and every color),
- * animated by TracedRig like the old GirlRig / BoyRig. Draws nothing until all
- * its pieces are downloaded; while a new piece loads it keeps the last look.
+ * animated by TracedRig like the old GirlRig / BoyRig. Until all its pieces are
+ * downloaded it draws `fallback` (nothing by default); while a new piece loads
+ * it keeps the last look. A change of pieces or eye style starts a new rig, so
+ * the springs find the new parts (colors alone just repaint).
  */
 export function KidRig({
   kid,
@@ -51,12 +53,18 @@ export function KidRig({
   emotion,
   extras,
   still,
+  eyeStyle,
+  fallback = null,
 }: {
   kid: Kid
   look: KidLook
   className?: string
   label?: string
   emotion?: Emotion
+  /** Default: the look's own (round). */
+  eyeStyle?: EyeStyle
+  /** Drawn until the pieces are loaded (e.g. the old rig, so nothing flashes). */
+  fallback?: ReactNode
 } & Pick<RigLook, 'extras' | 'still'>) {
   const files = useMemo(() => lookFiles(kid, look), [kid, look])
   const filesKey = files.join(' ')
@@ -91,9 +99,12 @@ export function KidRig({
     return lid === f.colors.lid ? f : { ...f, colors: { ...f.colors, lid } }
   }, [current?.kid, kid, skin])
 
-  if (!parts || !current) return null
+  if (!parts || !current) return <>{fallback}</>
+  const eyes = eyeStyle ?? current.look.eyes ?? 'round'
   return (
     <TracedRig
+      key={lookFiles(current.kid, current.look).join(' ') + ' ' + eyes}
+      eyeStyle={eyes}
       parts={parts}
       pivots={kidPivots}
       face={face}

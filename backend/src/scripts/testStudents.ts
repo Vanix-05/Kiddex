@@ -281,7 +281,8 @@ function sameAsFrontendChecks() {
     return;
   }
   const read = (file: string) => fs.readFileSync(path.join(setupFolder, file), "utf8");
-  const ids = (list: string) => [...list.matchAll(/id: '([^']+)'/g)].map((m) => m[1]);
+  // \b: not the "id: 'girl'" inside "kid: 'girl'".
+  const ids = (list: string) => [...list.matchAll(/\bid: '([^']+)'/g)].map((m) => m[1]);
   const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
   const buddyList = /buddyIds = \[([^\]]+)\]/.exec(read("quizData.ts"))?.[1] ?? "";
@@ -290,7 +291,18 @@ function sameAsFrontendChecks() {
   check("same as frontend: avatars", /'boy' \| 'girl'/.test(read("avatar.ts")) && same(AVATARS, ["boy", "girl"]));
 
   const customize = read("customizeData.ts");
+  // Every look key the frontend has (its ITEMS object) is here too.
+  const itemsBlock = /export const ITEMS: Record<LookKey, CustomizeItem\[\]> = \{([\s\S]*?)\n\}/.exec(customize)?.[1] ?? "";
+  const frontKeys = [...itemsBlock.matchAll(/^\s*(\w+)(?::|,)/gm)].map((m) => m[1]);
+  check("same as frontend: look keys", same([...frontKeys].sort(), Object.keys(LOOK_ITEMS).sort()), frontKeys.join());
   for (const key of Object.keys(LOOK_ITEMS) as (keyof typeof LOOK_ITEMS)[]) {
+    // A key that shares another key's list (bottomColor: shirt): checked against that key's list.
+    const shared = new RegExp(`^\\s*${key}: (\\w+),`, "m").exec(itemsBlock)?.[1];
+    if (shared) {
+      const block = new RegExp(`const ${shared}: CustomizeItem\\[\\] = \\[([\\s\\S]*?)\\n\\]`).exec(customize)?.[1] ?? "";
+      check(`same as frontend: look ${key} (= ${shared})`, same(ids(block), LOOK_ITEMS[key]));
+      continue;
+    }
     if (key === "skin") {
       const swatches = /const skin[^=]*= \[([^\]]+)\]/.exec(customize)?.[1] ?? "";
       const count = (swatches.match(/'#/g) ?? []).length;

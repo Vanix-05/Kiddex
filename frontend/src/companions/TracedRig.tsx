@@ -148,6 +148,7 @@ export function TracedRig({
   colorKeys,
   palettes,
   avatarEyes = false,
+  eyeStyle,
   colors,
   extras = [],
   buddyColor,
@@ -167,6 +168,8 @@ export function TracedRig({
   palettes?: BuddyPalettes
   /** The boy and girl: a shine on the eyes, and a soft rim on the darkest skins. */
   avatarEyes?: boolean
+  /** The wardrobe kids' eye style (FaceOverlay): "sparkly" or "lashes"; unset = as drawn. */
+  eyeStyle?: string
 } & RigLook) {
   const svgRef = useRef<SVGSVGElement>(null)
   const play = useSpringRig(svgRef, pivots, face, emotion, still)
@@ -221,7 +224,7 @@ export function TracedRig({
           {!legsBehindBody && legs}
           <g data-rig="head">
             <Shapes paths={parts.head} face={face} recolor={recolor.head} />
-            <FaceOverlay face={overlayFace} eyePaths={eyePaths} id={id} shine={avatarEyes} rim={eyeRim} />
+            <FaceOverlay face={overlayFace} eyePaths={eyePaths} id={id} shine={avatarEyes} rim={eyeRim} eyeStyle={eyeStyle} />
             <RigAccessories extras={extras} slot="head" face={face} pivots={pivots} />
           </g>
           {/* Arms in front, so the wave can pass over the cheek. */}

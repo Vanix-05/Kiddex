@@ -1,4 +1,5 @@
 import type { EyeBox, RigFace } from './types'
+import { EyeLashes, EyeSparkle } from './StyleLayers'
 
 const LASH = 30 // lash line along the lid's bottom edge, in SVG units
 const TONGUE = '#F2858F'
@@ -25,7 +26,10 @@ export function FaceOverlay({
   id,
   shine = false,
   rim = false,
+  eyeStyle,
 }: {
+  /** The wardrobe kids' eye style: "sparkly" or "lashes"; anything else = the eyes as drawn. */
+  eyeStyle?: string
   face: RigFace
   /** Each eye's traced path data, for the lid's clip. */
   eyePaths: { left: string[]; right: string[] }
@@ -52,6 +56,11 @@ export function FaceOverlay({
             <ellipse cx={box.cx} cy={box.cy} rx={box.rx + 34} ry={box.ry + 30} fill="none" stroke={RIM} strokeWidth={26} opacity={rim ? 0.32 : 0} />
           </g>
         )}
+        {eyeStyle === 'lashes' && (
+          <g data-rig="eyesTraced">
+            <EyeLashes side={side} {...box} ink={outline} />
+          </g>
+        )}
         <g data-rig="eyesTraced" clipPath={`url(#${id}-lid-${side})`}>
           {shine && (
             <>
@@ -59,6 +68,7 @@ export function FaceOverlay({
               <circle cx={box.cx + box.rx * 0.3} cy={box.cy + box.ry * 0.3} r={box.rx * 0.14} fill={SHINE} opacity={0.8} />
             </>
           )}
+          {eyeStyle === 'sparkly' && <EyeSparkle {...box} />}
           <g data-rig={`lid${name}`} transform={`translate(${box.cx} ${box.cy - box.ry - 30})`}>
             <rect x={-box.rx * 2.4} y={-box.ry * 2.6} width={box.rx * 4.8} height={box.ry * 2.6} fill={lid} />
             <rect x={-box.rx * 2.4} y={-LASH} width={box.rx * 4.8} height={LASH} fill={outline} />

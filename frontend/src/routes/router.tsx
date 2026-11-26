@@ -121,6 +121,11 @@ export const router = createBrowserRouter([
           path: '/dev/looks',
           lazy: () => import('../screens/DevLooks/DevLooksScreen').then((m) => ({ Component: m.DevLooksScreen })),
         },
+        // The Customize Bridge with no login: ?kid=girl|boy.
+        {
+          path: '/dev/bridge',
+          lazy: () => import('../screens/DevBridge/DevBridgeScreen').then((m) => ({ Component: m.DevBridgeScreen })),
+        },
         // The kids drawn from wardrobe pieces: moves, every piece and color.
         {
           path: '/dev/wardrobe',

@@ -5,6 +5,7 @@ import { boyColorKeys } from '../../companions/boy/colorKeys'
 import { Companion } from '../../companions/Companion'
 import { girlColorKeys } from '../../companions/girl/colorKeys'
 import { companionRegistry, isCompanionId } from '../../companions/registry'
+import { KidRig } from '../../companions/wardrobe/KidRig'
 import type { ColorKeys } from '../../companions/rig/recolor'
 import { usePhoneSideways } from '../../hooks/usePhoneSideways'
 import { paths } from '../../routes/paths'
@@ -13,6 +14,7 @@ import type { Avatar } from '../../setup/avatar'
 import {
   findItem,
   ITEMS,
+  kidLook,
   lookBuddyExtras,
   lookColors,
   lookBuddyColor,
@@ -23,12 +25,14 @@ import {
   type Look,
   type LookKey,
   type Side,
+  type TabId,
 } from '../../setup/customizeData'
 import { cleanNickname, MAX_NICKNAME, petById } from '../../setup/petData'
 import { isBuddyId, type BuddyId } from '../../setup/quizData'
 import { preloadLobby, prewarmLobby } from '../Lobby/preloadLobby'
 import { BridgeCutscene } from './cutscene/BridgeCutscene'
 import { Boat, Scene } from './Scene'
+import { YouTray, type YouTab } from './YouTray'
 import styles from './CustomizeScreen.module.css'
 
 // ---------- Layout (the 1440 x 900 stage, scaled to fit the window) ----------
@@ -151,7 +155,7 @@ export function CustomizeScreen() {
 type IdleMove = { move: 'hop' | 'lean'; key: number } | null
 type Sparkle = { key: number; who: Side }
 
-function Bridge({
+export function Bridge({
   avatar,
   buddy,
   buddyName,
@@ -178,7 +182,7 @@ function Bridge({
   // A phone held sideways: "Not you? Log out" moves to the top-right corner.
   const phone = usePhoneSideways()
   const [side, setSide] = useState<Side>('you')
-  const [tab, setTab] = useState<LookKey>(TABS.you[0].key)
+  const [tab, setTab] = useState<TabId>(TABS.you[0].key)
   const [cheer, setCheer] = useState<Record<Side, number>>({ you: 0, buddy: 0 })
   const [sparkles, setSparkles] = useState<Sparkle[]>([])
   const [idle, setIdle] = useState<IdleMove>(null)
@@ -236,8 +240,9 @@ function Bridge({
   const pickedId = (key: LookKey): string | undefined => {
     // An old saved id that is no longer on the Bridge (cap, crown) shows as None.
     if (look[key] && findItem(key, look[key])) return look[key]
-    if (key === 'skin' || key === 'hair' || key === 'shirt') {
-      const art = ART_KEYS[avatar][key]?.main
+    // Skin: the swatch nearest the art's own (hair and clothes default per kid: customizeData's DEFAULT_PICKS).
+    if (key === 'skin') {
+      const art = ART_KEYS[avatar].skin?.main
       if (!art) return undefined
       const open = ITEMS[key].filter((i) => i.swatch)
       return open.sort((a, b) => colorDistance(a.swatch!, art) - colorDistance(b.swatch!, art))[0]?.id
@@ -245,10 +250,13 @@ function Bridge({
     return ITEMS[key][0]?.id // None / Original
   }
 
-  const pick = (item: CustomizeItem) => {
-    saveLook({ ...look, [tab]: item.id })
+  /** Save one pick (any look key) and cheer. */
+  const pickKey = (key: LookKey, id: string) => {
+    saveLook({ ...look, [key]: id })
     celebrate(side)
   }
+  // The plain tiles (Extra and the buddy's tabs): their tab is their look key.
+  const pick = (item: CustomizeItem) => pickKey(tab as LookKey, item.id)
 
   // ---------- Rename ----------
 
@@ -287,12 +295,15 @@ function Bridge({
 
   // ---------- Bits for the page ----------
 
-  const items = ITEMS[tab]
+  const youTab = side === 'you' && tab !== 'youExtra' ? (tab as YouTab) : null
+  const items = youTab ? [] : ITEMS[tab as LookKey]
   const colors = lookColors(look)
+  // The Student drawn from the wardrobe; the old rig shows until its pieces load.
+  const kid = kidLook(look, avatar)
   const youExtras = lookYouExtras(look)
   const buddyExtras = lookBuddyExtras(look)
   const buddyColor = lookBuddyColor(look)
-  const current = pickedId(tab)
+  const current = youTab ? undefined : pickedId(tab as LookKey)
 
   /** Where a character's square image goes so its feet stand on the pier. */
   const place = (id: string, { x, body }: { x: number; body: number }): CSSProperties => {
@@ -344,7 +355,13 @@ function Bridge({
         <div className={styles.char} style={place(avatar, AVATAR)}>
           <span className={styles.shadow} aria-hidden="true" />
           <div key={cheer.you} className={cheer.you ? styles.happy : undefined}>
-            <Companion id={avatar} className={styles.figure} colors={colors} extras={youExtras} />
+            <KidRig
+              kid={avatar}
+              look={kid}
+              className={styles.figure}
+              extras={youExtras}
+              fallback={<Companion id={avatar} className={styles.figure} colors={colors} extras={youExtras} />}
+            />
           </div>
         </div>
 
@@ -451,7 +468,13 @@ function Bridge({
         <div className={styles.toggle} role="group" aria-label="Who to dress up">
           <button type="button" aria-pressed={side === 'you'} onClick={() => switchSide('you')}>
             <span className={styles.head} aria-hidden="true">
-              <Companion id={avatar} still colors={colors} className={styles.headFigure} />
+              <KidRig
+                kid={avatar}
+                look={kid}
+                still
+                className={styles.headFigure}
+                fallback={<Companion id={avatar} still colors={colors} className={styles.headFigure} />}
+              />
             </span>
             You
           </button>
@@ -482,7 +505,10 @@ function Bridge({
           ))}
         </div>
 
-        <div id="cb-tray" className={styles.tray} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
+        <div id="cb-tray" className={youTab ? `${styles.tray} ${styles.trayYou}` : styles.tray} role="tabpanel" aria-labelledby={`cb-tab-${tab}`}>
+          {youTab ? (
+            <YouTray tab={youTab} avatar={avatar} look={look} skinPicked={pickedId('skin')} onPick={pickKey} />
+          ) : (
           <ul className={styles.tiles}>
             {items.map((item, i) => {
               const on = item.id === current
@@ -518,6 +544,7 @@ function Bridge({
               )
             })}
           </ul>
+          )}
         </div>
 
         {/* ---------- Buttons ---------- */}

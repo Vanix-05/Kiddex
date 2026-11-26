@@ -747,3 +747,159 @@
   min-height: 44px;
   font-size: 14px;
 }
+
+/* ---------- The You trays (Skin, Hair, Eyes, Clothes): like the mockups ---------- */
+
+/* Left-aligned: style tiles, a dashed divider, then the colors. */
+.trayYou {
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.tilePic {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 66px;
+}
+
+/* A piece drawn small, cropped to itself. */
+.thumb {
+  width: 66px;
+  height: 62px;
+}
+
+/* A hairstyle on a small head, in a circle. */
+.thumbHead {
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: #fde9d8;
+}
+
+.thumbEye {
+  width: 48px;
+  height: 60px;
+}
+
+/* Top / Bottom / Shoes: a small vertical switch. */
+.slots {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  margin-right: 6px;
+}
+
+.slots button {
+  min-width: 96px;
+  min-height: 32px;
+  padding: 2px 14px;
+  border: 2.5px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.slots button[aria-pressed='true'] {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  color: #fff;
+}
+
+.colors {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.colorsSplit {
+  margin-left: 4px;
+  padding-left: 18px;
+  border-left: 3px dashed var(--line);
+}
+
+.colorsTitle {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.colorsTitle span {
+  color: var(--color-button-border);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 7), auto);
+  gap: 8px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dot {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.dot:hover {
+  transform: scale(1.08);
+}
+
+/* Picked: an orange ring and a ✓ in the middle. */
+.dotOn {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px var(--color-button-bg);
+}
+
+.dotOn::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  text-shadow: 0 0 3px rgba(60, 35, 30, 0.9);
+}
+
+/* Sideways phone: every swatch fills its grid cell to tap (the tray is scaled, so the cell is the most room there is). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .swatches {
+    gap: 4px 6px;
+  }
+
+  .dot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .slots button {
+    min-height: 36px;
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    transition: none;
+  }
+}
