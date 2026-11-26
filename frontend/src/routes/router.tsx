@@ -121,6 +121,11 @@ export const router = createBrowserRouter([
           path: '/dev/looks',
           lazy: () => import('../screens/DevLooks/DevLooksScreen').then((m) => ({ Component: m.DevLooksScreen })),
         },
+        // The kids drawn from wardrobe pieces: moves, every piece and color.
+        {
+          path: '/dev/wardrobe',
+          lazy: () => import('../screens/DevWardrobe/DevWardrobeScreen').then((m) => ({ Component: m.DevWardrobeScreen })),
+        },
         // The Go to Lobby cutscene with a sample Student: ?p=a|b, ?t=7.5 holds one moment.
         {
           path: '/dev/cutscene',

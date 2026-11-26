@@ -1,0 +1,97 @@
+.page {
+  min-height: 100vh;
+  padding: 16px;
+  background: #fdf8f1;
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.stage {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.bigCell,
+.cell {
+  margin: 0;
+  text-align: center;
+}
+
+.bigCell figcaption,
+.cell figcaption {
+  margin-top: -8px;
+  font-weight: 700;
+}
+
+.big {
+  width: min(44vw, 460px);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 24px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.row button {
+  padding: 6px 14px;
+  border: 2px solid #7c5263;
+  border-radius: 999px;
+  background: #fff;
+  color: #7c5263;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.row button[aria-pressed='true'] {
+  background: #7c5263;
+  color: #fff;
+}
+
+.row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rowLabel {
+  min-width: 110px;
+  font-weight: 700;
+}
+
+.row .swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.row .swatch[aria-pressed='true'] {
+  outline: 3px solid #f0a050;
+  outline-offset: 2px;
+}
+
+.gridTitle {
+  margin: 16px 0 4px;
+  font-size: 1.2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.small {
+  width: 100%;
+}

@@ -61,7 +61,7 @@ const dist = (a: RGB, b: RGB) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2
  * moves (new = target + (fill - key)). With a one-color target, the target's
  * shade is target x (key shade / key main), per channel.
  */
-function recolorFill(fill: string, part: RigPart, keys: ColorKeys, targets: ColorTargets): string | null {
+export function recolorFill(fill: string, part: RigPart, keys: ColorKeys, targets: ColorTargets): string | null {
   const c = toRgb(fill)
   let best: { group: string; shade: boolean; d: number } | null = null
   for (const [group, key] of Object.entries(keys)) {
@@ -94,7 +94,7 @@ export function buildRecolor(parts: RigParts, keys: ColorKeys, targets: ColorTar
   if (!Object.values(targets).some(Boolean)) return out
   for (const [part, shapes] of Object.entries(parts) as [RigPart, RigParts[RigPart]][]) {
     const map = new Map<string, string>()
-    for (const [, fill, group] of shapes) {
+    for (const [, fill, group] of shapes ?? []) {
       if (map.has(fill) || KEEP_GROUPS.has(group)) continue
       const next = recolorFill(fill, part, keys, targets)
       if (next) map.set(fill, next)

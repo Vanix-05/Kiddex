@@ -23,8 +23,16 @@ export type { RigFace, RigPivots } from './rig/types'
 
 /** One traced shape: [path data, fill colour, sub-group]. */
 export type TracedPath = readonly [d: string, fill: string, group: string]
-export type RigPart = 'head' | 'armLeft' | 'armRight' | 'legLeft' | 'legRight' | 'body' | 'belly'
-export type RigParts = Record<RigPart, readonly TracedPath[]>
+export type RigPart = 'head' | 'armLeft' | 'armRight' | 'legLeft' | 'legRight' | 'body' | 'belly' | 'bodyFront'
+/**
+ * Every part's shapes. `bodyFront` (optional, the wardrobe kids): torso that
+ * covers the arms' inner edge at rest. It moves with the body but is drawn in
+ * front of the arms, so it covers them like the art does and stays put when
+ * an arm waves.
+ */
+export type RigParts = Record<Exclude<RigPart, 'bodyFront'>, readonly TracedPath[]> & {
+  bodyFront?: readonly TracedPath[]
+}
 
 /** Head sub-groups that move on their own, and the data-rig name they get. */
 const HEAD_GROUPS: Record<string, string> = {
@@ -223,6 +231,12 @@ export function TracedRig({
           <g data-rig="armRight">
             <Shapes paths={parts.armRight} recolor={recolor.armRight} />
           </g>
+          {/* A second body group (the springs move every data-rig="body"), over the arms. */}
+          {!!parts.bodyFront?.length && (
+            <g data-rig="body">
+              <Shapes paths={parts.bodyFront} recolor={recolor.bodyFront} />
+            </g>
+          )}
         </g>
       </g>
     </svg>
