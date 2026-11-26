@@ -294,6 +294,11 @@ export class LobbyGame {
     return this.options.viewer === true
   }
 
+  /** Re-measures the canvas (MainLobby calls it when the screen size may have changed). */
+  refit() {
+    this.app?.resize()
+  }
+
   // ---------- Start and stop ----------
 
   async start() {

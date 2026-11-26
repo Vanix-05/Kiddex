@@ -34,6 +34,7 @@ import { BridgeCutscene } from './cutscene/BridgeCutscene'
 import { Boat, Scene } from './Scene'
 import { YouTray, type YouTab } from './YouTray'
 import styles from './CustomizeScreen.module.css'
+import { onViewportChange } from '../../hooks/viewportChange'
 
 // ---------- Layout (the 1440 x 900 stage, scaled to fit the window) ----------
 
@@ -198,11 +199,10 @@ export function Bridge({
   }
 
   useEffect(() => {
-    const onResize = () => setLayout(layoutFor())
-    window.addEventListener('resize', onResize)
+    const stopFit = onViewportChange(() => setLayout(layoutFor()))
     const pending = timers.current
     return () => {
-      window.removeEventListener('resize', onResize)
+      stopFit()
       pending.forEach((t) => window.clearTimeout(t))
     }
   }, [])

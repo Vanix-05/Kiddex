@@ -28,6 +28,7 @@ import { useLiveClassmates } from './live/useLiveClassmates'
 import { useLobbySettings } from './useLobbySettings'
 import { ViewerHud } from './ui/ViewerHud'
 import styles from './LobbyScreen.module.css'
+import { onViewportChange } from '../../hooks/viewportChange'
 
 type Card =
   | { type: 'howto' | 'settings' | 'door' | 'mission' | 'board' | 'wheel' | 'garden' | 'shop' }
@@ -290,10 +291,10 @@ export function MainLobby({
   }, [game, settings])
 
   useEffect(() => {
-    const onResize = () => setScale(hudScale())
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    return onViewportChange(() => setScale(hudScale()))
   }, [])
+  // The room's canvas too: Pixi only listens for `resize`, which phones can send too early.
+  useEffect(() => (game ? onViewportChange(() => game.refit()) : undefined), [game])
   useEffect(() => game?.setUiScale(Math.max(0.68, scale)), [game, scale])
 
   // No walking or actions while a card is open.

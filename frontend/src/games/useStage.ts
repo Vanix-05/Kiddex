@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { PHONE_SIDEWAYS_QUERY } from '../hooks/usePhoneSideways'
 import { useLobbySettings } from '../screens/Lobby/useLobbySettings'
+import { onViewportChange } from '../hooks/viewportChange'
 
 /**
  * The stage (top bar, board, strip, the buddy and the kid) is drawn at a fixed
@@ -82,9 +83,7 @@ function fit(): StageFit {
 export function useStageFit() {
   const [stage, setStage] = useState(fit)
   useEffect(() => {
-    const onResize = () => setStage(fit())
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    return onViewportChange(() => setStage(fit()))
   }, [])
   return stage
 }

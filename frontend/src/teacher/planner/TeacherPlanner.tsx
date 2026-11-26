@@ -38,6 +38,7 @@ import { PlannerActionsContext, usePlannerActions } from './plannerActions'
 import { PhonePagesContext, wantsPage2, type PageSide } from './phonePages'
 import { SPREADS } from './spreads'
 import styles from './planner.module.css'
+import { onViewportChange } from '../../hooks/viewportChange'
 
 /** How long a page turn takes. */
 const FLIP_MS = 650
@@ -113,12 +114,10 @@ function usePlannerFit(phone: boolean) {
   const [fit, setFit] = useState(fitPlanner)
   const [size, setSize] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   useEffect(() => {
-    const onResize = () => {
+    return onViewportChange(() => {
       setFit(fitPlanner())
       setSize({ w: window.innerWidth, h: window.innerHeight })
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    })
   }, [])
   if (phone) {
     return {

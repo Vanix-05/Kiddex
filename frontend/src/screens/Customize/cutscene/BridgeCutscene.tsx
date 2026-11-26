@@ -27,6 +27,7 @@ import {
 } from './motion'
 import { FrontWaves, SeaSet, type Bind, type SeaPart } from './SeaSet'
 import styles from './BridgeCutscene.module.css'
+import { onViewportChange } from '../../../hooks/viewportChange'
 
 /*
  * Customize Bridge -> Rene Island cutscene (about 13 s). Played live with the
@@ -237,9 +238,7 @@ export function BridgeCutscene({ avatar, buddy, look, buddyName, onDone, freezeA
 
   // Fit the stage to the window.
   useEffect(() => {
-    const onResize = () => setLayout(fit())
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    return onViewportChange(() => setLayout(fit()))
   }, [])
 
   // Skip: the button has focus from the start; Enter or Escape work anywhere.

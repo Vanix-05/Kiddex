@@ -1,3 +1,4 @@
+
 import {
   useEffect,
   useId,
@@ -21,6 +22,7 @@ import { OllieLive } from '../../../components/StoryBook/OllieLive'
 import { StepTabs } from '../../../components/StoryBook/StepTabs'
 import { Wing } from './Wing'
 import type { BookPhase, Step } from './timing'
+import { onViewportChange } from '../../../hooks/viewportChange'
 import styles from './StoryBook.module.css'
 
 // Laptops: the whole stage (FULL), so the open book is about 85% of the screen.
@@ -146,7 +148,7 @@ export function StoryBook({
     setLandIn(seen.phase === 'enter' && phase === 'steps')
   }
 
-  // Scale the stage to fit the window (before the first paint, then on resize).
+  // Scale the stage to fit the window (before the first paint, then whenever its size may change).
   // --open-px / --closed-px: one screen pixel in stage pixels, for 44px tap targets.
   useLayoutEffect(() => {
     const overlay = overlayRef.current
@@ -163,8 +165,7 @@ export function StoryBook({
       show('open', phone ? PHONE_OPEN : wide ? FULL : OPEN)
     }
     fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
+    return onViewportChange(fit)
   }, [phone])
 
   // Keyboard focus: on the blocker while animating, on the New Student plate

@@ -3,6 +3,7 @@ import { bedroomArt } from '../../assets/art'
 import { fitStage, stageScale } from '../../components/StoryBook/fitStage'
 import { Companion } from '../../companions/Companion'
 import { rigSettings } from '../../companions/rig/useSpringRig'
+import { onViewportChange } from '../../hooks/viewportChange'
 import type { BuddyId } from '../../setup/quizData'
 import letterbox from '../Setup/intro/Intro.module.css'
 import styles from './MagicFall.module.css'
@@ -98,8 +99,7 @@ export function MagicFall({ buddy, buddyColor, video, onLeave, onGone, freezeAt 
       root.style.setProperty('--stage-px', (1 / stageScale(root.clientWidth, root.clientHeight)).toFixed(4))
     }
     fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
+    return onViewportChange(fit)
   }, [])
 
   // Skip has the focus; Enter or Escape work anywhere.

@@ -20,6 +20,7 @@ import {
 } from './camera'
 import { HAND_PX, loadPicture, releasePictures } from './pictures'
 import styles from './Bedroom.module.css'
+import { onViewportChange } from '../../hooks/viewportChange'
 
 export interface BedroomHandle {
   /** Shows one moment: moves every layer for this camera (transforms and opacities only). */
@@ -327,8 +328,7 @@ export function Bedroom({ ref, book, aboveHands, backdrop, children, locked = fa
       root.style.setProperty('--stage-px', (1 / stageScale(root.clientWidth, root.clientHeight)).toFixed(4))
     }
     fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
+    return onViewportChange(fit)
     // Once, on mount: apply only touches the elements found above.
   }, [])
 
