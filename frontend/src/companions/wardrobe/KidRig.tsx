@@ -115,7 +115,9 @@ export function KidRig({
       still={still}
       label={label}
       className={className}
-      legsBehindBody={current.look.bottom === 'skirt'}
+      // Every bottom: the pants' top half is in the body part, so legs in front would draw the
+      // base legs' outline and skin over the thighs (and behind also hides the hip seam on a step).
+      legsBehindBody
     />
   )
 }
