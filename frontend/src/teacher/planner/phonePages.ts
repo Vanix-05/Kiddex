@@ -12,6 +12,8 @@ export interface PhonePages {
   phone: boolean
   /** The page on show (always 'L' when not on a phone). */
   side: PageSide
+  /** Phone: turn to that page of the spread (does nothing elsewhere). */
+  turn?: (to: PageSide) => void
 }
 
 export const PhonePagesContext = createContext<PhonePages>({ phone: false, side: 'L' })

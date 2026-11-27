@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, CalendarDays, ChartNoAxesColumn, Check, Gamepad2, Package, User, Users, type LucideIcon } from 'lucide-react'
+import { ArrowRight, CalendarDays, ChartNoAxesColumn, Check, Gamepad2, Package, Plus, User, Users, type LucideIcon } from 'lucide-react'
 import { paths } from '../../routes/paths'
 import type { SectionProgress } from '../api/sectionsApi'
 import { calendarOf, comingUp, currentPack, nobodyPlayed, ollieNote } from '../data/reports'
@@ -16,6 +16,7 @@ import {
 } from '../data/useTeacherData'
 import type { TodoTarget } from '../data/types'
 import { lessonStepPath, studentPagePath, studentsPath, type PageProps } from '../planner/pages'
+import { SHOW_PAGE_2, usePhonePages } from '../planner/phonePages'
 import { usePlannerActions } from '../planner/plannerActions'
 import { Bar, Btn, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Home.module.css'
@@ -31,12 +32,22 @@ export function HomeLeft({ live }: PageProps) {
   const loading = sectionsLoading || studentsLoading
   // No section or no students yet: the first steps instead of To do.
   const isNew = !active || students.length === 0
+  const navigate = useNavigate()
+  const { phone } = usePhonePages()
 
   return (
     <PageBody side="L">
-      <Title>
-        Good morning, {teacher.name}!
-      </Title>
+      <div className={styles.titleRow}>
+        <Title>
+          Good morning, {teacher.name}!
+        </Title>
+        {/* Phone: the main job one tap from Home (uploading is on the Lessons spread's page 2). */}
+        {phone && active && (
+          <Btn variant="primary" className={styles.addLesson} icon={<Plus size={24} strokeWidth={3} aria-hidden="true" />} onClick={() => navigate(paths.teacher.lessons, { state: SHOW_PAGE_2 })}>
+            Add a lesson
+          </Btn>
+        )}
+      </div>
       <Sub>
         {summary.todayLabel} ·{' '}
         {active ? (

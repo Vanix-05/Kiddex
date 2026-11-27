@@ -12,6 +12,7 @@ import {
   Lock,
   Package,
   Pencil,
+  Plus,
   RotateCcw,
   Sparkles,
   Table2,
@@ -98,10 +99,20 @@ function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
   const { lessons, loading, error } = useLessons()
   const { active } = useSection()
   const navigate = useNavigate()
+  const { phone, turn } = usePhonePages()
+  // Phone: uploading lives on page 2, so page 1 gets a big way there.
+  const addButton = phone && showHowItWorks && active
 
   return (
     <PageBody side="L">
-      <Title>My lessons</Title>
+      <div className={addButton ? styles.titleRow : undefined}>
+        <Title>My lessons</Title>
+        {addButton && (
+          <Btn variant="primary" className={styles.addLesson} icon={<Plus size={26} strokeWidth={3} aria-hidden="true" />} onClick={() => turn?.('R')}>
+            Add a lesson
+          </Btn>
+        )}
+      </div>
       <Sub>{active ? `Grade ${active.grade} – ${active.name}` : 'No section yet'}</Sub>
 
       {lessons.length === 0 ? (
@@ -115,7 +126,7 @@ function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
           <div className={styles.noLessons}>
             <strong>No lessons yet</strong>
             <span>
-              Upload your first one on the right <ArrowRight size={16} aria-hidden="true" />
+              {phone ? 'Tap Add a lesson to upload your first one' : 'Upload your first one on the right'} <ArrowRight size={16} aria-hidden="true" />
             </span>
           </div>
         )

@@ -1194,3 +1194,17 @@ button.lessonButton:hover .lessonTitle {
     min-height: 67px;
   }
 }
+
+/* Phone: "My lessons" with the Add a lesson button beside it. */
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.addLesson {
+  min-height: 70px;
+  padding: 0 26px 0 20px;
+  font-size: 25px;
+}

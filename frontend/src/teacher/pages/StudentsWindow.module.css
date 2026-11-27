@@ -775,6 +775,12 @@
    --cw, --ch in planner.module.css). Its content scrolls inside; ✕ and the
    buttons are at least 44px (67 design px). */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* The list is taller than a phone: it scrolls inside the sheet. */
+  .paper:not(.halfOnly) {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .wrap {
     left: calc(var(--cl) + 4px);
     top: calc(var(--ct) - 20px);

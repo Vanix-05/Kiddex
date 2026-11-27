@@ -337,7 +337,7 @@ function Planner() {
 
   return (
     <PlannerActionsContext.Provider value={actions}>
-      <PhonePagesContext.Provider value={phone ? { phone, side } : NOT_PHONE}>
+      <PhonePagesContext.Provider value={phone ? { phone, side, turn: turnPage } : NOT_PHONE}>
       {onLobby && section && (
         <LazyTeacherLobbyScreen
           teacherName={teacher.name}
@@ -411,10 +411,11 @@ function Planner() {
           <SectionTabs />
           <Bookmarks active={activeMark} onGo={(to) => navigate(to)} phone={phone} />
           {phone ? (
-            // Phone: the pager, then Full screen (only where the browser can go full screen).
+            // Phone: the pager only. No Full screen: iPhones can't, and the
+            // home-screen app (Play like an app) already opens full screen.
             <div className={styles.topRight}>
-              <Pager side={side} onTurn={turnPage} />
-              {!fullscreen && document.fullscreenEnabled && <FullscreenButton />}
+              {/* Hidden while My Students floats over the book: its pages are behind it. */}
+              {win !== 'open' && <Pager names={PAGE_NAMES[page]} side={side} onTurn={turnPage} />}
             </div>
           ) : (
             !fullscreen && (
@@ -612,24 +613,37 @@ function PhonePageTurn({ flip, to, onDone }: { flip: Flip; to: string; onDone: (
   )
 }
 
-/** Phone: ‹ "Page 1 of 2" › in the top bar, between the section tabs and Full screen. */
-function Pager({ side, onTurn }: { side: PageSide; onTurn: (to: PageSide) => void }) {
-  const n = side === 'L' ? 1 : 2
+/** Phone: what page 1 and page 2 of each spread are called, for the pager. */
+const PAGE_NAMES: Record<PageKey, readonly [string, string]> = {
+  home: ['Today', 'This week'],
+  lessons: ['My lessons', 'Add a lesson'],
+  making: ['My lessons', 'Making'],
+  check: ['Look closely', 'All questions'],
+  games: ['Mini games', 'Review pack'],
+  progress: ['This week', 'Review packs'],
+  lobby: ['Lobby', 'Lobby'],
+}
+
+/**
+ * Phone: the two pages of the spread by name, in the top bar between the
+ * section tabs and Full screen. The page on show is orange; tap the other to turn.
+ */
+function Pager({ names, side, onTurn }: { names: readonly [string, string]; side: PageSide; onTurn: (to: PageSide) => void }) {
   return (
     <div className={styles.pager} role="group" aria-label="Pages">
-      <button type="button" className={styles.pageBtn} aria-label="Previous page" disabled={side === 'L'} onClick={() => onTurn('L')}>
-        <ChevronLeft size={30} strokeWidth={2.8} aria-hidden="true" />
-      </button>
-      <span className={styles.pagePill} aria-live="polite">
-        Page {n} of 2
-        <span className={styles.pageDots} aria-hidden="true">
-          <span className={n === 1 ? styles.pageDotOn : styles.pageDot} />
-          <span className={n === 2 ? styles.pageDotOn : styles.pageDot} />
-        </span>
-      </span>
-      <button type="button" className={styles.pageBtn} aria-label="Next page" disabled={side === 'R'} onClick={() => onTurn('R')}>
-        <ChevronRight size={30} strokeWidth={2.8} aria-hidden="true" />
-      </button>
+      {(['L', 'R'] as const).map((s, i) => (
+        <button
+          key={s}
+          type="button"
+          className={s === side ? `${styles.pageTab} ${styles.pageTabOn}` : styles.pageTab}
+          aria-pressed={s === side}
+          onClick={() => onTurn(s)}
+        >
+          {i === 1 && side === 'L' && <ChevronRight size={24} strokeWidth={3} aria-hidden="true" />}
+          {i === 0 && side === 'R' && <ChevronLeft size={24} strokeWidth={3} aria-hidden="true" />}
+          {names[i]}
+        </button>
+      ))}
     </div>
   )
 }
