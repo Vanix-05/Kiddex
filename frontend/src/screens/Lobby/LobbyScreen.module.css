@@ -305,6 +305,12 @@
   color: var(--color-text-muted);
 }
 
+.message p.messageCode {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
 .messageButtons {
   display: flex;
   flex-wrap: wrap;

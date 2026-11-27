@@ -302,21 +302,36 @@ export class LobbyGame {
   // ---------- Start and stop ----------
 
   async start() {
-    const app = new Application()
-    try {
-      // The chalkboard and banner are Pixi text: wait for Fredoka, but not for long.
-      await Promise.race([fontsReady, new Promise((resolve) => setTimeout(resolve, 1500))])
+    // The chalkboard and banner are Pixi text: wait for Fredoka, but not for long.
+    await Promise.race([fontsReady, new Promise((resolve) => setTimeout(resolve, 1500))])
+    const open = async (antialias: boolean) => {
+      const app = new Application()
       await app.init({
         resizeTo: this.host,
-        antialias: true,
+        antialias,
         background: 0x7fcbe6,
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         autoDensity: true,
         preference: 'webgl',
       })
-    } catch {
-      if (!this.dead) this.events.failed()
-      return
+      return app
+    }
+    let app: Application
+    try {
+      app = await open(true)
+    } catch (first) {
+      // Phones sometimes refuse the first try (just back from the home screen,
+      // or too many graphics in use): wait a moment and try once more, plainer.
+      console.warn('[lobby] graphics failed, trying again:', first)
+      await new Promise((resolve) => setTimeout(resolve, 600))
+      try {
+        if (this.dead) return
+        app = await open(false)
+      } catch (second) {
+        console.warn('[lobby] graphics failed:', second)
+        if (!this.dead) this.events.failed()
+        return
+      }
     }
     // Left the Lobby while it was starting.
     if (this.dead) {

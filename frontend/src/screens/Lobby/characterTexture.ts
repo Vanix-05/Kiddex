@@ -167,7 +167,16 @@ async function render(id: CompanionId, element: ReactElement, split?: RigPivots)
     if (!ctx) throw new Error('No 2D canvas')
     ctx.drawImage(image, 0, 0, width, height)
 
-    const limbs = split ? await cutLimbs(copy, split, x, y, scale, width, height) : undefined
+    // If the walking layers can't be cut (seen on some iPhones), the kid still
+    // comes in whole and just doesn't swing their legs and arms.
+    let limbs: Limbs | undefined
+    if (split) {
+      try {
+        limbs = await cutLimbs(copy, split, x, y, scale, width, height)
+      } catch (e) {
+        console.warn('[lobby] kid layers skipped:', e)
+      }
+    }
 
     return {
       canvas,

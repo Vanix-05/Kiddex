@@ -527,6 +527,8 @@ export function MainLobby({
             <p>
               Try Chrome or Edge, and turn on <b>Use graphics acceleration</b> in the browser's settings.
             </p>
+            {/* Which part failed, for whoever fixes it: P = drawing the kids, G = the graphics. */}
+            <p className={styles.messageCode}>Code {castFailed ? 'P' : 'G'}</p>
             <div className={styles.messageButtons}>
               <button type="button" onClick={() => window.location.reload()}>
                 Try again

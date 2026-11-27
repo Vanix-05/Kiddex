@@ -81,7 +81,12 @@ export function useLobbyCast(student: LobbyStudent | null) {
     const look = JSON.parse(lookKey) as Look | null
     const loadMe = async (): Promise<CastMember | null> => {
       if (!look || !avatar || !buddy || name === undefined || buddyName === undefined) return null
-      const [kid, happy, pet] = await Promise.all([kidPicture(avatar, look), kidPicture(avatar, look, 'happy'), buddyPicture(buddy, look)])
+      const [kid, happy, pet] = await Promise.all([
+        kidPicture(avatar, look),
+        // The happy face is a bonus: without it, the kid keeps the calm face.
+        kidPicture(avatar, look, 'happy').catch(() => undefined),
+        buddyPicture(buddy, look),
+      ])
       return { id: 'me', name, buddyName, kid, happy, buddy: pet }
     }
     const load = async (): Promise<LobbyCast> => {
@@ -90,7 +95,10 @@ export function useLobbyCast(student: LobbyStudent | null) {
     }
     load().then(
       (loaded) => alive && setCast(loaded),
-      () => alive && setFailed(true),
+      (e) => {
+        console.warn('[lobby] cast failed:', e)
+        if (alive) setFailed(true)
+      },
     )
     return () => {
       alive = false
