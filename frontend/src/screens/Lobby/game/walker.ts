@@ -21,6 +21,44 @@ export interface FigureArt {
   anchorY: number
   /** Top of the head to the feet, in texture px. */
   bodyPx: number
+  /** The kid cut into layers (legs and arms move on a walk); without it, one flat picture. */
+  limbs?: LimbArt
+}
+
+/** One layer of a cut kid: its texture, top-left and joint, in picture px. */
+export interface LimbPiece {
+  texture: Texture
+  x: number
+  y: number
+  pivotX: number
+  pivotY: number
+}
+
+export interface LimbArt {
+  legLeft: LimbPiece
+  legRight: LimbPiece
+  core: LimbPiece
+  head: LimbPiece
+  armLeft: LimbPiece
+  armRight: LimbPiece
+  front: LimbPiece | null
+}
+
+/** The moving layers of a cut kid. */
+interface LimbSprites {
+  legLeft: Sprite
+  legRight: Sprite
+  head: Sprite
+  armLeft: Sprite
+  armRight: Sprite
+  headX: number
+  /** Where the kid looks, -1 (left) to 1 (right), easing toward the walking side. */
+  look: number
+  /** Where each leg rests (its joint), in picture px. */
+  legLeftY: number
+  legRightY: number
+  /** How much of a walk is showing, 0..1 (eases in and out). */
+  walk: number
 }
 
 /** An eyelid over one eye, in texture px from the picture's anchor (its feet). */
@@ -42,6 +80,30 @@ const TRAIL_STEP = 0.08
 const TRAIL_MAX = 60
 const JUMP_S = 0.5
 const JUMP_PX = 18
+
+// The kid's walk (a cut kid only): front-facing steps, the legs taking turns.
+/** Step cycle speed: a full left-right cycle every ~0.6s. */
+const STEP_RATE = 10.5
+/** How far a stepping foot lifts, as a share of the picture's body height. */
+const STEP_LIFT = 0.085
+/** A stepping leg tips out a little, degrees. */
+const STEP_TIP = 6
+/** Arms swing, degrees. */
+const ARM_SWING = 22
+/** The body's small bob on each step, px on screen. */
+const STEP_BOB = 2.5
+/** Walking: the body leans toward where it goes, radians. */
+const WALK_LEAN = 0.06
+/** The head slides toward where the kid goes (looking that way), share of the body height. */
+const HEAD_PEEK = 0.04
+/** ...and tips that way, degrees. */
+const HEAD_TIP = 6
+/** How fast the head turns to look the other way. */
+const LOOK_RATE = 7
+/** How fast a figure turns around (it narrows, then widens facing the other way). */
+const TURN_RATE = 16
+/** A buddy (or a flat kid) leans toward where it goes, radians. */
+const BUDDY_LEAN = 0.07
 
 // Ollie's hops (the 'hop' style).
 /** Hop cycle speed: one hop every ~0.33s. */
@@ -66,7 +128,11 @@ export type SeatBook = Map<Seat, Walker>
 /** One drawn character: the kid or the buddy. */
 export interface Figure {
   view: Container
+  /** Everything that moves with the body (the body, and a cut kid's legs and arms). */
+  rig: Container
+  /** The picture (a cut kid: its core layer: body, head and face). */
   body: Sprite
+  limbs: LimbSprites | null
   shadow: Graphics
   art: FigureArt
   /** Scale that makes the body its on-screen height. */
@@ -78,6 +144,8 @@ export interface Figure {
   phase: number
   /** 1 = facing right, -1 = left. */
   face: 1 | -1
+  /** The drawn facing, easing toward `face` (between -1 and 1 while turning). */
+  turn: number
   moving: boolean
   /** Seconds left of a happy jump (or a big hop). */
   jump: number
@@ -124,19 +192,53 @@ function makeLid({ x, y, rx, ry }: Lid): Graphics {
 function makeFigure(art: FigureArt, bodyHeight: number, shadowRx: number, shadowRy: number, hopper = false, lids: readonly Lid[] = []): Figure {
   const view = new Container()
   const shadow = new Graphics().ellipse(0, 0, shadowRx, shadowRy).fill({ color: 0x4a2c17, alpha: 0.18 })
-  const body = new Sprite(art.texture)
-  body.anchor.set(art.anchorX, art.anchorY)
+  const rig = new Container()
+  const { width, height } = art.texture
+  // The feet are at the rig's (0, 0).
+  const ox = -art.anchorX * width
+  const oy = -art.anchorY * height
+  let body: Sprite
+  let limbs: LimbSprites | null = null
+  if (art.limbs) {
+    const piece = (p: LimbPiece, joint: boolean) => {
+      const sprite = new Sprite(p.texture)
+      sprite.eventMode = 'none'
+      if (joint) {
+        sprite.pivot.set(p.pivotX - p.x, p.pivotY - p.y)
+        sprite.position.set(ox + p.pivotX, oy + p.pivotY)
+      } else sprite.position.set(ox + p.x, oy + p.y)
+      return sprite
+    }
+    const l = art.limbs
+    const legLeft = piece(l.legLeft, true)
+    const legRight = piece(l.legRight, true)
+    body = piece(l.core, false)
+    const head = piece(l.head, true)
+    const armLeft = piece(l.armLeft, true)
+    const armRight = piece(l.armRight, true)
+    rig.addChild(legLeft, legRight, body, head, armLeft, armRight)
+    if (l.front) rig.addChild(piece(l.front, false))
+    limbs = { legLeft, legRight, head, armLeft, armRight, headX: head.x, look: 0, legLeftY: legLeft.y, legRightY: legRight.y, walk: 0 }
+  } else {
+    body = new Sprite(art.texture)
+    body.anchor.set(art.anchorX, art.anchorY)
+    rig.addChild(body)
+  }
   body.eventMode = 'static'
   body.cursor = 'pointer'
   // Taps count on the body, not on the picture's empty corners (a buddy stands close to its kid).
-  const { width, height } = art.texture
-  body.hitArea = new Rectangle(-width * 0.28, -height * art.anchorY, width * 0.56, height * art.anchorY)
+  // In the body sprite's own px (a cut kid's core sits at its place in the picture).
+  const bx = art.limbs ? body.x : 0
+  const by = art.limbs ? body.y : 0
+  body.hitArea = new Rectangle(-width * 0.28 - bx, oy - by, width * 0.56, height * art.anchorY)
   const lidViews = lids.map(makeLid)
   for (const lid of lidViews) body.addChild(lid)
-  view.addChild(shadow, body)
+  view.addChild(shadow, rig)
   return {
     view,
+    rig,
     body,
+    limbs,
     shadow,
     art,
     base: bodyHeight / art.bodyPx,
@@ -145,6 +247,7 @@ function makeFigure(art: FigureArt, bodyHeight: number, shadowRx: number, shadow
     z: 0,
     phase: Math.random() * 6,
     face: 1,
+    turn: 1,
     moving: false,
     jump: 0,
     jumpLen: JUMP_S,
@@ -576,6 +679,49 @@ function drawFigure(f: Figure, dt: number, proj: Projection, still: boolean, sea
       squash = 0.95
     }
     blink(f, dt)
+  } else if (f.limbs) {
+    const limbs = f.limbs
+    // A cut kid walks: the legs take turns stepping, the arms swing, a small bob.
+    f.phase += dt * (f.moving ? STEP_RATE : 2.2)
+    const target = f.moving && !still ? 1 : 0
+    limbs.walk += (target - limbs.walk) * Math.min(1, dt * 12)
+    const w = limbs.walk
+    const s = f.moving ? Math.sin(f.phase) : 0
+    const liftPx = STEP_LIFT * f.art.bodyPx
+    const left = Math.max(0, s) * w
+    const right = Math.max(0, -s) * w
+    limbs.legLeft.y = limbs.legLeftY - left * liftPx
+    limbs.legRight.y = limbs.legRightY - right * liftPx
+    limbs.legLeft.angle = left * STEP_TIP
+    limbs.legRight.angle = -right * STEP_TIP
+    // The lifted leg comes toward us (a knee up), so it looks a little shorter.
+    limbs.legLeft.scale.y = 1 - 0.12 * left
+    limbs.legRight.scale.y = 1 - 0.12 * right
+    // Each arm swings with the other side's leg.
+    limbs.armLeft.angle = -s * ARM_SWING * w
+    limbs.armRight.angle = -s * ARM_SWING * w
+    // A cut kid never flips (the outfit would mirror): the head turns to look where it goes,
+    // a lot while walking and a little once stopped.
+    limbs.look += (f.face - limbs.look) * Math.min(1, dt * (still ? 60 : LOOK_RATE))
+    const looking = limbs.look * (0.35 + 0.65 * w)
+    limbs.head.x = limbs.headX + HEAD_PEEK * f.art.bodyPx * looking
+    limbs.head.angle = HEAD_TIP * looking
+    if (!still) {
+      if (w > 0.01) {
+        lift = Math.abs(Math.cos(f.phase)) * STEP_BOB * w
+        tilt = s * 0.025 * w + f.face * WALK_LEAN * w
+      } else if (seat) {
+        squash = 0.93 + Math.sin(f.phase) * 0.006
+      } else {
+        squash = 1 + Math.sin(f.phase) * 0.012
+      }
+    } else if (seat) {
+      squash = 0.93
+    }
+    if (f.jump > 0) {
+      f.jump = Math.max(0, f.jump - dt)
+      if (!still) lift += Math.sin((1 - f.jump / f.jumpLen) * Math.PI) * f.jumpPx
+    }
   } else {
     f.phase += dt * (f.moving ? 11 : 2.2)
     if (!still) {
@@ -583,7 +729,7 @@ function drawFigure(f: Figure, dt: number, proj: Projection, still: boolean, sea
         const up = Math.abs(Math.sin(f.phase))
         lift = up * 7
         squash = 1 - (1 - up) * 0.05
-        tilt = Math.sin(f.phase) * 0.04
+        tilt = Math.sin(f.phase) * 0.04 + f.face * BUDDY_LEAN
       } else if (seat) {
         squash = 0.93 + Math.sin(f.phase) * 0.006
       } else {
@@ -600,10 +746,15 @@ function drawFigure(f: Figure, dt: number, proj: Projection, still: boolean, sea
 
   // Straight view: the back of the room is a little smaller.
   const depth = proj.diag ? 1 : 0.86 + 0.14 * Math.min(1, Math.max(0, f.y / RD))
+  // Turning around: narrow, then wide again facing the other way (a snap with reduced motion).
+  // Kids and buddies always face us (a flip looked odd): the kid's head and a lean show the way.
+  // Only Ollie (the Teacher's view) flips.
+  const facing = f.hopper ? f.face : 1
+  f.turn = still ? facing : f.turn + (facing - f.turn) * Math.min(1, dt * TURN_RATE)
   const scaleY = f.base * squash * depth
-  f.body.position.set(0, -f.z - lift)
-  f.body.rotation = tilt
-  f.body.scale.set(f.base * f.face * Math.sqrt(2 - squash) * depth, scaleY)
+  f.rig.position.set(0, -f.z - lift)
+  f.rig.rotation = tilt
+  f.rig.scale.set(f.base * f.turn * Math.sqrt(2 - squash) * depth, scaleY)
   // Ollie's shadow shrinks while he is up in the air.
   f.shadow.scale.set(depth * (f.hopper ? 1 - Math.min(0.5, lift / 60) : 1))
 

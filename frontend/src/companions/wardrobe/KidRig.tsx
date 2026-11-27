@@ -1,27 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { TracedRig, type Emotion, type RigFace, type RigLook, type RigParts, type RigPivots } from '../TracedRig'
+import { TracedRig, type Emotion, type RigFace, type RigLook, type RigParts } from '../TracedRig'
 import { recolorOne } from '../rig/recolor'
 import { kidParts } from './buildKidParts'
 import { wardrobeColorKeys } from './colorKeys'
+import { kidPivots } from './kidPivots'
 import { loadedPiece, loadKidPieces, lookFiles, type EyeStyle, type Kid, type KidLook } from './items'
-
-/**
- * Joints: the girl's (both kids share one body), with the hips on the legs
- * cut line (y 1540 view units), where the wardrobe's legs start.
- */
-const kidPivots: RigPivots = {
-  feet: [2500, 4846],
-  middle: [2500, 3030],
-  body: [2500, 3990],
-  belly: [2500, 3300],
-  neck: [2497, 2610],
-  eyeLine: [2497, 1773],
-  hair: [2497, 551],
-  shoulderLeft: [2050, 2899],
-  shoulderRight: [2945, 2899],
-  hipLeft: [2190, 3990],
-  hipRight: [2805, 3990],
-}
 
 /** The girl's face (face-girl and face-boy share the eyes and blush); each kid's own mouth. */
 const kidFace = (kid: Kid): RigFace => ({

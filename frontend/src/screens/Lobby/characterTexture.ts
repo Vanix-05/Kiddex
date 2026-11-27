@@ -20,6 +20,8 @@ import { Companion } from '../../companions/Companion'
 import { companionRegistry, type CompanionId } from '../../companions/registry'
 import type { RigLook } from '../../companions/TracedRig'
 import { KidRig } from '../../companions/wardrobe/KidRig'
+import { kidPivots } from '../../companions/wardrobe/kidPivots'
+import type { RigPivots } from '../../companions/TracedRig'
 import { loadKidPieces, type KidLook } from '../../companions/wardrobe/items'
 import type { Avatar } from '../../setup/avatar'
 import type { AccessoryId } from '../../setup/customizeData'
@@ -36,6 +38,35 @@ export interface CharacterPicture {
   anchorY: number
   /** Top of the head to the feet, in picture px. Hats and ears reach above it. */
   bodyPx: number
+  /**
+   * The kid only: the same picture cut into layers, so the Lobby can move the
+   * legs and arms on a walk. Drawn back to front: legs, core, arms, front.
+   */
+  limbs?: Limbs
+}
+
+/** One layer, trimmed to what is drawn in it. Places are in picture px. */
+export interface LimbLayer {
+  canvas: HTMLCanvasElement
+  /** Where the layer's top-left corner is in the whole picture. */
+  x: number
+  y: number
+  /** The joint it turns around (hip or shoulder); for core and front, unused. */
+  pivotX: number
+  pivotY: number
+}
+
+export interface Limbs {
+  legLeft: LimbLayer
+  legRight: LimbLayer
+  /** Body and extras below the head. */
+  core: LimbLayer
+  /** Head, hair and face (slides toward the walking side, so the kid looks that way). */
+  head: LimbLayer
+  armLeft: LimbLayer
+  armRight: LimbLayer
+  /** The torso drawn over the arms (some tops), or null. */
+  front: LimbLayer | null
 }
 
 /** Rigs are drawn on a 5000 x 5000 board. */
@@ -76,12 +107,12 @@ export function characterPicture(id: CompanionId, look: RigLook = {}, mood: Char
 export function kidCharacterPicture(kid: Avatar, look: KidLook, extras: AccessoryId[], mood: CharacterMood = 'calm'): Promise<CharacterPicture> {
   return cached(kidPictureKey(kid, look, extras, mood), async () => {
     await loadKidPieces(kid, look)
-    return render('girl', createElement(KidRig, { kid, look, still: true, emotion: mood, extras }))
+    return render('girl', createElement(KidRig, { kid, look, still: true, emotion: mood, extras }), kidPivots)
   })
 }
 
 /** Draws a rig element still, crops it to the character and makes it a picture. `id`: whose anchors (feet, head top). */
-async function render(id: CompanionId, element: ReactElement): Promise<CharacterPicture> {
+async function render(id: CompanionId, element: ReactElement, split?: RigPivots): Promise<CharacterPicture> {
   const host = document.createElement('div')
   host.setAttribute('aria-hidden', 'true')
   host.style.cssText = 'position:fixed;left:-9999px;top:0;width:500px;height:500px;visibility:hidden;pointer-events:none'
@@ -136,8 +167,11 @@ async function render(id: CompanionId, element: ReactElement): Promise<Character
     if (!ctx) throw new Error('No 2D canvas')
     ctx.drawImage(image, 0, 0, width, height)
 
+    const limbs = split ? await cutLimbs(copy, split, x, y, scale, width, height) : undefined
+
     return {
       canvas,
+      limbs,
       url: canvas.toDataURL('image/png'),
       anchorX: (feetX - x) / w,
       anchorY: (feetY - y) / h,
@@ -159,4 +193,91 @@ async function loadSvg(markup: string): Promise<HTMLImageElement> {
   } finally {
     URL.revokeObjectURL(url)
   }
+}
+
+type LayerName = 'legLeft' | 'legRight' | 'head' | 'armLeft' | 'armRight' | 'front'
+
+/** The groups each layer is made of, in a copy of the posed svg. */
+function layerGroups(svg: SVGSVGElement): Record<LayerName, Element | null> {
+  const squash = svg.querySelector('[data-rig="squash"]')
+  const direct = (name: string) => squash?.querySelectorAll(`:scope > [data-rig="${name}"]`) ?? []
+  return {
+    legLeft: direct('legLeft')[0] ?? null,
+    legRight: direct('legRight')[0] ?? null,
+    head: direct('head')[0] ?? null,
+    armLeft: direct('armLeft')[0] ?? null,
+    armRight: direct('armRight')[0] ?? null,
+    // The second body group, over the arms (KidRig's bodyFront).
+    front: direct('body')[1] ?? null,
+  }
+}
+
+/**
+ * Cuts the posed kid into layers: each leg, each arm, the torso over the arms,
+ * and the rest (core). Every layer is drawn at the picture's size, then trimmed.
+ */
+async function cutLimbs(
+  svg: SVGSVGElement,
+  pivots: RigPivots,
+  x: number,
+  y: number,
+  scale: number,
+  width: number,
+  height: number,
+): Promise<Limbs> {
+  const draw = async (keep: LayerName | 'core', pivot: readonly [number, number] | null): Promise<LimbLayer | null> => {
+    const copy = svg.cloneNode(true) as SVGSVGElement
+    const groups = layerGroups(copy)
+    if (keep === 'core') {
+      for (const g of Object.values(groups)) g?.remove()
+    } else {
+      const target = groups[keep]
+      if (!target) return null
+      copy.setAttribute('style', 'visibility:hidden')
+      target.setAttribute('style', 'visibility:visible')
+    }
+    const image = await loadSvg(new XMLSerializer().serializeToString(copy))
+    const full = document.createElement('canvas')
+    full.width = width
+    full.height = height
+    const ctx = full.getContext('2d', { willReadFrequently: true })
+    if (!ctx) throw new Error('No 2D canvas')
+    ctx.drawImage(image, 0, 0, width, height)
+    // The core and head stay whole (the happy face swaps the head in place).
+    if (keep === 'core' || keep === 'head') return { canvas: full, x: 0, y: 0, pivotX: 0, pivotY: 0 }
+    // Trim to the drawn pixels (most of each layer is empty).
+    const data = ctx.getImageData(0, 0, width, height).data
+    let x0 = width
+    let y0 = height
+    let x1 = -1
+    let y1 = -1
+    for (let j = 0; j < height; j++) {
+      for (let i = 0; i < width; i++) {
+        if (data[(j * width + i) * 4 + 3] > 0) {
+          if (i < x0) x0 = i
+          if (i > x1) x1 = i
+          if (j < y0) y0 = j
+          if (j > y1) y1 = j
+        }
+      }
+    }
+    if (x1 < 0) return null
+    const canvas = document.createElement('canvas')
+    canvas.width = x1 - x0 + 1
+    canvas.height = y1 - y0 + 1
+    canvas.getContext('2d')?.drawImage(full, -x0, -y0)
+    const [px, py] = pivot ?? [0, 0]
+    return { canvas, x: x0, y: y0, pivotX: (px - x) * scale, pivotY: (py - y) * scale }
+  }
+  const [legLeft, legRight, core, head, armLeft, armRight, front] = await Promise.all([
+    draw('legLeft', pivots.hipLeft),
+    draw('legRight', pivots.hipRight),
+    draw('core', null),
+    draw('head', pivots.neck),
+    draw('armLeft', pivots.shoulderLeft),
+    draw('armRight', pivots.shoulderRight),
+    draw('front', null),
+  ])
+  if (!legLeft || !legRight || !core || !head || !armLeft || !armRight) throw new Error('Kid layers missing')
+  return { legLeft, legRight, core, head, armLeft, armRight, front }
 }

@@ -45,7 +45,7 @@ import {
   type ZoneId,
 } from './room'
 import { makeLayers, makeScene, type Layers, type Scene } from './scene'
-import { Walker, type Figure, type FigureArt, type Lid, type SeatBook } from './walker'
+import { Walker, type Figure, type FigureArt, type Lid, type LimbPiece, type SeatBook } from './walker'
 
 export type { Angle } from './projection'
 export type { Zoom } from './camera'
@@ -403,7 +403,7 @@ export class LobbyGame {
   }
 
   private artOf(picture: CharacterPicture): FigureArt {
-    return { texture: this.textureOf(picture.canvas), anchorX: picture.anchorX, anchorY: picture.anchorY, bodyPx: picture.bodyPx }
+    return figureArt(picture, (canvas) => this.textureOf(canvas))
   }
 
   private makeCast() {
@@ -412,8 +412,10 @@ export class LobbyGame {
 
     if (me && !this.viewer) {
       const meArt = this.artOf(me.kid)
-      this.calmTexture = meArt.texture
-      this.happyTexture = me.happy ? this.textureOf(me.happy.canvas) : null
+      // A cut kid's face is in its head layer: the happy face swaps only that.
+      this.calmTexture = meArt.limbs?.head.texture ?? meArt.texture
+      const happy = me.happy
+      this.happyTexture = happy ? this.textureOf(meArt.limbs && happy.limbs ? happy.limbs.head.canvas : happy.canvas) : null
       this.me = new Walker({
         id: me.id,
         you: true,
@@ -711,11 +713,12 @@ export class LobbyGame {
   addClassmate(mate: CastMember, at: FloorSpot) {
     if (this.dead || this.classmates.some((c) => c.id === mate.id)) return
     const textures: Texture[] = []
-    const art = (picture: CharacterPicture): FigureArt => {
-      const texture = new Texture({ source: new ImageSource({ resource: picture.canvas }) })
-      textures.push(texture)
-      return { texture, anchorX: picture.anchorX, anchorY: picture.anchorY, bodyPx: picture.bodyPx }
-    }
+    const art = (picture: CharacterPicture): FigureArt =>
+      figureArt(picture, (canvas) => {
+        const texture = new Texture({ source: new ImageSource({ resource: canvas }) })
+        textures.push(texture)
+        return texture
+      })
     const walker = new Walker({
       id: mate.id,
       you: false,
@@ -918,7 +921,7 @@ export class LobbyGame {
     if (part === 'kid') walker.hop()
     else if (walker.buddy) walker.buddy.jump = 0.5
     if (walker === this.me && part === 'kid' && this.happyTexture) {
-      walker.kid.body.texture = this.happyTexture
+      faceSprite(walker.kid).texture = this.happyTexture
       this.happyLeft = HAPPY_S
     }
   }
@@ -1072,7 +1075,7 @@ export class LobbyGame {
 
     if (this.happyLeft > 0) {
       this.happyLeft -= dt
-      if (this.happyLeft <= 0 && this.calmTexture) me.kid.body.texture = this.calmTexture
+      if (this.happyLeft <= 0 && this.calmTexture) faceSprite(me.kid).texture = this.calmTexture
     }
 
     const marker = this.marker
@@ -1255,3 +1258,25 @@ function convexHull(points: [number, number][]): [number, number][] {
   }
   return [...half(p), ...half([...p].reverse())]
 }
+
+/** A picture as walker art; a cut kid's layers become textures too. */
+function figureArt(picture: CharacterPicture, texture: (canvas: HTMLCanvasElement) => Texture): FigureArt {
+  const art: FigureArt = { texture: texture(picture.canvas), anchorX: picture.anchorX, anchorY: picture.anchorY, bodyPx: picture.bodyPx }
+  const l = picture.limbs
+  if (l) {
+    const piece = (p: typeof l.core): LimbPiece => ({ texture: texture(p.canvas), x: p.x, y: p.y, pivotX: p.pivotX, pivotY: p.pivotY })
+    art.limbs = {
+      legLeft: piece(l.legLeft),
+      legRight: piece(l.legRight),
+      core: piece(l.core),
+      head: piece(l.head),
+      armLeft: piece(l.armLeft),
+      armRight: piece(l.armRight),
+      front: l.front ? piece(l.front) : null,
+    }
+  }
+  return art
+}
+
+/** The sprite with the face: a cut kid's head, or the whole picture. */
+const faceSprite = (f: Figure) => f.limbs?.head ?? f.body
