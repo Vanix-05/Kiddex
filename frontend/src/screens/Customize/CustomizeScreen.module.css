@@ -710,6 +710,22 @@
     font-size: 25px;
   }
 
+  /* The island sign and the kid's speech bubble: bigger writing on a phone. */
+  /* A little higher, so the bigger bubble passes under it. */
+  .island {
+    top: 150px;
+    font-size: 36px;
+  }
+
+  .island small {
+    font-size: 24px;
+  }
+
+  .bubble {
+    top: 262px;
+    font-size: 36px;
+  }
+
   /* The rename chip and the ribbon pencil keep their look; an invisible
      strip around each makes it at least 44px tall to tap (--scene-px is one
      screen pixel in scene pixels). */
@@ -884,12 +900,12 @@
 /* Sideways phone: every swatch fills its grid cell to tap (the tray is scaled, so the cell is the most room there is). */
 @media (orientation: landscape) and (max-height: 500px) {
   .swatches {
-    gap: 4px 6px;
+    gap: 4px;
   }
 
   .dot {
-    width: 44px;
-    height: 44px;
+    width: 54px;
+    height: 54px;
   }
 
   .slots button {

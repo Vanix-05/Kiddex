@@ -154,4 +154,20 @@
   .next {
     top: 640px;
   }
+
+  /* The book is small on a phone: the picture labels and the chip are drawn bigger. */
+  .chip {
+    font-size: 30px;
+  }
+
+  /* A slightly shorter picture leaves room for two lines of the bigger label. */
+  .art {
+    height: 146px;
+  }
+
+  .label {
+    font-size: 29px;
+    line-height: 0.98;
+    padding: 0 2px;
+  }
 }

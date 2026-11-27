@@ -1070,4 +1070,16 @@
   .zoomButton {
     display: none;
   }
+
+  /* A card taller than the phone scrolls; its buttons (Done, ...) stay
+     pinned at the bottom of the card, so they're always on screen. */
+  .card .acts {
+    position: sticky;
+    bottom: -20px;
+    z-index: 1;
+    margin: 12px -22px -20px;
+    padding: 10px 22px 14px;
+    border-top: 2px solid var(--color-neutral-line);
+    background: var(--color-input-bg);
+  }
 }

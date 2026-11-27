@@ -55,6 +55,21 @@
   color: var(--color-new-student-button-edge);
 }
 
+/* Phone held sideways: the book is small, so the words are bigger and may
+   take two lines (the tabs can't get wider: they reach the screen's edge). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tab {
+    height: 92px;
+    font-size: 24px;
+    line-height: 1.02;
+    white-space: normal;
+  }
+
+  .number {
+    font-size: 27px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tab {
     transition: none;

@@ -254,6 +254,10 @@
   scale: 0.6;
 }
 
+.phoneLeft .chapter {
+  font-size: 24px;
+}
+
 .phoneStep {
   position: absolute;
   inset: 0;

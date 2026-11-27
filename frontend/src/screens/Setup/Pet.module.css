@@ -502,6 +502,42 @@
 /* Phone held sideways: Back and Choose are at least 44px tall on the screen
    (--stage-px, set by Bedroom, is one screen pixel in stage pixels). */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* The book is small on a phone: the small words are drawn bigger. */
+  .kicker {
+    font-size: 32px;
+  }
+
+  .tag {
+    font-size: 27px;
+  }
+
+  .matchChip {
+    font-size: 24px;
+  }
+
+  .intro {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .skillIcon,
+  .skillLabel {
+    font-size: 27px;
+  }
+
+  .funFact {
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+  .nameLabel {
+    font-size: 27px;
+  }
+
+  .nameInput {
+    font-size: 32px;
+  }
+
   .back {
     --h: calc(44px * var(--stage-px, 2.3));
     min-height: var(--h);

@@ -560,6 +560,30 @@
    closed book is drawn at 92% of that). The negative margins give the extra
    height back, so nothing moves. */
 @media (orientation: landscape) and (max-height: 500px) {
+  /* The closed book is small on a phone: its small words are drawn bigger
+     (about 13-14px on the screen), the rest stays as on the laptop. */
+  .question {
+    top: 142px;
+    font-size: 34px;
+  }
+
+  .cta {
+    font-size: 32px;
+  }
+
+  .footer {
+    font-size: 31px;
+    line-height: 1.15;
+  }
+
+  .help {
+    text-align: right;
+  }
+
+  .bubble {
+    font-size: 36px;
+  }
+
   .back {
     --h: calc(44px * var(--closed-px, 1) / 0.92);
     min-height: var(--h);
