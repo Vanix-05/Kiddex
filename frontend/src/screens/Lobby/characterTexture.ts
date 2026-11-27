@@ -242,8 +242,7 @@ async function cutLimbs(
     } else {
       const target = groups[keep]
       if (!target) return null
-      copy.setAttribute('style', 'visibility:hidden')
-      target.setAttribute('style', 'visibility:visible')
+      keepOnly(copy, target)
     }
     const image = await loadSvg(new XMLSerializer().serializeToString(copy))
     const full = document.createElement('canvas')
@@ -289,4 +288,22 @@ async function cutLimbs(
   ])
   if (!legLeft || !legRight || !core || !head || !armLeft || !armRight) throw new Error('Kid layers missing')
   return { legLeft, legRight, core, head, armLeft, armRight, front }
+}
+
+/** Pieces a drawing points to (clips, gradients): never removed, they draw nothing themselves. */
+const REFERENCED = new Set(['defs', 'style', 'clipPath', 'mask', 'linearGradient', 'radialGradient', 'pattern', 'filter', 'symbol'])
+
+/**
+ * Leaves only `target` (and the groups around it, so it keeps its place and
+ * pose) in the svg. Everything beside it is removed, not hidden: on iPhones the walking
+ * layers came out empty when the whole svg was hidden and one part shown.
+ */
+function keepOnly(svg: SVGSVGElement, target: Element) {
+  let node = target
+  while (node !== svg && node.parentElement) {
+    for (const other of [...node.parentElement.children]) {
+      if (other !== node && !REFERENCED.has(other.localName)) other.remove()
+    }
+    node = node.parentElement
+  }
 }
