@@ -768,6 +768,25 @@ button.addButton {
   overflow-wrap: anywhere;
 }
 
+/* Reset password? / Turn off?: which Teacher, as name + email (names can repeat, emails can't). */
+.dialogWho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 14px;
+  background: white;
+  text-align: left;
+}
+
+.dialogWhoEmail {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
 .dialogText {
   color: var(--color-text-muted);
   font-family: var(--font-body);

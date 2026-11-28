@@ -387,7 +387,8 @@ function TeachersScreen() {
       {popup?.kind === 'reset' && (
         <ConfirmDialog
           title="Reset password?"
-          text={`Reset the password for ${popup.teacher.name}? Their current password will stop working.`}
+          who={popup.teacher}
+          text="Their current password will stop working. You'll get a temporary password to give them."
           confirmLabel="Reset"
           busyLabel="Resetting…"
           onCancel={close}
@@ -401,7 +402,8 @@ function TeachersScreen() {
       {popup?.kind === 'off' && (
         <ConfirmDialog
           title="Turn off?"
-          text={`Turn off ${popup.teacher.name}? They can't log in until you turn the account back on. Their lessons are kept.`}
+          who={popup.teacher}
+          text="They can't log in until you turn the account back on. Their lessons are kept."
           confirmLabel="Turn off"
           busyLabel="Turning off…"
           danger
@@ -633,6 +635,7 @@ function TeacherCard({
 /** "Reset password?", "Turn off?", "Log out?": a short question with two buttons. */
 function ConfirmDialog({
   title,
+  who,
   text,
   confirmLabel,
   busyLabel,
@@ -642,6 +645,8 @@ function ConfirmDialog({
   onCancel,
 }: {
   title: string
+  /** The Teacher it is about: name + email, so two Teachers with the same name can't be mixed up. */
+  who?: AdminTeacher
   text?: string
   confirmLabel: string
   busyLabel?: string
@@ -669,6 +674,17 @@ function ConfirmDialog({
 
   return (
     <AdminDialog title={title} onClose={busy ? undefined : onCancel} initialFocus={cancelRef}>
+      {who && (
+        <div className={styles.dialogWho}>
+          <span className={`${styles.letterCircle} ${styles.rowCircle}`} aria-hidden="true">
+            {nameInitial(who.name)}
+          </span>
+          <span className={styles.whoText}>
+            <span className={styles.rowName}>{who.name}</span>
+            <span className={styles.dialogWhoEmail}>{who.email}</span>
+          </span>
+        </div>
+      )}
       {text && <p className={styles.dialogText}>{text}</p>}
       {error && (
         <p className={styles.formError} role="alert">
