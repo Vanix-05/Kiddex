@@ -348,6 +348,61 @@ async function databaseWalkthrough() {
       p3.registered === 3 && p3.packs[0]?.done === 2 && p3.week.played === 2,
       JSON.stringify([p3.registered, p3.packs[0]?.done, p3.week.played]),
     );
+
+    // ---------- On time and late (due 2026-11-20) ----------
+    // A finished Tue Nov 17, B Wed Nov 18 23:59 PH (the round saved 00:01 Thu still has
+    // endedAt on Wed). C finishes both games Sat Nov 21: after the due day → late.
+    await play(c.id, "quiz-show", mcIds, 8, "2026-11-21T01:00:00Z");
+    await play(c.id, "fill-blank", fillIds, 3, "2026-11-21T02:00:00Z");
+    const packOf = async () => (await sectionProgress(teacher.id, section.id, thursday)).packs[0]!;
+    const counts = (k: Awaited<ReturnType<typeof packOf>>) =>
+      JSON.stringify({ done: k.done, onTime: k.onTime, late: k.late, notDone: k.notDone.length, doneLate: k.doneLate.length });
+    const late1 = await packOf();
+    check(
+      "late: C done after the due day → late 1 and doneLate = C; A and B on time",
+      late1.done === 3 && late1.onTime === 2 && late1.late === 1 && same(late1.doneLate.map((d) => d.studentId), [c.id]) && late1.notDone.length === 0,
+      counts(late1),
+    );
+    check("late: doneLate is shown like notDone (2026-0144 style)", /^\d{4}-\d{4}$/.test(late1.doneLate[0]?.schoolId ?? ""));
+
+    // Changing the due date uses the existing PUT with the pack's same name and games.
+    const put = async (dueDate: string | null) => {
+      const res = await fetch(`${base}/api/sections/${section.id}/assignments/${lesson.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: `${tag}-pack`, games: ["quiz-show", "fill-blank"], dueDate }),
+      });
+      return { status: res.status, body: (await res.json().catch(() => ({}))) as Record<string, any> };
+    };
+
+    // Due Wed Nov 18: B finished at 23:59 PH that same day → on time; A (Nov 17) on time; C late.
+    const dueDay = await put("2026-11-18");
+    const late2 = await packOf();
+    check(
+      "late: a pack done on the due day (23:59 PH) counts as on time",
+      dueDay.status === 200 && late2.dueDate === "2026-11-18" && late2.onTime === 2 && late2.late === 1 && same(late2.doneLate.map((d) => d.studentId), [c.id]),
+      `${dueDay.status} ${counts(late2)}`,
+    );
+
+    // Due Wed Nov 25: the same C is now on time (worked out when read, never saved).
+    const later = await put("2026-11-25");
+    const late3 = await packOf();
+    check(
+      "late: after moving the due date later, C is on time (late 0, doneLate empty)",
+      later.status === 200 && later.body.assignment?.dueDate === "2026-11-25" && late3.onTime === 3 && late3.late === 0 && late3.doneLate.length === 0,
+      `${later.status} ${counts(late3)}`,
+    );
+
+    // "No due date": null is saved as no due date and comes back as null; everyone is on time.
+    const noDue = await put(null);
+    const savedDue = (await prisma.assignment.findUnique({ where: { id: pack.id }, select: { dueDate: true } }))?.dueDate;
+    const late4 = await packOf();
+    check(
+      "due date: null is saved as no due date and comes back as null",
+      noDue.status === 200 && noDue.body.assignment?.dueDate === null && savedDue === null && late4.dueDate === null,
+      `${noDue.status}`,
+    );
+    check("late: a pack with no due date is always on time", late4.onTime === 3 && late4.late === 0, counts(late4));
   } catch (err) {
     check("database walkthrough ran without a crash", false, err instanceof Error ? err.name : "error");
   } finally {

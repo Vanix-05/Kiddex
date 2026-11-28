@@ -5,13 +5,12 @@ import { MIN_CARDS } from '../../content/questionCard'
 import { paths } from '../../routes/paths'
 import { previewGames, previewPath } from '../preview/previewCards'
 import { errorMessage } from '../api/client'
-import { dueChoices } from '../data/dueDates'
+import { dueLabel, nextFridayIso } from '../data/dueDates'
 import {
   sectionLabel,
   useLesson,
   useLessonGames,
   useLessons,
-  useReviewPackDefaults,
   useSection,
   useSectionAssignments,
 } from '../data/useTeacherData'
@@ -19,6 +18,7 @@ import type { TemplateId } from '../data/types'
 import { GAME_ICON, GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
 import { SHOW_PAGE_2 } from '../planner/phonePages'
+import { usePlannerActions } from '../planner/plannerActions'
 import { Btn, EmptyLine, PageBody, Sub, Title } from '../planner/ui'
 import styles from './Games.module.css'
 
@@ -246,7 +246,7 @@ export function GamesRight({ lessonId, live }: PageProps) {
   const { lesson, games, inPack } = usePackGames(lessonId)
   const { assignLesson } = useLessons()
   const { sections, active } = useSection()
-  const { dueLabel } = useReviewPackDefaults()
+  const { lessonPopup } = usePlannerActions()
   // Already assigned to this section: the page starts with the saved name and due date
   // (and the saved games, through the lesson).
   const saved = useSectionAssignments().get(lessonId ?? '')
@@ -254,8 +254,9 @@ export function GamesRight({ lessonId, live }: PageProps) {
   const ids = useId()
   const [name, setName] = useState(saved?.name ?? (lesson ? `${lesson.topic} Review` : ''))
   const [sectionId, setSectionId] = useState(active?.id ?? '')
-  // The due date as "2026-11-27"; the list shows its label ("Fri, Nov 27").
-  const [due, setDue] = useState(() => saved?.dueDate ?? dueChoices(dueLabel)[0]?.iso ?? '')
+  // The due date as "2026-11-27" ('' = no due date); the box shows its label ("Fri, Nov 27").
+  // A new pack starts with next Friday.
+  const [due, setDue] = useState(() => (saved ? (saved.dueDate ?? '') : nextFridayIso()))
   const [assigned, setAssigned] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -264,9 +265,8 @@ export function GamesRight({ lessonId, live }: PageProps) {
   if (saved && !prefilled) {
     setPrefilled(true)
     setName(saved.name)
-    if (saved.dueDate) setDue(saved.dueDate)
+    setDue(saved.dueDate ?? '')
   }
-  const choices = dueChoices(dueLabel, saved?.dueDate)
   const section = sections.find((s) => s.id === sectionId) ?? active
   const tab = live ? undefined : -1
 
@@ -355,19 +355,25 @@ export function GamesRight({ lessonId, live }: PageProps) {
             ))}
           </select>
         </label>
-        <label className={`${styles.field} ${styles.due}`}>
-          <span className={styles.label}>Due date</span>
-          <span className={styles.dateBox}>
-            <CalendarDays size={20} aria-hidden="true" />
-            <select className={styles.dateSelect} value={due} tabIndex={tab} onChange={(e) => setDue(e.target.value)}>
-              {choices.map((c) => (
-                <option key={c.iso} value={c.iso}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+        <div className={`${styles.field} ${styles.due}`}>
+          <span className={styles.label} id={`${ids}-due`}>
+            Due date
           </span>
-        </label>
+          {/* Opens the same school-day calendar as Change due date ("Pick a due date"). */}
+          <button
+            type="button"
+            className={`${styles.dateBox} ${styles.dateButton}`}
+            tabIndex={tab}
+            aria-haspopup="dialog"
+            aria-labelledby={`${ids}-due ${ids}-due-value`}
+            onClick={() => lessonPopup({ kind: 'pickDue', current: due || null, onPick: (iso) => setDue(iso ?? '') })}
+          >
+            <CalendarDays size={20} aria-hidden="true" />
+            <span id={`${ids}-due-value`} className={styles.dateValue}>
+              {due ? dueLabel(due) : 'No due date'}
+            </span>
+          </button>
+        </div>
       </div>
 
       <p className={styles.levelNote}>

@@ -229,6 +229,54 @@
   background: var(--color-bar-green);
 }
 
+/* Done after the due day: right after the green part (10-progress-late). */
+.lateFill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--color-bar-yellow);
+}
+
+/* "● 12 on time  ● 3 late", only when someone was late. */
+.legend {
+  display: flex;
+  gap: 18px;
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--color-text-subtle);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.dotGreen {
+  background: var(--color-bar-green);
+}
+
+.dotYellow {
+  background: var(--color-bar-yellow);
+}
+
+/* Done late: amber School ID chips (over .idChip). */
+.idChip.lateChip {
+  border-color: var(--color-warn-text);
+  background: var(--color-warn-bg);
+  color: var(--color-warn-text);
+}
+
+.idChip.lateChip:hover {
+  background: color-mix(in srgb, var(--color-warn-bg) 70%, var(--color-warn-line));
+}
+
 .doneText {
   white-space: nowrap;
   font-size: 15px;
@@ -363,5 +411,17 @@
   .idChip {
     height: 67px;
     padding: 0 18px;
+  }
+
+  /* 20-phone-progress-late */
+  .legend {
+    gap: 24px;
+    margin-top: 10px;
+    font-size: 20px;
+  }
+
+  .dot {
+    width: 15px;
+    height: 15px;
   }
 }

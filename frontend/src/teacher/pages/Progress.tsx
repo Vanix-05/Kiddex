@@ -186,9 +186,10 @@ export function ProgressRight() {
 function PackCard({ pack, registered, today }: { pack: ProgressPack; registered: number; today: string }) {
   const navigate = useNavigate()
   const due = pack.dueDate ? dueChip(pack.dueDate, today) : null
-  const percent = registered > 0 ? Math.round((pack.done / registered) * 100) : 0
-  const shown = pack.notDone.slice(0, CHIPS_SHOWN)
-  const more = pack.notDone.length - shown.length
+  // The bar: on time in green, then late in yellow (a pack with nobody late looks as before).
+  const share = (n: number) => (registered > 0 ? (n / registered) * 100 : 0)
+  const late = pack.late ?? 0
+  const onTime = pack.onTime ?? pack.done - late
 
   return (
     <article className={styles.pack}>
@@ -217,39 +218,71 @@ function PackCard({ pack, registered, today }: { pack: ProgressPack; registered:
 
       <div className={styles.packBar}>
         <span className={styles.doneBar} aria-hidden="true">
-          <span className={styles.doneFill} style={{ width: `${percent}%` }} />
+          <span className={styles.doneFill} style={{ width: `${share(onTime)}%` }} />
+          {late > 0 && <span className={styles.lateFill} style={{ left: `${share(onTime)}%`, width: `${share(late)}%` }} />}
         </span>
         <span className={styles.doneText}>
           <strong>{pack.done}</strong>/{registered} done
         </span>
       </div>
+      {late > 0 && (
+        <p className={styles.legend}>
+          <span className={styles.legendItem}>
+            <i className={`${styles.dot} ${styles.dotGreen}`} aria-hidden="true" />
+            {onTime} on time
+          </span>
+          <span className={styles.legendItem}>
+            <i className={`${styles.dot} ${styles.dotYellow}`} aria-hidden="true" />
+            {late} late
+          </span>
+        </p>
+      )}
 
+      {pack.doneLate && pack.doneLate.length > 0 && (
+        <ChipRow label="Done late" list={pack.doneLate} chipClassName={styles.lateChip} onOpen={(id) => navigate(studentPagePath(id))} onMore={() => navigate(studentsPath())} />
+      )}
       {pack.notDone.length === 0 ? (
         <p className={styles.allDone}>
           <PartyPopper size={18} aria-hidden="true" /> Everyone finished!
         </p>
       ) : (
-        <div className={styles.notDone}>
-          <span className={styles.notDoneLabel}>Not done yet</span>
-          {shown.map((s) => (
-            <button
-              key={s.studentId}
-              type="button"
-              className={styles.idChip}
-              aria-label={`Open ${s.schoolId}`}
-              onClick={() => navigate(studentPagePath(s.studentId))}
-            >
-              {s.schoolId}
-            </button>
-          ))}
-          {more > 0 && (
-            <button type="button" className={`${styles.idChip} ${styles.moreChip}`} onClick={() => navigate(studentsPath())}>
-              +{more} more
-            </button>
-          )}
-        </div>
+        <ChipRow label="Not done yet" list={pack.notDone} onOpen={(id) => navigate(studentPagePath(id))} onMore={() => navigate(studentsPath())} />
       )}
     </article>
+  )
+}
+
+/** "Not done yet" / "Done late" and School ID chips that open the Student's page; "+N more" after CHIPS_SHOWN. */
+function ChipRow({
+  label,
+  list,
+  chipClassName,
+  onOpen,
+  onMore,
+}: {
+  label: string
+  list: { studentId: string; schoolId: string }[]
+  chipClassName?: string
+  onOpen: (studentId: string) => void
+  onMore: () => void
+}) {
+  const shown = list.slice(0, CHIPS_SHOWN)
+  const more = list.length - shown.length
+  const chip = chipClassName ? `${styles.idChip} ${chipClassName}` : styles.idChip
+  return (
+    <div className={styles.notDone}>
+      <span className={styles.notDoneLabel}>{label}</span>
+      {shown.map((s) => (
+        <button key={s.studentId} type="button" className={chip} aria-label={`Open ${s.schoolId}`} onClick={() => onOpen(s.studentId)}>
+          {s.schoolId}
+        </button>
+      ))}
+      {more > 0 && (
+        <button type="button" className={`${styles.idChip} ${styles.moreChip}`} onClick={onMore}>
+          +{more} more
+        </button>
+      )}
+    </div>
   )
 }
 

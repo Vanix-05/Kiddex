@@ -12,6 +12,9 @@ const pack = (over: Partial<ProgressPack> = {}): ProgressPack => ({
   games: ['quiz-show', 'fill-blank'],
   dueDate: '2026-11-27',
   done: 3,
+  onTime: 3,
+  late: 0,
+  doneLate: [],
   notDone: [
     { studentId: 's2', schoolId: '2026-0162' },
     { studentId: 's3', schoolId: '2026-0165' },

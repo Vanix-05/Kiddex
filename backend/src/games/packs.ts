@@ -3,6 +3,8 @@
 // "playable" and "done" mean exactly the same for both.
 // Pure functions: no database.
 import { MIN_CARDS, TEMPLATE_FOR_TYPE, type CardType, type TemplateId } from "../content/questionCard";
+import { dueDateText } from "../sections/dueDate";
+import { phDay } from "./streak";
 
 /** The games in their usual order. */
 export const GAMES = ["quiz-show", "match-up", "fill-blank"] as const satisfies readonly TemplateId[];
@@ -31,3 +33,12 @@ export const playableGames = (assigned: readonly string[], counts: Record<Templa
  */
 export const packDone = (playable: readonly TemplateId[], isDone: (game: TemplateId) => boolean) =>
   playable.length > 0 && playable.every(isDone);
+
+/**
+ * Was a pack done on time? `doneTime` is when it was done (the newest endedAt among
+ * its counting rounds). On time = done on or before the due day (Philippine calendar);
+ * a pack with no due date is always on time. Worked out whenever it is read, never
+ * saved: changing the due date re-labels everyone at once.
+ */
+export const doneOnTime = (doneTime: Date, dueDate: Date | null): boolean =>
+  dueDate === null || phDay(doneTime) <= dueDateText(dueDate);

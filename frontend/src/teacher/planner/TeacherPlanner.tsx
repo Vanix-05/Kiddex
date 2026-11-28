@@ -33,6 +33,7 @@ import { ChangePasswordDialog, LogOutDialog, NewSectionDialog } from './Dialogs'
 import { PasswordNote } from './PasswordNote'
 import { NewCodeDialog } from './NewCodeDialog'
 import { DeleteStudentDialog, RemoveStudentDialog } from './RemoveStudentDialog'
+import { LessonPopups, type LessonPopup } from './LessonDialogs'
 import { LazyTeacherLobbyScreen } from '../../screens/Lobby/LazyLobby'
 import { isLobbyPath, isStudentsPath, pageOrder, pathOf, resolvePage, studentsPath, type PageKey } from './pages'
 import { PlannerActionsContext, usePlannerActions } from './plannerActions'
@@ -149,7 +150,7 @@ interface Flip {
 const SWIPE_MIN = 60
 
 type WindowState = 'hidden' | 'open' | 'closing'
-type Popup = 'newSection' | 'addStudent' | 'newCode' | 'removeStudent' | 'deleteStudent' | 'logOut' | 'password' | null
+type Popup = 'newSection' | 'addStudent' | 'newCode' | 'removeStudent' | 'deleteStudent' | 'lesson' | 'logOut' | 'password' | null
 
 /**
  * The Teacher Dashboard: an open hardcover planner on the island scene.
@@ -183,6 +184,10 @@ function Planner() {
   const [codeFor, setCodeFor] = useState<Student | null>(null)
   // Remove / Delete forever: the Student, and what My Students does after it worked.
   const [removal, setRemoval] = useState<{ student: Student; onDone: (student: Student) => void } | null>(null)
+  // A lesson popup, and the button that opened it (the book goes inert while it shows,
+  // which takes focus away, so Cancel and Esc give focus back to it by hand).
+  const [lessonPopup, setLessonPopup] = useState<LessonPopup | null>(null)
+  const lessonOpener = useRef<HTMLElement | null>(null)
   // Phone: the page of the spread on show (page 1 = 'L', page 2 = 'R').
   const phone = usePhoneSideways()
   const [side, setSide] = useState<PageSide>('L')
@@ -333,7 +338,23 @@ function Planner() {
       setRemoval({ student, onDone })
       setPopup('deleteStudent')
     },
+    lessonPopup: (next: LessonPopup) => {
+      lessonOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      setLessonPopup(next)
+      setPopup('lesson')
+    },
   }))
+  const closeLessonPopup = () => {
+    setPopup(null)
+    setLessonPopup(null)
+    // After React has removed the popup and the inert. If the page already moved
+    // focus (e.g. to Undo after Archive), that stays.
+    requestAnimationFrame(() => {
+      const back = lessonOpener.current
+      const lost = !document.activeElement || document.activeElement === document.body
+      if (back?.isConnected && lost) back.focus({ preventScroll: true })
+    })
+  }
 
   const leave = () => {
     // One transition: the router changes pages in a transition, so a
@@ -484,6 +505,7 @@ function Planner() {
         {popup === 'deleteStudent' && removal && (
           <DeleteStudentDialog student={removal.student} onClose={close} onDeleted={removal.onDone} />
         )}
+        {popup === 'lesson' && lessonPopup && <LessonPopups popup={lessonPopup} onClose={closeLessonPopup} />}
         {popup === 'password' && <ChangePasswordDialog onClose={closePassword} />}
       </div>
       </PhonePagesContext.Provider>

@@ -25,7 +25,7 @@ import {
 } from '../api/sectionsApi'
 import { playedLabel, streakShown } from './levels'
 import { autoTodos, phToday } from './reports'
-import { toScreenLesson } from './lessonMapping'
+import { archivedWhen, FILE_TYPE, lessonTitle, toScreenLesson } from './lessonMapping'
 import { useTeacherStore } from './teacherDataContext'
 import type {
   BuddyHead,
@@ -340,6 +340,23 @@ export interface LessonWithCounts extends Lesson {
   /** Questions still to check (drafts). */
   toCheck: number
   approved: number
+  /** All its questions (the Delete popups say how many are erased). */
+  questionCount: number
+  /** How many different Students played it (My lessons only; 0 elsewhere). */
+  playedBy: number
+  /** The open section's review pack of this lesson (Change due date keeps its name and games). */
+  pack?: ServerAssignment
+}
+
+/** A lesson in the Archived view. */
+export interface ArchivedLesson {
+  id: string
+  title: string
+  fileType: Lesson['fileType']
+  playedBy: number
+  questionCount: number
+  /** "Archived today", "Archived yesterday" or "Archived Oct 30". */
+  archivedLabel: string
 }
 
 /** One lesson with what the Making and Check pages need. */
@@ -388,13 +405,17 @@ export function useLessons() {
   const { lessonNotes } = data
   const lessons = useMemo(
     () =>
-      (query.data ?? []).map(
-        (item): LessonWithCounts => ({
-          ...toScreenLesson(item, lessonNotes[item.id], assignments.get(item.id)),
+      (query.data ?? []).map((item): LessonWithCounts => {
+        const pack = assignments.get(item.id)
+        return {
+          ...toScreenLesson(item, lessonNotes[item.id], pack),
           toCheck: item.counts.toCheck,
           approved: item.counts.approved,
-        }),
-      ),
+          questionCount: item.counts.total,
+          playedBy: item.playedBy ?? 0,
+          pack,
+        }
+      }),
     [query.data, lessonNotes, assignments],
   )
 
@@ -441,6 +462,9 @@ export function useLessonLoad(id: string | undefined) {
       ...toScreenLesson(server, note, assignment),
       toCheck: server.counts.toCheck,
       approved: server.counts.approved,
+      questionCount: server.counts.total,
+      playedBy: 0,
+      pack: assignment,
       textLevel: server.textLevel,
       makingStep: server.makingStep,
       makingSeconds: server.seconds,
@@ -491,6 +515,73 @@ export function useLessonActions() {
   )
 
   return { upload, removeLesson, makeQuestions }
+}
+
+/** The Teacher's archived lessons, newest archived first ("Archived (N)" and the Archived view). */
+export function useArchivedLessons() {
+  const query = useQuery({ queryKey: lessonKeys.archived, queryFn: lessonsApi.archived })
+  const archived = useMemo(
+    () =>
+      (query.data ?? []).map(
+        (item): ArchivedLesson => ({
+          id: item.id,
+          title: lessonTitle(item.topic, item.fileName),
+          fileType: FILE_TYPE[item.fileType],
+          playedBy: item.playedBy,
+          questionCount: item.counts.total,
+          archivedLabel: archivedWhen(item.archivedAt),
+        }),
+      ),
+    [query.data],
+  )
+  const retry = useCallback(() => void query.refetch(), [query])
+  return { archived, loaded: !!query.data, loading: query.isPending, error: query.data ? null : query.error, retry }
+}
+
+/**
+ * Delete, Archive, Restore, Delete forever and Change due date on My lessons. Each one
+ * waits until the lists that show lessons and packs are fresh (My lessons, Archived,
+ * every section's packs, Progress and the Student pages), then returns. Throws an
+ * ApiError with the server's friendly message (e.g. 409 ARCHIVE_FIRST).
+ */
+export function useLessonArchive() {
+  const queryClient = useQueryClient()
+  const { active } = useSection()
+  const sectionId = active?.id ?? ''
+  const refresh = useCallback(
+    () =>
+      Promise.all([
+        // ['lessons'] covers the Archived list too.
+        queryClient.invalidateQueries({ queryKey: lessonKeys.list }),
+        queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'sections' && q.queryKey[2] === 'assignments' }),
+        queryClient.invalidateQueries({ queryKey: ['teacher', 'section-progress'] }),
+        queryClient.invalidateQueries({ queryKey: ['teacher', 'student-levels'] }),
+      ]),
+    [queryClient],
+  )
+  const settle = useCallback(
+    async (work: Promise<unknown>, lessonId: string, gone = false) => {
+      try {
+        await work
+      } finally {
+        // Also after an error (e.g. someone played it meanwhile): show what is true now.
+        if (gone) queryClient.removeQueries({ queryKey: lessonKeys.one(lessonId) })
+        await refresh()
+      }
+    },
+    [queryClient, refresh],
+  )
+  const deleteLesson = useCallback((id: string) => settle(lessonsApi.remove(id), id, true), [settle])
+  const deleteForever = useCallback((id: string) => settle(lessonsApi.remove(id, true), id, true), [settle])
+  const archive = useCallback((id: string) => settle(lessonsApi.archive(id), id), [settle])
+  const restore = useCallback((id: string) => settle(lessonsApi.restore(id), id), [settle])
+  /** The pack's same name and games with a new due date ("2026-12-04", or null for none). */
+  const saveDueDate = useCallback(
+    (id: string, pack: Pick<ServerAssignment, 'name' | 'games'>, dueDate: string | null) =>
+      settle(sectionsApi.assign(sectionId, id, { name: pack.name, games: pack.games, dueDate }), id),
+    [settle, sectionId],
+  )
+  return { deleteLesson, deleteForever, archive, restore, saveDueDate }
 }
 
 // ---------- To do ----------
@@ -701,8 +792,4 @@ export function useLessonGames(lessonId: string | undefined) {
       toCheckTotal: cards.filter((c) => c.status === 'draft').length,
     }
   }, [cards])
-}
-
-export function useReviewPackDefaults() {
-  return { dueLabel: useTeacherStore().data.nextDueLabel }
 }

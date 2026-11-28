@@ -136,7 +136,8 @@ export async function studentGames(studentId: string, now = new Date()): Promise
         select: { ...PROGRESS_FIELDS, topicLevels: { select: { topicKey: true, level: true } } },
       }),
       prisma.assignment.findMany({
-        where: { section: { students: { some: { id: studentId } } }, lesson: { status: "approved" } },
+        // Archived lessons' packs leave the games, All games and Today's Mission.
+        where: { section: { students: { some: { id: studentId } } }, lesson: { status: "approved", archivedAt: null } },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         select: {
           id: true,
@@ -354,14 +355,14 @@ export async function saveRound(studentId: string, input: RoundInput, now = new 
   const again = await replay(studentId, input.clientRoundId);
   if (again) return again;
 
-  // 2. Checks. The assignment must be in the Student's own section, its lesson approved,
-  // and the game one of its games.
+  // 2. Checks. The assignment must be in the Student's own section, its lesson approved
+  // and not archived, and the game one of its games.
   const assignment = await fromDb(() =>
     prisma.assignment.findFirst({
       where: {
         id: input.assignmentId,
         section: { students: { some: { id: studentId } } },
-        lesson: { status: "approved" },
+        lesson: { status: "approved", archivedAt: null },
       },
       select: { id: true, lessonId: true, games: true },
     }),

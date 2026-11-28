@@ -115,8 +115,10 @@ export interface Lesson {
   /** The games picked at upload, and later the ones switched on for the review pack. */
   games: TemplateId[]
   status: LessonStatus
-  /** Assigned to the open section (from the server): "due Fri". */
+  /** Assigned to the open section (from the server): "Due Fri, Dec 4", "Past due · Nov 27" or "Assigned · no due date". */
   assignedNote?: string
+  /** Assigned, and its due day is before today (a grey chip with a calendar clock). */
+  pastDue?: boolean
   /** How many words of text the backend read. */
   wordCount: number
   /** The section's grade it was made for (once questions were asked for). */
@@ -160,6 +162,4 @@ export interface TeacherData {
   lessonNotes: Record<string, LessonNote>
   /** Lessons whose Check list was read to the end once (unlocks Approve all for this session). */
   checkSeenEnd: string[]
-  /** The default review pack due date, e.g. "Fri, Nov 14" */
-  nextDueLabel: string
 }

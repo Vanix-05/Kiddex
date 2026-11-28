@@ -43,6 +43,8 @@ export interface Lesson {
   makingStep: MakingStep | null;
   makingStartedAt: string | null;
   approvedAt: string | null;
+  /** Set by Archive (hidden from Students and the Teacher's lists); null = active. */
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,6 +72,7 @@ export type NewLesson = Omit<
   | "makingStep"
   | "makingStartedAt"
   | "approvedAt"
+  | "archivedAt"
   | "createdAt"
   | "updatedAt"
 >;
@@ -121,6 +124,7 @@ function toSummary(row: Omit<LessonRow, "units">): LessonSummary {
     makingStep: row.makingStep as MakingStep | null,
     makingStartedAt: iso(row.makingStartedAt),
     approvedAt: iso(row.approvedAt),
+    archivedAt: iso(row.archivedAt),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -157,11 +161,12 @@ function toQuestion(row: QuestionRow): Question {
 
 /** Lesson changes as database data (ISO text -> dates, the text as JSON). */
 function lessonData(changes: LessonChanges): Prisma.LessonUpdateManyMutationInput {
-  const { makingStartedAt, approvedAt, units, ...rest } = changes;
+  const { makingStartedAt, approvedAt, archivedAt, units, ...rest } = changes;
   return {
     ...rest,
     ...(makingStartedAt !== undefined ? { makingStartedAt: toDate(makingStartedAt) } : {}),
     ...(approvedAt !== undefined ? { approvedAt: toDate(approvedAt) } : {}),
+    ...(archivedAt !== undefined ? { archivedAt: toDate(archivedAt) } : {}),
     ...(units !== undefined ? { units: units as unknown as Prisma.InputJsonValue } : {}),
   };
 }
@@ -217,16 +222,132 @@ export function getLesson(ownerId: string, lessonId: string): Promise<Lesson | u
   });
 }
 
-/** The owner's lessons, newest first, each with its questions (for the counts). No lesson text. One query. */
-export function listLessons(ownerId: string): Promise<{ lesson: LessonSummary; questions: Question[] }[]> {
+export interface LessonListRow {
+  lesson: LessonSummary;
+  questions: Question[];
+  /** How many different Students have at least one round on this lesson (removed Students too: their rounds are still there). */
+  playedBy: number;
+}
+
+/**
+ * playedBy for every lesson of the owner that is active (archived = false) or archived
+ * (archived = true): one groupBy over (lesson, Student) pairs, counted per lesson.
+ */
+async function playedByCounts(ownerId: string, archived: boolean): Promise<Map<string, number>> {
+  const pairs = await prisma.gameRound.groupBy({
+    by: ["lessonId", "studentId"],
+    where: { lesson: { ownerId, archivedAt: archived ? { not: null } : null } },
+  });
+  const counts = new Map<string, number>();
+  for (const { lessonId } of pairs) counts.set(lessonId, (counts.get(lessonId) ?? 0) + 1);
+  return counts;
+}
+
+/**
+ * The owner's active lessons (not archived), newest first, each with its questions (for
+ * the counts) and playedBy. No lesson text. Two queries, run together.
+ */
+export function listLessons(ownerId: string): Promise<LessonListRow[]> {
   return db(async () => {
-    const rows = await prisma.lesson.findMany({
-      where: { ownerId },
-      orderBy: { createdAt: "desc" },
-      omit: { units: true },
-      include: { questions: { orderBy: { position: "asc" } } },
+    const [rows, played] = await Promise.all([
+      prisma.lesson.findMany({
+        where: { ownerId, archivedAt: null },
+        orderBy: { createdAt: "desc" },
+        omit: { units: true },
+        include: { questions: { orderBy: { position: "asc" } } },
+      }),
+      playedByCounts(ownerId, false),
+    ]);
+    return rows.map(({ questions, ...lesson }) => ({
+      lesson: toSummary(lesson),
+      questions: questions.map(toQuestion),
+      playedBy: played.get(lesson.id) ?? 0,
+    }));
+  });
+}
+
+/** The owner's archived lessons, newest archived first, like listLessons. Two queries, run together. */
+export function listArchivedLessons(ownerId: string): Promise<LessonListRow[]> {
+  return db(async () => {
+    const [rows, played] = await Promise.all([
+      prisma.lesson.findMany({
+        where: { ownerId, archivedAt: { not: null } },
+        orderBy: [{ archivedAt: "desc" }, { id: "desc" }],
+        omit: { units: true },
+        include: { questions: { orderBy: { position: "asc" } } },
+      }),
+      playedByCounts(ownerId, true),
+    ]);
+    return rows.map(({ questions, ...lesson }) => ({
+      lesson: toSummary(lesson),
+      questions: questions.map(toQuestion),
+      playedBy: played.get(lesson.id) ?? 0,
+    }));
+  });
+}
+
+/**
+ * Archive: sets archivedAt to now. Nothing else changes (questions, review packs,
+ * rounds and due dates all stay). Archiving an archived lesson keeps its first
+ * archivedAt. Returns false if the lesson was not changed because it is "making"
+ * (the caller checked "not found" first).
+ */
+export function archiveLesson(ownerId: string, lessonId: string, now = new Date()): Promise<boolean> {
+  return db(async () => {
+    const { count } = await prisma.lesson.updateMany({
+      where: { ...ownLessonWhere(ownerId, lessonId), status: { not: "making" }, archivedAt: null },
+      data: { archivedAt: now },
     });
-    return rows.map(({ questions, ...lesson }) => ({ lesson: toSummary(lesson), questions: questions.map(toQuestion) }));
+    if (count) return true;
+    // Not changed: already archived is fine, "making" is not.
+    const row = await prisma.lesson.findFirst({ where: ownLessonWhere(ownerId, lessonId), select: { archivedAt: true } });
+    return Boolean(row?.archivedAt);
+  });
+}
+
+/** Restore: archivedAt back to null. The lesson and its review packs come back exactly as they were. */
+export function restoreLesson(ownerId: string, lessonId: string): Promise<boolean> {
+  return db(async () => {
+    const { count } = await prisma.lesson.updateMany({
+      where: ownLessonWhere(ownerId, lessonId),
+      data: { archivedAt: null },
+    });
+    return count > 0;
+  });
+}
+
+export type DeleteResult = "deleted" | "not_found" | "making" | "archive_first" | "confirm_needed";
+
+/**
+ * Deletes the lesson; the database deletes its questions, review packs, rounds and
+ * round answers with it. Student xp, stars and TopicLevel are never touched.
+ * - No rounds: deleted (the upload's "choose another file" step uses this).
+ * - Has rounds, not archived: "archive_first".
+ * - Has rounds, archived: needs `confirmed`, else "confirm_needed".
+ * - "making": never deleted.
+ * The delete itself repeats the rules in its WHERE, so a round saved in between
+ * can't be deleted by surprise: that answers "archive_first".
+ */
+export function deleteLesson(ownerId: string, lessonId: string, confirmed = false): Promise<DeleteResult> {
+  return db(async () => {
+    const lesson = await prisma.lesson.findFirst({
+      where: ownLessonWhere(ownerId, lessonId),
+      select: { status: true, archivedAt: true, _count: { select: { gameRounds: true } } },
+    });
+    if (!lesson) return "not_found";
+    if (lesson.status === "making") return "making";
+    const played = lesson._count.gameRounds > 0;
+    if (played && !lesson.archivedAt) return "archive_first";
+    if (played && !confirmed) return "confirm_needed";
+
+    const { count } = await prisma.lesson.deleteMany({
+      where: {
+        ...ownLessonWhere(ownerId, lessonId),
+        status: { not: "making" },
+        ...(played ? { archivedAt: { not: null } } : { gameRounds: { none: {} } }),
+      },
+    });
+    return count > 0 ? "deleted" : "archive_first";
   });
 }
 
@@ -252,14 +373,6 @@ export function startMakingLesson(ownerId: string, lessonId: string, changes: Le
     if (!count) return undefined;
     const row = await prisma.lesson.findUnique({ where: { id: lessonId } });
     return row ? toLesson(row) : undefined;
-  });
-}
-
-/** Deletes the lesson and its questions (the database deletes them with it). Returns false if it was not found. */
-export function deleteLesson(ownerId: string, lessonId: string): Promise<boolean> {
-  return db(async () => {
-    const { count } = await prisma.lesson.deleteMany({ where: ownLessonWhere(ownerId, lessonId) });
-    return count > 0;
   });
 }
 

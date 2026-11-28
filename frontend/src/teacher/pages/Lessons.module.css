@@ -1208,3 +1208,252 @@ button.lessonButton:hover .lessonTitle {
   padding: 0 26px 0 20px;
   font-size: 25px;
 }
+
+/* ---------- Archive, Delete and due dates (la-2: 1-list … 9-forever2) ---------- */
+
+/* The left page's content (My lessons or Archived), filling the page like the body. */
+.pageRoot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The title takes focus (Archived ↔ My lessons) without a ring around the page. */
+.focusTitle {
+  outline: none;
+}
+
+/* A row is [the row's own button][⋯]. */
+.lesson {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lesson > .lessonButton {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+/* ⋯ (StudentsWindow .moreButton), 38px here. */
+.lesson .more {
+  flex: none;
+  width: 38px;
+  height: 38px;
+}
+
+/* No ⋯ while the questions are being made: the chips stay lined up. */
+.moreSpace {
+  flex: none;
+  width: 38px;
+}
+
+.lesson .menu {
+  display: grid;
+  gap: 6px;
+}
+
+/* Change due date: the warm tint. Archive lesson: blue. Delete lesson keeps the maroon. */
+.lesson .menuDue {
+  background: var(--color-warn-bg);
+  color: var(--color-planner-ink);
+}
+
+.lesson .menuDue:hover,
+.lesson .menuDue:focus-visible {
+  background: color-mix(in srgb, var(--color-warn-bg) 70%, var(--color-warn-line));
+}
+
+.lesson .menuArchive {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.lesson .menuArchive:hover,
+.lesson .menuArchive:focus-visible {
+  background: color-mix(in srgb, var(--color-info-bg) 70%, var(--color-info-line));
+}
+
+/* Bottom right: the toast, then the quiet "Archived (N)" link (7-after). */
+.foot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  /* At the bottom of the page (My lessons' list grows to it anyway). */
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.foot:empty {
+  display: none;
+}
+
+.toast {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.toastText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archivedLink {
+  flex: none;
+}
+
+/* ---------- Archived (8-archived) ---------- */
+
+.archivedHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.backButton {
+  flex: none;
+  margin-top: 22px;
+}
+
+/* Just the rows; the note sits right under them. */
+.archivedList {
+  flex: none;
+}
+
+.archivedActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border: 2.5px solid var(--color-ok-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-ok-bg);
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-ok-text);
+  cursor: pointer;
+}
+
+.restore:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-ok-bg) 70%, var(--color-ok-line));
+}
+
+.restore:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.trash {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid color-mix(in srgb, var(--color-story-cover) 30%, var(--color-neutral-line));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-story-cover) 6%, white);
+  color: var(--color-story-cover);
+  cursor: pointer;
+}
+
+.trash:hover {
+  background: color-mix(in srgb, var(--color-story-cover) 14%, white);
+}
+
+.archivedNote {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--color-text-subtle);
+}
+
+/* ---------- Phone held sideways (11 … 18): 67 design px taps (44px on screen) ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .lesson .more {
+    width: 67px;
+    height: 67px;
+  }
+
+  .moreSpace {
+    width: 67px;
+  }
+
+  /* The paper scrolls, not the list: a menu can open over the rows above. */
+  .list {
+    flex: none;
+    overflow: visible;
+  }
+
+  /* "Archived (N)" comes after the list's last row. While a toast shows, the two stay
+     at the bottom right while the paper scrolls (17-phone-after). */
+  .foot {
+    padding-top: 14px;
+  }
+
+  .footPinned {
+    position: sticky;
+    bottom: 8px;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .footPinned > * {
+    pointer-events: auto;
+  }
+
+  .archivedLink {
+    padding: 0 12px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--color-card-bg) 85%, transparent);
+    font-size: 22px;
+  }
+
+  .archivedLink svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* 18-phone-archived: big Restore and trash; ← My lessons clear of the top bar. */
+  .backButton {
+    margin-top: 14px;
+    font-size: 18px;
+  }
+
+  .restore {
+    height: 67px;
+    padding: 0 26px;
+    border-width: 3px;
+    font-size: 24px;
+  }
+
+  .restore svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .trash {
+    width: 67px;
+    height: 67px;
+  }
+
+  .trash svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .archivedNote {
+    font-size: 20px;
+  }
+}

@@ -101,6 +101,7 @@ model Lesson {
   makingStep          String? // writing | checking | waiting
   makingStartedAt     DateTime?
   approvedAt          DateTime?
+  archivedAt          DateTime? // set by Archive: hidden from Students and from the Teacher's lists. null = active.
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   questions           Question[]

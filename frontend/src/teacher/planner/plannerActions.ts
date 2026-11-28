@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { Student } from '../data/types'
+import type { LessonPopup } from './LessonDialogs'
 
 /** The planner's popups that any page can open. */
 export interface PlannerActions {
@@ -13,6 +14,8 @@ export interface PlannerActions {
   removeStudent: (student: Student, onDone: (student: Student) => void) => void
   /** The Delete forever? popup (removed Students only). `onDone` runs after the delete. */
   deleteStudent: (student: Student, onDone: (student: Student) => void) => void
+  /** A lesson popup (Delete, Archive, Delete forever, Change due date, Pick a due date). Closing gives focus back to what opened it. */
+  lessonPopup: (popup: LessonPopup) => void
 }
 
 export const PlannerActionsContext = createContext<PlannerActions>({
@@ -21,6 +24,7 @@ export const PlannerActionsContext = createContext<PlannerActions>({
   newCode: () => {},
   removeStudent: () => {},
   deleteStudent: () => {},
+  lessonPopup: () => {},
 })
 
 export const usePlannerActions = () => useContext(PlannerActionsContext)

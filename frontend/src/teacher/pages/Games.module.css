@@ -439,17 +439,27 @@
   border-color: var(--color-neutral-line);
 }
 
-.dateSelect {
+/* The Due date box is a button: it opens the "Pick a due date" calendar popup. */
+.dateButton {
+  width: 100%;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.dateButton:hover {
+  background: var(--color-text-on-dark);
+  border-color: var(--color-card-border);
+}
+
+.dateValue {
   flex: 1;
   min-width: 0;
-  height: 100%;
-  padding: 0 6px;
-  border: 0;
-  border-radius: 10px;
-  background: none;
+  overflow: hidden;
   font: 600 16px/1 var(--font-body);
   color: var(--color-text);
-  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .levelNote {

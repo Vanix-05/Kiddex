@@ -36,6 +36,10 @@ export const lessonErrors = {
   markedNotChecked: () => new AppError(409, "MARKED_NOT_CHECKED", "Please check the marked questions first."),
   noQuestions: () => new AppError(409, "NO_QUESTIONS", "This lesson has no questions yet."),
 
+  // Archive and Delete
+  archiveFirst: () => new AppError(409, "ARCHIVE_FIRST", "Students played this lesson. Archive it instead."),
+  confirmNeeded: () => new AppError(400, "CONFIRM_NEEDED", "Please tick the box to confirm."),
+
   // Making questions
   notEnoughText: () =>
     new AppError(422, "NOT_ENOUGH_TEXT", "This file does not have enough text to make questions."),

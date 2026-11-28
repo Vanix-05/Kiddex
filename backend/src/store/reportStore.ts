@@ -9,7 +9,7 @@ import type { TemplateId } from "../content/questionCard";
 import { prisma } from "../db/prisma";
 import { topicKeyOf } from "../games/levelPath";
 import { needsHelp, overallMastery, topicMastery, HELP_BELOW, type TopicMastery } from "../games/mastery";
-import { cardCounts, packDone, playableGames } from "../games/packs";
+import { cardCounts, doneOnTime, packDone, playableGames } from "../games/packs";
 import { phDay, phWeekDays } from "../games/streak";
 import { dueDateText } from "../sections/dueDate";
 import { showSchoolId } from "../sections/schoolId";
@@ -129,9 +129,15 @@ export function topicsByStudent(rounds: readonly ReportRound[]): Map<string, Stu
 /** "studentId|assignmentId|game" for every game a Student has done (countsForMission). */
 const doneKey = (studentId: string, assignmentId: string, game: string) => `${studentId}|${assignmentId}|${game}`;
 
-export function doneGames(rounds: readonly ReportRound[]): Set<string> {
-  const done = new Set<string>();
-  for (const r of rounds) if (r.countsForMission && r.assignmentId) done.add(doneKey(r.studentId, r.assignmentId, r.game));
+/** Every done game (countsForMission), keyed by doneKey, with when its counting round ended (the newest, if more than one). */
+export function doneGames(rounds: readonly ReportRound[]): Map<string, Date> {
+  const done = new Map<string, Date>();
+  for (const r of rounds) {
+    if (!r.countsForMission || !r.assignmentId) continue;
+    const key = doneKey(r.studentId, r.assignmentId, r.game);
+    const before = done.get(key);
+    if (!before || r.endedAt > before) done.set(key, r.endedAt);
+  }
   return done;
 }
 
@@ -162,12 +168,12 @@ export interface ReportPack {
 }
 
 /**
- * The section's review packs with at least one playable game (same rule as the
+ * The section's review packs (not of archived lessons) with at least one playable game (same rule as the
  * Student's games, src/games/packs.ts): due soonest first, no due date last, then newest.
  */
 export async function sectionPacks(sectionId: string): Promise<ReportPack[]> {
   const rows = await prisma.assignment.findMany({
-    where: { sectionId, lesson: { status: "approved" } },
+    where: { sectionId, lesson: { status: "approved", archivedAt: null } },
     select: {
       id: true,
       name: true,
@@ -193,8 +199,14 @@ export async function sectionPacks(sectionId: string): Promise<ReportPack[]> {
     .sort((a, b) => due(a) - due(b) || b.createdAt.getTime() - a.createdAt.getTime() || a.assignmentId.localeCompare(b.assignmentId));
 }
 
-export const isPackDone = (pack: ReportPack, studentId: string, done: ReadonlySet<string>) =>
+export const isPackDone = (pack: ReportPack, studentId: string, done: ReadonlyMap<string, Date>) =>
   packDone(pack.games, (g) => done.has(doneKey(studentId, pack.assignmentId, g)));
+
+/** When the Student finished the pack (the newest endedAt among its counting rounds), or null if not done. */
+export function packDoneTime(pack: ReportPack, studentId: string, done: ReadonlyMap<string, Date>): Date | null {
+  if (!isPackDone(pack, studentId, done)) return null;
+  return new Date(Math.max(...pack.games.map((g) => done.get(doneKey(studentId, pack.assignmentId, g))!.getTime())));
+}
 
 // ---------- GET /api/sections/:sectionId/progress ----------
 
@@ -229,7 +241,13 @@ export interface SectionProgress {
     games: TemplateId[];
     dueDate: string | null;
     done: number;
+    /** Of the done ones: finished on or before the due day (always, with no due date). */
+    onTime: number;
+    /** Of the done ones: finished after the due day. Worked out when read, so a new due date re-labels everyone. */
+    late: number;
     notDone: { studentId: string; schoolId: string }[];
+    /** School ID order, like notDone. */
+    doneLate: { studentId: string; schoolId: string }[];
   }[];
   neverPlayed: { studentId: string; schoolId: string; registeredAt: string | null }[];
 }
@@ -367,7 +385,16 @@ export function sectionProgress(teacherId: string, sectionId: string, now = new 
       topics,
       needHelp,
       packs: packs.map((p) => {
-        const notDone = students.filter((s) => !isPackDone(p, s.id, done));
+        const notDone: typeof students = [];
+        const doneLate: typeof students = [];
+        let onTime = 0;
+        for (const s of students) {
+          const doneTime = packDoneTime(p, s.id, done);
+          if (!doneTime) notDone.push(s);
+          else if (doneOnTime(doneTime, p.dueDate)) onTime++;
+          else doneLate.push(s);
+        }
+        const shown = (s: (typeof students)[number]) => ({ studentId: s.id, schoolId: showSchoolId(s.schoolId) });
         return {
           assignmentId: p.assignmentId,
           name: p.name,
@@ -375,7 +402,10 @@ export function sectionProgress(teacherId: string, sectionId: string, now = new 
           games: p.games,
           dueDate: p.dueDate ? dueDateText(p.dueDate) : null,
           done: students.length - notDone.length,
-          notDone: notDone.map((s) => ({ studentId: s.id, schoolId: showSchoolId(s.schoolId) })),
+          onTime,
+          late: doneLate.length,
+          notDone: notDone.map(shown),
+          doneLate: doneLate.map(shown),
         };
       }),
       neverPlayed: students

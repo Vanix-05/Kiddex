@@ -69,6 +69,17 @@ export interface ServerLessonItem {
   counts: LessonCounts
 }
 
+/** GET /api/lessons: active lessons only, each with how many different Students played it. */
+export interface ServerLessonListItem extends ServerLessonItem {
+  /** > 0: the screens offer Archive (Delete would erase scores); 0: Delete. */
+  playedBy: number
+}
+
+/** GET /api/lessons/archived: newest archived first. */
+export interface ServerArchivedLesson extends ServerLessonListItem {
+  archivedAt: string
+}
+
 /** GET /api/lessons/:id. `units` only with ?withText=1. */
 export interface ServerLesson extends ServerLessonItem {
   grade: number | null
@@ -151,10 +162,19 @@ export const lessonsApi = {
   /** Starts making questions (the backend answers 202 and works in the background). */
   generate: (lessonId: string, input: GenerateInput) =>
     api<{ lessonId: string }>(`/api/lessons/${enc(lessonId)}/generate`, { method: 'POST', body: input }),
-  list: () => api<ServerLessonItem[]>('/api/lessons'),
+  list: () => api<ServerLessonListItem[]>('/api/lessons'),
+  archived: () => api<ServerArchivedLesson[]>('/api/lessons/archived'),
   get: (lessonId: string, withText = false) =>
     api<ServerLesson>(`/api/lessons/${enc(lessonId)}${withText ? '?withText=1' : ''}`),
-  remove: (lessonId: string) => api<void>(`/api/lessons/${enc(lessonId)}`, { method: 'DELETE' }),
+  /**
+   * Deletes a lesson nobody played. A played one answers 409 ARCHIVE_FIRST; an archived
+   * played one needs `confirm` (Delete forever), else 400 CONFIRM_NEEDED.
+   */
+  remove: (lessonId: string, confirm = false) =>
+    api<void>(`/api/lessons/${enc(lessonId)}`, { method: 'DELETE', body: confirm ? { confirm: true } : undefined }),
+  /** Hides it from Students and the lists; nothing is deleted. */
+  archive: (lessonId: string) => api<{ ok: true }>(`/api/lessons/${enc(lessonId)}/archive`, { method: 'POST' }),
+  restore: (lessonId: string) => api<{ ok: true }>(`/api/lessons/${enc(lessonId)}/restore`, { method: 'POST' }),
   addQuestion: (lessonId: string, question: NewQuestion) =>
     api<ServerQuestion>(`/api/lessons/${enc(lessonId)}/questions`, { method: 'POST', body: question }),
   editQuestion: (questionId: string, edit: QuestionEdit) =>
@@ -167,6 +187,8 @@ export const lessonsApi = {
 /** React Query keys for lesson data. */
 export const lessonKeys = {
   list: ['lessons'] as const,
+  /** Under the list key: refreshing the list refreshes it too. */
+  archived: ['lessons', 'archived'] as const,
   one: (lessonId: string) => ['lesson', lessonId] as const,
   text: (lessonId: string) => ['lesson', lessonId, 'text'] as const,
 }

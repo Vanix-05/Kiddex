@@ -156,8 +156,14 @@ export interface ProgressPack {
   /** "2026-11-27", or null. */
   dueDate: string | null
   done: number
+  /** Of the done ones: finished on or before the due day (always, with no due date). */
+  onTime: number
+  /** Of the done ones: finished after the due day. */
+  late: number
   /** School ID order. */
   notDone: { studentId: string; schoolId: string }[]
+  /** Done after the due day, School ID order. */
+  doneLate: { studentId: string; schoolId: string }[]
 }
 
 export interface SectionProgress {

@@ -4,7 +4,7 @@
  */
 import type { ServerFileType, ServerLessonItem, ServerLessonStatus, ServerUnitLabel } from '../api/lessonsApi'
 import type { ServerAssignment } from '../api/sectionsApi'
-import { dueNote } from './dueDates'
+import { dueNote, isPastDue } from './dueDates'
 import type { FileType, Lesson, LessonNote, LessonStatus } from './types'
 
 /** Backend status → screen status. "assigned" = approved and given to the open section. */
@@ -46,6 +46,17 @@ export function uploadedText(createdAt: string, now = Date.now()): string {
   return `uploaded ${at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 }
 
+/** "Archived today", "Archived yesterday" or "Archived Oct 30" (the Teacher's calendar day). */
+export function archivedWhen(archivedAt: string, now = new Date()): string {
+  const at = new Date(archivedAt)
+  if (Number.isNaN(at.getTime())) return 'Archived'
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (at.toDateString() === now.toDateString()) return 'Archived today'
+  if (at.toDateString() === yesterday.toDateString()) return 'Archived yesterday'
+  return `Archived ${at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+}
+
 /** "84 KB" or "6.2 MB". */
 export const fileSizeText = (bytes: number) =>
   bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -74,6 +85,7 @@ export function toScreenLesson(
     games: note?.games ?? assignment?.games ?? item.games,
     status: screenStatus(item.status, assigned),
     assignedNote: assigned ? dueNote(assignment.dueDate) : undefined,
+    pastDue: assigned ? isPastDue(assignment.dueDate) : undefined,
     wordCount: item.wordCount,
     grade: item.grade ?? undefined,
   }

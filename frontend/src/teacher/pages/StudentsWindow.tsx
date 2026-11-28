@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Eye, Flame, KeyRound, Lock, MoreHorizontal, Plus, Printer, Search, UserMinus, Users, X } from 'lucide-react'
+import { ArrowRight, Check, Eye, Flame, KeyRound, Lock, Plus, Printer, Search, UserMinus, Users, X } from 'lucide-react'
 import { usePhoneSideways } from '../../hooks/usePhoneSideways'
 import { errorMessage } from '../api/client'
 import { masteryCell } from '../data/reports'
@@ -15,6 +15,7 @@ import { toLoginCards, usePrintCards } from '../print/printCards'
 import { CodesReady } from './CodesReady'
 import { PrintCardsView } from './PrintCardsView'
 import { RemovedStudents } from './RemovedStudents'
+import { RowMenu } from './RowMenu'
 import { removedLinkText, TOAST_MS, toastText, type ToastKind } from './removeStudents'
 import { StudentLevels } from './StudentLevels'
 import styles from './StudentsWindow.module.css'
@@ -651,98 +652,6 @@ function ToastPill({ toast, onUndo }: { toast: Toast | null; onUndo: (s: Student
   )
 }
 
-/**
- * ⋯ at the end of a row: a small menu with "Remove from section". A real menu:
- * arrow keys move, Enter picks, Esc or a click outside closes it (focus back on ⋯).
- * Opens under ⋯ on a laptop, above it on a phone (the list scrolls inside the window).
- */
-function RowMenu({ studentId, schoolId, onRemove }: { studentId: string; schoolId: string; onRemove: () => void }) {
-  const [open, setOpen] = useState(false)
-  const menuId = useId()
-  const wrapRef = useRef<HTMLSpanElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  const items = () => [...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
-
-  // Open: focus the first item. A click outside closes it.
-  useEffect(() => {
-    if (!open) return
-    items()[0]?.focus({ preventScroll: true })
-    const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [open])
-
-  const close = () => {
-    setOpen(false)
-    buttonRef.current?.focus({ preventScroll: true })
-  }
-
-  const onMenuKey = (e: ReactKeyboardEvent) => {
-    const list = items()
-    const at = list.indexOf(document.activeElement as HTMLElement)
-    if (e.key === 'Escape') {
-      // Only the menu closes, not the window.
-      e.stopPropagation()
-      e.nativeEvent.stopImmediatePropagation()
-      close()
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault()
-      const step = e.key === 'ArrowDown' ? 1 : -1
-      list[(at + step + list.length) % list.length]?.focus({ preventScroll: true })
-    } else if (e.key === 'Home' || e.key === 'End') {
-      e.preventDefault()
-      list[e.key === 'Home' ? 0 : list.length - 1]?.focus({ preventScroll: true })
-    } else if (e.key === 'Tab') {
-      setOpen(false)
-    }
-  }
-
-  return (
-    <span ref={wrapRef} className={styles.more}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={open ? `${styles.moreButton} ${styles.moreOpen}` : styles.moreButton}
-        aria-label={`More for ${schoolId}`}
-        data-more-id={studentId}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.preventDefault()
-            setOpen(true)
-          }
-        }}
-      >
-        <MoreHorizontal size={22} strokeWidth={2.6} aria-hidden="true" />
-      </button>
-      {open && (
-        <div ref={menuRef} id={menuId} className={styles.menu} role="menu" aria-label={`More for ${schoolId}`} onKeyDown={onMenuKey}>
-          <button
-            type="button"
-            role="menuitem"
-            className={styles.menuItem}
-            onClick={() => {
-              // Focus back on ⋯ first: the popup gives it back there when it closes.
-              close()
-              onRemove()
-            }}
-          >
-            <UserMinus size={20} strokeWidth={2.2} aria-hidden="true" />
-            Remove from section
-          </button>
-        </div>
-      )}
-    </span>
-  )
-}
-
 /** Mastery: the bar and %, "Not enough yet" (played, fewer than 8 answers), or the dash (never played). */
 function MasteryCellView({ s }: { s: Student }) {
   const cell = masteryCell(s)
@@ -867,7 +776,18 @@ function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen, onR
         </span>
       </td>
       <td className={styles.moreCell}>
-        <RowMenu studentId={s.id} schoolId={s.schoolId} onRemove={onRemove} />
+        <RowMenu
+          label={`More for ${s.schoolId}`}
+          moreId={s.id}
+          items={[
+            {
+              key: 'remove',
+              label: 'Remove from section',
+              icon: <UserMinus size={20} strokeWidth={2.2} aria-hidden="true" />,
+              onSelect: onRemove,
+            },
+          ]}
+        />
       </td>
     </tr>
   )

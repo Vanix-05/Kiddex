@@ -1,0 +1,243 @@
+/* The lesson popups (mockups 3-delete, 5-due, 6-archive, 9-forever2 and the phone
+   pages 13, 15, 16, 19). They reuse dialogs.module.css (card, buttons) and
+   newCode.module.css (pill, lines, tiles). Screen px like every popup, so on a
+   phone held sideways they are the same size as Remove Student (split card). */
+
+/* ---------- The lesson pill (like StudentPill) ---------- */
+
+.pill {
+  gap: 10px;
+  padding: 5px 18px 5px 6px;
+}
+
+/* The file badge, scaled down to sit in the pill. */
+.badge {
+  zoom: 0.68;
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  font: 700 18px / 1.15 var(--font-display);
+  color: var(--color-planner-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Delete forever: "I understand this can’t be undone" ---------- */
+
+.tick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin-top: 20px;
+  padding: 0 14px;
+  border: 2.5px solid color-mix(in srgb, var(--color-story-cover) 28%, var(--color-neutral-line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-story-cover) 4%, white);
+  font: 600 16px / 1.2 var(--font-display);
+  color: var(--color-planner-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tickInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tickBox {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid var(--color-story-cover);
+  border-radius: 7px;
+  background: white;
+  color: transparent;
+}
+
+.tickInput:checked + .tickBox {
+  background: var(--color-story-cover);
+  color: white;
+}
+
+.tickInput:focus-visible + .tickBox {
+  outline: 3px solid var(--color-input-border-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- The due date calendar ---------- */
+
+.calendar {
+  margin-top: 18px;
+}
+
+.heads,
+.week {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.week {
+  margin-top: 7px;
+}
+
+.head {
+  font: 700 13px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--color-text-subtle);
+}
+
+.cell {
+  display: flex;
+}
+
+.day {
+  position: relative;
+  flex: 1;
+  height: 42px;
+  border: 2px solid var(--color-neutral-line);
+  border-radius: 10px;
+  background: white;
+  font: 700 18px / 1 var(--font-display);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.day:hover {
+  background: var(--color-warn-bg);
+}
+
+.month {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font: 700 9px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+  color: var(--color-text-subtle);
+}
+
+/* The picked day: like the orange buttons. */
+.dayOn,
+.dayOn:hover {
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  box-shadow: 0 4px 0 var(--color-button-border);
+  color: var(--color-button-text);
+}
+
+.dayOn .month {
+  color: var(--color-button-text);
+}
+
+/* "No due date" on the left, the picked text on the right. */
+.dueRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.noDue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 2px dashed var(--color-neutral-line);
+  border-radius: var(--radius-pill);
+  background: none;
+  font: 600 15px / 1 var(--font-display);
+  color: var(--color-planner-ink);
+  cursor: pointer;
+}
+
+.noDue:hover {
+  background: var(--color-neutral-bg);
+}
+
+.noDueOn,
+.noDueOn:hover {
+  border-style: solid;
+  border-color: var(--color-button-border);
+  background: var(--color-button-bg);
+  color: var(--color-button-text);
+}
+
+.picked {
+  font: 600 16px / 1.2 var(--font-display);
+  color: var(--color-planner-ink);
+  white-space: nowrap;
+}
+
+.note {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+/* ---------- Phone held sideways: the split card, sized like Remove Student ----------
+   dialogs.module.css (.cardSplit) and newCode.module.css give the card, ring, title,
+   lines and buttons their phone sizes; only the lesson parts are set here (screen px). */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Only the title, on up to 2 lines. */
+  .pill {
+    width: 100%;
+    padding-right: 14px;
+    border-radius: 24px;
+  }
+
+  .title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .tick {
+    min-height: 44px;
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  /* Change due date: the calendar alone on the right, 44px days. */
+  .calendar {
+    margin-top: 0;
+  }
+
+  .heads,
+  .week {
+    gap: 6px;
+  }
+
+  .week {
+    margin-top: 6px;
+  }
+
+  .day {
+    height: 44px;
+  }
+
+  /* Left column: No due date, then Cancel and Save. */
+  .noDue {
+    height: 44px;
+    margin-top: 12px;
+  }
+
+  .sideRow {
+    margin-top: 12px;
+  }
+}

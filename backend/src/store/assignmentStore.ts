@@ -63,12 +63,12 @@ async function ownSection(teacherId: string, sectionId: string) {
   if (!section) throw sectionErrors.sectionNotFound();
 }
 
-/** The section's assignments, newest first. */
+/** The section's assignments, newest first. Packs of archived lessons are left out. */
 export function listAssignments(teacherId: string, sectionId: string): Promise<AssignmentView[]> {
   return db(async () => {
     await ownSection(teacherId, sectionId);
     const rows = await prisma.assignment.findMany({
-      where: { sectionId },
+      where: { sectionId, lesson: { archivedAt: null } },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     });
     return rows.map(view);
@@ -89,7 +89,11 @@ export function saveAssignment(
 ): Promise<AssignmentView> {
   return db(async () => {
     await ownSection(teacherId, sectionId);
-    const lesson = await prisma.lesson.findFirst({ where: { id: lessonId, ownerId: teacherId }, select: { status: true } });
+    // An archived lesson can't be given or changed: restore it first.
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, ownerId: teacherId, archivedAt: null },
+      select: { status: true },
+    });
     if (!lesson) throw lessonErrors.lessonNotFound();
     if (lesson.status !== "approved") throw assignmentErrors.lessonNotReady();
 

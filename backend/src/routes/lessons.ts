@@ -1,9 +1,13 @@
 // Lesson addresses for the Teacher screens:
 //   POST   /api/lessons/extract              upload a file: reads its text and creates a lesson ("uploaded")
 //   GET    /api/lessons/extract/:extractId   the same upload answer again (extractId = lessonId)
-//   GET    /api/lessons                      my lessons, newest first (no lesson text)
+//   GET    /api/lessons                      my active lessons, newest first, with playedBy (no lesson text)
+//   GET    /api/lessons/archived             my archived lessons, newest archived first, with archivedAt and playedBy
 //   GET    /api/lessons/:lessonId            one lesson with its questions (?withText=1 adds the text)
-//   DELETE /api/lessons/:lessonId            delete a lesson and its questions
+//   DELETE /api/lessons/:lessonId            delete a lesson nobody played; a played one must be archived first,
+//                                            then needs { confirm: true } (deletes its packs and rounds too)
+//   POST   /api/lessons/:lessonId/archive    hide it from Students and my lists (everything is kept) → { ok }
+//   POST   /api/lessons/:lessonId/restore    bring an archived lesson back as it was → { ok }
 //   POST   /api/lessons/:lessonId/generate   start making questions (202, works in the background)
 // Only counts are logged, never lesson or question text.
 import path from "node:path";
@@ -13,11 +17,21 @@ import { currentTeacherId } from "../auth/currentTeacher";
 import type { TemplateId } from "../content/questionCard";
 import { uploadLesson } from "../middleware/uploadLesson";
 import { lessonErrors } from "../lessons/lessonErrors";
-import { lessonDetail, lessonListItem } from "../lessons/lessonView";
+import { archivedListItem, lessonDetail, lessonListItem } from "../lessons/lessonView";
 import { MIN_WORDS_TO_MAKE_QUESTIONS } from "../lessons/limits";
 import { startMaking } from "../lessons/makeLessonQuestions";
 import { readLessonFile } from "../lessons/readLessonFile";
-import { createLesson, deleteLesson, getLesson, listLessons, listQuestions, type Lesson } from "../store/lessonStore";
+import {
+  archiveLesson,
+  createLesson,
+  deleteLesson,
+  getLesson,
+  listArchivedLessons,
+  listLessons,
+  listQuestions,
+  restoreLesson,
+  type Lesson,
+} from "../store/lessonStore";
 
 export const lessonsRouter = Router();
 
@@ -82,7 +96,13 @@ lessonsRouter.get("/api/lessons/extract/:extractId", async (req, res) => {
 
 lessonsRouter.get("/api/lessons", async (req, res) => {
   const rows = await listLessons(currentTeacherId(req));
-  res.json(rows.map(({ lesson, questions }) => lessonListItem(lesson, questions)));
+  res.json(rows.map(({ lesson, questions, playedBy }) => lessonListItem(lesson, questions, playedBy)));
+});
+
+// Before /api/lessons/:lessonId, so "archived" is never read as a lesson id.
+lessonsRouter.get("/api/lessons/archived", async (req, res) => {
+  const rows = await listArchivedLessons(currentTeacherId(req));
+  res.json(rows.map(({ lesson, questions, playedBy }) => archivedListItem(lesson, questions, playedBy)));
 });
 
 lessonsRouter.get("/api/lessons/:lessonId", async (req, res) => {
@@ -92,14 +112,34 @@ lessonsRouter.get("/api/lessons/:lessonId", async (req, res) => {
   res.json(lessonDetail(lesson, await listQuestions(ownerId, lesson.id), req.query.withText === "1"));
 });
 
+// No rounds: deleted. Played: archive first, then delete with { confirm: true }.
 lessonsRouter.delete("/api/lessons/:lessonId", async (req, res) => {
+  const confirmed = (req.body as { confirm?: unknown } | undefined)?.confirm === true;
+  const result = await deleteLesson(currentTeacherId(req), req.params.lessonId, confirmed);
+  if (result === "not_found") throw lessonErrors.lessonNotFound();
+  if (result === "making") throw lessonErrors.alreadyMaking();
+  if (result === "archive_first") throw lessonErrors.archiveFirst();
+  if (result === "confirm_needed") throw lessonErrors.confirmNeeded();
+  console.log("[lessons] lesson deleted");
+  res.status(204).end();
+});
+
+// ---------- Archive and Restore ----------
+
+lessonsRouter.post("/api/lessons/:lessonId/archive", async (req, res) => {
   const ownerId = currentTeacherId(req);
   const lesson = await getLesson(ownerId, req.params.lessonId);
   if (!lesson) throw lessonErrors.lessonNotFound();
   if (lesson.status === "making") throw lessonErrors.alreadyMaking();
-  await deleteLesson(ownerId, lesson.id);
-  console.log("[lessons] lesson deleted");
-  res.status(204).end();
+  if (!(await archiveLesson(ownerId, lesson.id))) throw lessonErrors.alreadyMaking();
+  console.log("[lessons] lesson archived");
+  res.json({ ok: true });
+});
+
+lessonsRouter.post("/api/lessons/:lessonId/restore", async (req, res) => {
+  if (!(await restoreLesson(currentTeacherId(req), req.params.lessonId))) throw lessonErrors.lessonNotFound();
+  console.log("[lessons] lesson restored");
+  res.json({ ok: true });
 });
 
 // ---------- Making questions ----------

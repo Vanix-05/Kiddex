@@ -1,7 +1,12 @@
 import { useEffect, useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
   ArrowRight,
+  CalendarClock,
+  CalendarDays,
   Check,
   Clock,
   Eye,
@@ -16,6 +21,7 @@ import {
   RotateCcw,
   Sparkles,
   Table2,
+  Trash2,
   TriangleAlert,
   Type,
   X,
@@ -24,14 +30,28 @@ import { paths } from '../../routes/paths'
 import { errorMessage } from '../api/client'
 import type { UploadAnswer, UploadPhase } from '../api/lessonsApi'
 import { FILE_TYPE, fileSizeText, unitsText } from '../data/lessonMapping'
-import { useLessonActions, useLessonLoad, useLessons, useSection, type LessonWithCounts } from '../data/useTeacherData'
+import {
+  useArchivedLessons,
+  useLessonActions,
+  useLessonArchive,
+  useLessonLoad,
+  useLessons,
+  useSection,
+  type ArchivedLesson,
+  type LessonWithCounts,
+} from '../data/useTeacherData'
 import type { FileType, TemplateId } from '../data/types'
 import { GAME_INFO, GAME_ORDER, gameThumbs } from '../assets'
 import { lessonStepPath, type PageProps } from '../planner/pages'
 import { SHOW_PAGE_2, usePhonePages } from '../planner/phonePages'
+import { usePlannerActions } from '../planner/plannerActions'
 import { Btn, Chip, EmptyLine, FileBadge, Heading, OllieNote, PageBody, Sub, Title } from '../planner/ui'
+import { archivedLinkText, lessonMenuItems, lessonToastText, type LessonToastKind } from './lessonArchive'
 import { LessonTextWindow } from './LessonTextWindow'
+import { TOAST_MS } from './removeStudents'
+import { RowMenu, type RowMenuItem } from './RowMenu'
 import styles from './Lessons.module.css'
+import students from './StudentsWindow.module.css'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const MAX_GAMES = 2
@@ -75,9 +95,14 @@ function StatusChip({ lesson }: { lesson: LessonWithCounts }) {
         </Chip>
       )
     case 'assigned':
-      return (
+      // "Due Fri, Dec 4", "Assigned · no due date", or grey "Past due · Nov 27".
+      return lesson.pastDue ? (
+        <Chip tone="neutral" icon={<CalendarClock size={16} aria-hidden="true" />}>
+          {lesson.assignedNote}
+        </Chip>
+      ) : (
         <Chip tone="info" icon={<Package size={16} aria-hidden="true" />}>
-          Assigned · {lesson.assignedNote}
+          {lesson.assignedNote}
         </Chip>
       )
     default:
@@ -95,89 +120,389 @@ const lessonLink = (l: LessonWithCounts) =>
         ? lessonStepPath(l.id, 'games')
         : null
 
-function MyLessons({ showHowItWorks }: { showHowItWorks: boolean }) {
+/** The dark pill at the bottom of My lessons (Archive, Restore, Delete, Change due date), for 8 seconds. */
+interface LessonToast {
+  /** New for each toast (restarts the 8 seconds). */
+  key: number
+  text: string
+  /** ✓ in front ("Due date saved"). */
+  check: boolean
+  /** Undo restores this lesson (only after Archive). */
+  undo?: { id: string; title: string }
+}
+
+/** "“Equivalent Fractions” archived  [Undo]": read out (role="status"). Nothing when there is no toast. */
+function ToastPill({ toast, onUndo }: { toast: LessonToast | null; onUndo: (lesson: { id: string; title: string }) => void }) {
+  return (
+    <span role="status" className={students.toastSlot}>
+      {toast && (
+        <span key={toast.key} className={`${students.toast} ${styles.toast}`}>
+          {toast.check && <Check size={18} strokeWidth={3} aria-hidden="true" />}
+          <span className={`${students.toastText} ${styles.toastText}`}>{toast.text}</span>
+          {toast.undo && (
+            <button type="button" className={students.undo} data-toast-undo onClick={() => toast.undo && onUndo(toast.undo)}>
+              Undo
+            </button>
+          )}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** A new key for each toast (restarts its 8 seconds and its little entrance). */
+let toastCount = 0
+const nextToastKey = () => ++toastCount
+
+const MENU_ICON = { size: 20, strokeWidth: 2.2, 'aria-hidden': true } as const
+
+function MyLessons({ showHowItWorks, live }: { showHowItWorks: boolean; live: boolean }) {
   const { lessons, loading, error } = useLessons()
+  const { archived } = useArchivedLessons()
+  const { restore } = useLessonArchive()
+  const { lessonPopup } = usePlannerActions()
   const { active } = useSection()
   const navigate = useNavigate()
   const { phone, turn } = usePhonePages()
+  const rootRef = useRef<HTMLDivElement>(null)
+  // My lessons, or the Archived view in its place (the right page stays).
+  const [view, setView] = useState<'list' | 'archived'>('list')
+  const [toast, setToast] = useState<LessonToast | null>(null)
   // Phone: uploading lives on page 2, so page 1 gets a big way there.
   const addButton = phone && showHowItWorks && active
+  const sectionName = active ? `Grade ${active.grade} – ${active.name}` : 'No section yet'
+
+  // The toast goes away after 8 seconds (a new one starts the 8 seconds again).
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), TOAST_MS)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  /** Focus something on this page once React has drawn it. */
+  const focusLater = (selector: string, fallback?: string) =>
+    requestAnimationFrame(() => {
+      const root = rootRef.current
+      const el = root?.querySelector<HTMLElement>(selector) ?? (fallback ? root?.querySelector<HTMLElement>(fallback) : null)
+      el?.focus({ preventScroll: !phone })
+    })
+
+  const say = (kind: LessonToastKind, title: string, undo?: { id: string; title: string }) =>
+    setToast({ key: nextToastKey(), text: lessonToastText(kind, title), check: kind === 'dueSaved', undo })
+
+  const showArchived = () => {
+    setView('archived')
+    focusLater('[data-archived-title]')
+  }
+  const backToList = () => {
+    setView('list')
+    focusLater('[data-archived-link]', '[data-lessons-title]')
+  }
+
+  // Esc goes back from Archived (popups and menus close first: they stop the Esc).
+  useEffect(() => {
+    if (!live || view !== 'archived') return
+    const onKey = (e: KeyboardEvent) => {
+      const onPage = e.target === document.body || (e.target instanceof Node && !!rootRef.current?.closest('main')?.contains(e.target))
+      if (e.key === 'Escape' && onPage) backToList()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  })
+
+  /** Undo, or Restore in the Archived view: back in My lessons. */
+  const onRestore = async (lesson: { id: string; title: string }, fromList: boolean) => {
+    try {
+      await restore(lesson.id)
+      say('restored', lesson.title)
+      // Undo: focus is back on its row's ⋯.
+      if (fromList) focusLater(`[data-more-id="${CSS.escape(lesson.id)}"]`, '[data-lessons-title]')
+    } catch (err) {
+      setToast({ key: nextToastKey(), text: errorMessage(err), check: false })
+    }
+  }
+
+  const menuFor = (l: LessonWithCounts): RowMenuItem[] =>
+    lessonMenuItems({ assigned: l.status === 'assigned' && !!l.pack, playedBy: l.playedBy }).map((item) => {
+      switch (item) {
+        case 'due':
+          return {
+            key: item,
+            label: 'Change due date',
+            icon: <CalendarDays {...MENU_ICON} />,
+            className: styles.menuDue,
+            onSelect: () => lessonPopup({ kind: 'due', lesson: l, onDone: () => say('dueSaved', l.title) }),
+          }
+        case 'archive':
+          return {
+            key: item,
+            label: 'Archive lesson',
+            icon: <Archive {...MENU_ICON} />,
+            className: styles.menuArchive,
+            onSelect: () =>
+              lessonPopup({
+                kind: 'archive',
+                lesson: l,
+                onDone: () => {
+                  // The row is gone: focus Undo.
+                  say('archived', l.title, { id: l.id, title: l.title })
+                  focusLater('[data-toast-undo]')
+                },
+              }),
+          }
+        case 'delete':
+          return {
+            key: item,
+            label: 'Delete lesson',
+            icon: <Trash2 {...MENU_ICON} />,
+            onSelect: () =>
+              lessonPopup({
+                kind: 'delete',
+                lesson: l,
+                onDone: () => {
+                  say('deleted', l.title)
+                  focusLater('[data-more-id]', '[data-lessons-title]')
+                },
+              }),
+          }
+      }
+    })
+
+  const linkText = archivedLinkText(archived.length)
+  const foot = (link: boolean) => (
+    // Phone: pinned at the bottom right while a toast shows (17-phone-after); otherwise after the list.
+    <div className={toast ? `${styles.foot} ${styles.footPinned}` : styles.foot}>
+      <ToastPill toast={toast} onUndo={(l) => void onRestore(l, true)} />
+      {link && linkText && (
+        <button type="button" className={`${students.removedLink} ${styles.archivedLink}`} data-archived-link onClick={showArchived}>
+          <Archive size={18} strokeWidth={2.2} aria-hidden="true" />
+          {linkText}
+        </button>
+      )}
+    </div>
+  )
+
+  if (view === 'archived') {
+    return (
+      <PageBody side="L">
+        <div ref={rootRef} className={styles.pageRoot}>
+          <ArchivedLessons
+            sectionName={sectionName}
+            onBack={backToList}
+            onRestore={(l) => onRestore(l, false)}
+            onDelete={(l) =>
+              lessonPopup({
+                kind: 'forever',
+                lesson: l,
+                onDone: () => {
+                  say('deletedForever', l.title)
+                  focusLater('[data-restore]', '[data-archived-title]')
+                },
+              })
+            }
+          />
+          {foot(false)}
+        </div>
+      </PageBody>
+    )
+  }
 
   return (
     <PageBody side="L">
-      <div className={addButton ? styles.titleRow : undefined}>
-        <Title>My lessons</Title>
-        {addButton && (
-          <Btn variant="primary" className={styles.addLesson} icon={<Plus size={26} strokeWidth={3} aria-hidden="true" />} onClick={() => turn?.('R')}>
-            Add a lesson
-          </Btn>
-        )}
-      </div>
-      <Sub>{active ? `Grade ${active.grade} – ${active.name}` : 'No section yet'}</Sub>
-
-      {lessons.length === 0 ? (
-        error ? (
-          <p className={styles.listError} role="alert">
-            <TriangleAlert size={17} aria-hidden="true" /> {errorMessage(error)}
-          </p>
-        ) : loading ? (
-          <p className={styles.listLoading}>Loading your lessons…</p>
-        ) : (
-          <div className={styles.noLessons}>
-            <strong>No lessons yet</strong>
-            <span>
-              {phone ? 'Tap Add a lesson to upload your first one' : 'Upload your first one on the right'} <ArrowRight size={16} aria-hidden="true" />
-            </span>
+      <div ref={rootRef} className={styles.pageRoot}>
+        <div className={addButton ? styles.titleRow : undefined}>
+          <div tabIndex={-1} data-lessons-title className={styles.focusTitle}>
+            <Title>My lessons</Title>
           </div>
-        )
-      ) : (
-        <ul className={styles.list}>
-          {lessons.map((l) => {
-            const to = lessonLink(l)
-            const inner = (
-              <>
-                <FileBadge type={l.fileType} />
-                <span className={styles.lessonText}>
-                  <span className={styles.lessonTitle}>{l.title}</span>
-                  <span className={styles.lessonInfo}>
-                    {l.fileType === 'DOC' && 'Word · '}
-                    {l.size} · {l.uploaded}
-                  </span>
-                </span>
-                <StatusChip lesson={l} />
-              </>
-            )
-            return (
-              <li key={l.id} className={l.status === 'making' ? `${styles.lesson} ${styles.lessonNew}` : styles.lesson}>
-                {to ? (
-                  // A lesson being made: its details are on the Making spread's page 2 (a phone turns there).
-                  <button
-                    type="button"
-                    className={styles.lessonButton}
-                    onClick={() => navigate(to, l.status === 'making' || l.status === 'failed' ? { state: SHOW_PAGE_2 } : undefined)}
-                  >
-                    {inner}
-                  </button>
-                ) : (
-                  <div className={styles.lessonButton}>{inner}</div>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+          {addButton && (
+            <Btn variant="primary" className={styles.addLesson} icon={<Plus size={26} strokeWidth={3} aria-hidden="true" />} onClick={() => turn?.('R')}>
+              Add a lesson
+            </Btn>
+          )}
+        </div>
+        <Sub>{sectionName}</Sub>
 
-      {showHowItWorks && lessons.length <= 5 && <HowItWorks />}
+        {lessons.length === 0 ? (
+          error ? (
+            <p className={styles.listError} role="alert">
+              <TriangleAlert size={17} aria-hidden="true" /> {errorMessage(error)}
+            </p>
+          ) : loading ? (
+            <p className={styles.listLoading}>Loading your lessons…</p>
+          ) : (
+            <div className={styles.noLessons}>
+              <strong>No lessons yet</strong>
+              <span>
+                {phone ? 'Tap Add a lesson to upload your first one' : 'Upload your first one on the right'} <ArrowRight size={16} aria-hidden="true" />
+              </span>
+            </div>
+          )
+        ) : (
+          <ul className={styles.list}>
+            {lessons.map((l) => {
+              const to = lessonLink(l)
+              const inner = (
+                <>
+                  <FileBadge type={l.fileType} />
+                  <span className={styles.lessonText}>
+                    <span className={styles.lessonTitle}>{l.title}</span>
+                    <span className={styles.lessonInfo}>
+                      {l.fileType === 'DOC' && 'Word · '}
+                      {l.size} · {l.uploaded}
+                    </span>
+                  </span>
+                  <StatusChip lesson={l} />
+                </>
+              )
+              return (
+                <li key={l.id} className={l.status === 'making' ? `${styles.lesson} ${styles.lessonNew}` : styles.lesson}>
+                  {to ? (
+                    // A lesson being made: its details are on the Making spread's page 2 (a phone turns there).
+                    <button
+                      type="button"
+                      className={styles.lessonButton}
+                      onClick={() => navigate(to, l.status === 'making' || l.status === 'failed' ? { state: SHOW_PAGE_2 } : undefined)}
+                    >
+                      {inner}
+                    </button>
+                  ) : (
+                    <div className={styles.lessonButton}>{inner}</div>
+                  )}
+                  {/* ⋯ beside the row's own button; none while its questions are being made. */}
+                  {l.status === 'making' ? (
+                    <span className={styles.moreSpace} aria-hidden="true" />
+                  ) : (
+                    <RowMenu
+                      label={`More for ${l.title}`}
+                      moreId={l.id}
+                      items={menuFor(l)}
+                      buttonClassName={styles.more}
+                      menuClassName={styles.menu}
+                      place={{ prefer: phone ? 'up' : 'down' }}
+                    />
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {foot(true)}
+        {/* Only with room to spare, so the toast and "Archived (N)" always fit. */}
+        {showHowItWorks && lessons.length <= 4 && <HowItWorks />}
+      </div>
     </PageBody>
   )
 }
 
-export function LessonsLeft() {
-  return <MyLessons showHowItWorks />
+/**
+ * Archived (8-archived, 18-phone-archived): on the left page in place of My lessons.
+ * Restore brings a lesson and its pack back; the trash opens Delete forever. With
+ * none left it goes back to My lessons on its own.
+ */
+function ArchivedLessons({
+  sectionName,
+  onBack,
+  onRestore,
+  onDelete,
+}: {
+  sectionName: string
+  onBack: () => void
+  onRestore: (lesson: ArchivedLesson) => Promise<void>
+  onDelete: (lesson: ArchivedLesson) => void
+}) {
+  const { archived, loaded, loading, error, retry } = useArchivedLessons()
+  const listRef = useRef<HTMLUListElement>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  // None left (all restored or deleted): back to My lessons on its own.
+  useEffect(() => {
+    if (loaded && archived.length === 0) onBack()
+  }, [loaded, archived.length, onBack])
+
+  const restore = async (l: ArchivedLesson) => {
+    setBusy(l.id)
+    await onRestore(l)
+    setBusy(null)
+    // The row is gone: focus the next Restore, if any.
+    requestAnimationFrame(() => listRef.current?.querySelector<HTMLElement>('[data-restore]')?.focus({ preventScroll: true }))
+  }
+
+  return (
+    <>
+      <div className={styles.archivedHead}>
+        <div tabIndex={-1} data-archived-title className={styles.focusTitle}>
+          <Title>Archived</Title>
+          <Sub>{sectionName} · Students can’t see these</Sub>
+        </div>
+        <Btn className={styles.backButton} icon={<ArrowLeft size={20} aria-hidden="true" />} onClick={onBack}>
+          My lessons
+        </Btn>
+      </div>
+
+      {loading || error ? (
+        error ? (
+          <p className={styles.listError} role="alert">
+            <TriangleAlert size={17} aria-hidden="true" /> {errorMessage(error)}{' '}
+            <Btn variant="link" onClick={retry}>
+              Try again
+            </Btn>
+          </p>
+        ) : (
+          <p className={styles.listLoading}>Loading…</p>
+        )
+      ) : (
+        <>
+          <ul ref={listRef} className={`${styles.list} ${styles.archivedList}`}>
+            {archived.map((l) => (
+              <li key={l.id} className={styles.lesson}>
+                <div className={styles.lessonButton}>
+                  <FileBadge type={l.fileType} />
+                  <span className={styles.lessonText}>
+                    <span className={styles.lessonTitle}>{l.title}</span>
+                    <span className={styles.lessonInfo}>
+                      {l.archivedLabel} · {l.playedBy} played
+                    </span>
+                  </span>
+                </div>
+                <span className={styles.archivedActions}>
+                  <button
+                    type="button"
+                    className={styles.restore}
+                    data-restore
+                    disabled={busy === l.id}
+                    aria-label={`Restore ${l.title}`}
+                    onClick={() => void restore(l)}
+                  >
+                    <ArchiveRestore size={18} strokeWidth={2.4} aria-hidden="true" />
+                    Restore
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.trash}
+                    aria-label="Delete forever"
+                    title="Delete forever"
+                    onClick={() => onDelete(l)}
+                  >
+                    <Trash2 size={18} strokeWidth={2.4} aria-hidden="true" />
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className={styles.archivedNote}>Restore brings the lesson and its review pack back. Scores were kept all along.</p>
+        </>
+      )}
+    </>
+  )
 }
 
-export function MakingLeft() {
-  return <MyLessons showHowItWorks={false} />
+export function LessonsLeft({ live }: PageProps) {
+  return <MyLessons showHowItWorks live={live} />
+}
+
+export function MakingLeft({ live }: PageProps) {
+  return <MyLessons showHowItWorks={false} live={live} />
 }
 
 function HowItWorks() {

@@ -6,13 +6,6 @@ import type { TeacherData } from './types'
 /** "Sunday, November 15" */
 const dayLabel = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
-/** The next Friday after today, for the review pack's due date: "Fri, Nov 21". */
-function nextFriday(today: Date) {
-  const d = new Date(today)
-  d.setDate(d.getDate() + (((5 - d.getDay() + 7) % 7) || 7))
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-}
-
 /** A brand-new Teacher: nothing ticked yet. Lessons, sections, Students and progress come from the backend. */
 function emptyData(): TeacherData {
   const today = new Date()
@@ -26,7 +19,6 @@ function emptyData(): TeacherData {
     justAdded: null,
     lessonNotes: {},
     checkSeenEnd: [],
-    nextDueLabel: nextFriday(today),
   }
 }
 

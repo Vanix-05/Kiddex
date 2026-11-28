@@ -13,8 +13,11 @@ function counts(questions: Question[]) {
   };
 }
 
-/** One row of GET /api/lessons. */
-export function lessonListItem(lesson: LessonSummary, questions: Question[]) {
+/**
+ * One row of GET /api/lessons. playedBy = how many different Students played it: the
+ * screens offer Archive when it is above 0, Delete when it is 0.
+ */
+export function lessonListItem(lesson: LessonSummary, questions: Question[], playedBy: number) {
   return {
     id: lesson.id,
     topic: lesson.topic,
@@ -29,7 +32,13 @@ export function lessonListItem(lesson: LessonSummary, questions: Question[]) {
     games: lesson.games,
     createdAt: lesson.createdAt,
     counts: counts(questions),
+    playedBy,
   };
+}
+
+/** One row of GET /api/lessons/archived: a list row plus when it was archived. */
+export function archivedListItem(lesson: LessonSummary, questions: Question[], playedBy: number) {
+  return { ...lessonListItem(lesson, questions, playedBy), archivedAt: lesson.archivedAt };
 }
 
 /** GET /api/lessons/:id (and the answer of approve-all). */

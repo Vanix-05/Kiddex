@@ -322,6 +322,37 @@ function missionChecks() {
     overdue?.assignmentId === "overdue" && overdue.state === "open",
   );
 
+  // Past-due packs come after the ones not yet due, even when the overdue one is newer.
+  const overdueLast = pickMission(
+    [
+      a("overdue", { dueDate: at("2026-11-10T04:00:00Z"), createdAt: at("2026-11-22T00:00:00Z") }),
+      a("next-week", { dueDate: at("2026-11-30T04:00:00Z") }),
+    ],
+    today,
+  );
+  check("mission: an overdue open pack comes after a pack due next week", overdueLast?.assignmentId === "next-week");
+
+  const noDueBeforeOverdue = pickMission(
+    [a("overdue", { dueDate: at("2026-11-20T04:00:00Z") }), a("none", {})],
+    today,
+  );
+  check("mission: a pack with no due date comes before an overdue one", noDueBeforeOverdue?.assignmentId === "none");
+
+  const dueToday = pickMission(
+    [a("overdue", { dueDate: at("2026-11-22T04:00:00Z") }), a("today", { dueDate: at("2026-11-23T04:00:00Z") })],
+    today,
+  );
+  check("mission: due today is not past due (it comes before yesterday's)", dueToday?.assignmentId === "today");
+
+  const oldestOverdue = pickMission(
+    [
+      a("overdue-new", { dueDate: at("2026-11-20T04:00:00Z") }),
+      a("overdue-old", { dueDate: at("2026-11-05T04:00:00Z") }),
+    ],
+    today,
+  );
+  check("mission: among overdue packs the oldest due comes first", oldestOverdue?.assignmentId === "overdue-old");
+
   const allDone = { done: ["quiz-show", "match-up"] as const };
   const doneToday = pickMission([a("x", { ...allDone, lastDoneAt: at("2026-11-23T01:00:00Z") })], today);
   check("mission: all done today → complete", doneToday?.assignmentId === "x" && doneToday.state === "complete");
