@@ -838,6 +838,52 @@ button.addButton {
   }
 }
 
+/* Phones held sideways: the logo on the left, a shorter card on the right,
+   so the whole form (and an error line) fits a 320px-tall screen. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .loginColumn {
+    flex-direction: row;
+    gap: clamp(16px, 4vw, 40px);
+    max-width: 780px;
+    padding: 10px 16px;
+  }
+
+  .loginLogo {
+    --logo-scale: 0.5;
+    flex: none;
+  }
+
+  .loginCard {
+    gap: 4px;
+    max-width: 400px;
+    padding: 12px 16px 14px;
+  }
+
+  .loginTitle {
+    padding: 2px 22px;
+    font-size: 1.4rem;
+  }
+
+  .loginSubtitle {
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+  }
+
+  .loginCard .form {
+    --size-control-height: 46px;
+    gap: 8px;
+  }
+
+  .loginCard button.bigButton {
+    min-height: 46px;
+    font-size: 1.1rem;
+  }
+
+  .loginCard .formError {
+    font-size: 0.9rem;
+  }
+}
+
 /* ---------- Toolbar: search, All / Active / Off, "Updated" ---------- */
 
 .toolbar {
