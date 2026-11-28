@@ -17,6 +17,13 @@ export const sectionErrors = {
       "SECTION_FULL",
       `This section has room for ${placesLeft} more Student${placesLeft === 1 ? "" : "s"}.`,
     ),
+  // Restore would put the section over 45 active Students.
+  sectionFullForRestore: () =>
+    new AppError(409, "SECTION_FULL", "This section already has 45 Students. Remove someone first."),
+  // Delete forever only works on a removed Student, so it always takes two steps.
+  notRemoved: () => new AppError(409, "NOT_REMOVED", "Remove this Student first."),
+  // The server's copy of the "type the School ID to confirm" check.
+  schoolIdMismatch: () => new AppError(400, "SCHOOL_ID_MISMATCH", "That School ID doesn't match."),
   dbUnavailable: () =>
     new AppError(503, "DB_UNAVAILABLE", "We can't reach your class lists right now. Please try again in a minute."),
 };

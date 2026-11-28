@@ -20,6 +20,8 @@ export interface Section {
   icon: SectionIcon
   /** Students who made their PIN code (from GET /api/sections). */
   registeredCount: number
+  /** Removed Students (the "Removed (N)" link in My Students). */
+  removedCount: number
 }
 
 export interface Teacher {
@@ -132,7 +134,7 @@ export type Level = QuestionCard['level']
 /** A School ID the server skipped when adding Students, and why. */
 export interface SkippedSchoolId {
   schoolId: string
-  reason: 'BAD_FORMAT' | 'DUPLICATE_IN_LIST' | 'ALREADY_IN_SECTION' | 'IN_ANOTHER_SECTION'
+  reason: 'BAD_FORMAT' | 'DUPLICATE_IN_LIST' | 'ALREADY_IN_SECTION' | 'IN_ANOTHER_SECTION' | 'REMOVED_IN_SECTION'
 }
 
 /** The Students just added (for "Login codes are ready!"), until My Students closes. */

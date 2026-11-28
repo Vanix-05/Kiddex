@@ -240,6 +240,16 @@
   translate: none;
 }
 
+/* Delete forever until the School ID matches (and Remove while it waits): faded, flat. */
+.leave:disabled,
+.leave:disabled:hover {
+  background: var(--color-story-cover);
+  box-shadow: none;
+  opacity: 0.45;
+  cursor: not-allowed;
+  translate: none;
+}
+
 .stay:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -356,7 +366,13 @@
     margin-top: 12px;
   }
 
+  /* The lines start at the top of the right column. */
+  .cardSplit .body > ul:first-child {
+    margin-top: 0;
+  }
+
   .cardSplit .stay,
+  .cardSplit .leave,
   .cardSplit .save {
     min-height: 46px;
     font-size: 17px;

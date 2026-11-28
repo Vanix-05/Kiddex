@@ -126,6 +126,67 @@
   color: var(--color-text-muted);
 }
 
+/* Delete forever: "Type 20260177 to confirm" and the School ID box. */
+.confirm {
+  margin-top: 18px;
+  text-align: left;
+}
+
+.confirmLabel {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.confirmId {
+  font: 700 17px / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-story-cover);
+}
+
+.confirm input {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Short screens (a phone held sideways): tighter lines, so the popup fits without scrolling. */
+@media (max-height: 520px) {
+  .pill {
+    margin-top: 12px;
+  }
+
+  .lines {
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 15px;
+    line-height: 1.3;
+  }
+
+  .tile {
+    width: 26px;
+    height: 26px;
+  }
+
+  .tile svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* The label and the box sit right under the lines. */
+  .confirm {
+    margin-top: 10px;
+  }
+
+  .confirmLabel {
+    margin-bottom: 4px;
+    font-size: 15px;
+  }
+
+  .confirm input {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 380px) {
   .box {
     width: 36px;

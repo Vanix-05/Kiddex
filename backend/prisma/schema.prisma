@@ -178,6 +178,7 @@ model Student {
   lockedUntil  DateTime?
   registeredAt DateTime?
   lastLoginAt  DateTime?
+  removedAt    DateTime? // set by Remove: can't log in, hidden from lists and counts. null = active.
 
   // Filled in by the Student's first-time setup (st-3).
   avatar             String?

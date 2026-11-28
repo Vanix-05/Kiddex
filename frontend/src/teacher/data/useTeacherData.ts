@@ -19,6 +19,7 @@ import {
   sectionsApi,
   type AssignInput,
   type ServerAssignment,
+  type ServerRemovedStudent,
   type ServerSection,
   type ServerStudent,
 } from '../api/sectionsApi'
@@ -72,6 +73,7 @@ const toSection = (s: ServerSection): Section => ({
   color: SECTION_COLORS.includes(s.color as SectionColor) ? (s.color as SectionColor) : 'yellow',
   icon: SECTION_ICONS.includes(s.icon as SectionIcon) ? (s.icon as SectionIcon) : 'flower',
   registeredCount: s.registeredCount,
+  removedCount: s.removedCount ?? 0,
 })
 
 /** A buddy head the screens have a picture for, else undefined. */
@@ -211,6 +213,76 @@ export function useNewCode() {
     },
     [queryClient],
   )
+}
+
+/** A removed Student as the Removed view shows them ("Today", "Yesterday", "Nov 24"). */
+export interface RemovedStudent extends Student {
+  removedLabel: string
+}
+
+export const toRemovedStudent = (s: ServerRemovedStudent, now: Date = new Date()): RemovedStudent => ({
+  id: s.id,
+  schoolId: s.schoolId,
+  registered: s.registered,
+  buddy: toBuddyHead(s.buddy),
+  buddyName: s.buddyName ?? undefined,
+  removedLabel: playedLabel(s.removedAt, now) ?? '',
+})
+
+/** The open section's removed Students, newest removed first (the Removed view). */
+export function useRemovedStudents() {
+  const { active } = useSection()
+  const sectionId = active?.id ?? ''
+  const query = useQuery({
+    queryKey: sectionKeys.removed(sectionId),
+    queryFn: () => sectionsApi.removed(sectionId),
+    enabled: !!sectionId,
+  })
+  const removed = useMemo(() => (query.data ?? []).map((s) => toRemovedStudent(s)), [query.data])
+  const retry = useCallback(() => void query.refetch(), [query])
+  return { removed, loaded: !!query.data, loading: !!sectionId && query.isPending, error: query.data ? null : query.error, retry }
+}
+
+/**
+ * Remove, Restore and Delete forever. Each one waits until every section list and
+ * count is fresh (My Students, Removed, the tabs, Home and Progress), then returns.
+ * Throws an ApiError with the server's friendly message (e.g. 409 SECTION_FULL).
+ */
+export function useStudentRemoval() {
+  const queryClient = useQueryClient()
+  const refresh = useCallback(
+    () =>
+      Promise.all([
+        // ['sections'] also covers each section's Students and Removed lists.
+        queryClient.invalidateQueries({ queryKey: sectionKeys.list }),
+        queryClient.invalidateQueries({ queryKey: ['teacher', 'section-progress'] }),
+      ]),
+    [queryClient],
+  )
+  const remove = useCallback(
+    async (studentId: string) => {
+      await sectionsApi.remove(studentId)
+      await refresh()
+    },
+    [refresh],
+  )
+  const restore = useCallback(
+    async (studentId: string) => {
+      const student = toStudent(await sectionsApi.restore(studentId))
+      await refresh()
+      return student
+    },
+    [refresh],
+  )
+  const deleteForever = useCallback(
+    async (studentId: string, schoolId: string) => {
+      await sectionsApi.deleteForever(studentId, schoolId)
+      queryClient.removeQueries({ queryKey: sectionKeys.studentLevels(studentId) })
+      await refresh()
+    },
+    [queryClient, refresh],
+  )
+  return { remove, restore, deleteForever }
 }
 
 /** "Login codes are ready!": the Students just added to the open section (null = show the list). */

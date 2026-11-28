@@ -7,6 +7,8 @@ export function skippedText({ schoolId, reason }: SkippedSchoolId): string {
       return `${schoolId} is already in another class. Ask your school’s KIDDEX admin.`
     case 'ALREADY_IN_SECTION':
       return `${schoolId} is already in this section.`
+    case 'REMOVED_IN_SECTION':
+      return `${schoolId} was removed from this section. Restore them from Removed.`
     case 'DUPLICATE_IN_LIST':
       return `${schoolId} was in the list twice.`
     default:

@@ -19,6 +19,7 @@ export function Popup({
   wide = false,
   split = false,
   intro,
+  aside,
   onClose,
   initialFocus,
   children,
@@ -35,6 +36,8 @@ export function Popup({
   split?: boolean
   /** A short line under the title (on the left in a split card). */
   intro?: ReactNode
+  /** More under the title (e.g. the Student pill): on the left in a split card. */
+  aside?: ReactNode
   onClose: () => void
   initialFocus?: RefObject<HTMLElement | null>
   children: ReactNode
@@ -89,6 +92,7 @@ export function Popup({
             {title}
           </h2>
           {intro && <p className={styles.text}>{intro}</p>}
+          {aside}
         </div>
         <div className={styles.body}>{children}</div>
       </div>

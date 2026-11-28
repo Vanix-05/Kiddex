@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Eye, Flame, KeyRound, Lock, Plus, Printer, Search, Users, X } from 'lucide-react'
+import { ArrowRight, Check, Eye, Flame, KeyRound, Lock, MoreHorizontal, Plus, Printer, Search, UserMinus, Users, X } from 'lucide-react'
+import { usePhoneSideways } from '../../hooks/usePhoneSideways'
 import { errorMessage } from '../api/client'
 import { masteryCell } from '../data/reports'
 import { MAX_STUDENTS_PER_SECTION } from '../data/schoolIds'
-import { useJustAdded, useSection, useStudentsLoad, useTeacher } from '../data/useTeacherData'
+import { useJustAdded, useSection, useStudentRemoval, useStudentsLoad, useTeacher } from '../data/useTeacherData'
 import type { Student, StudentFilter } from '../data/types'
 import { buddyHeads } from '../assets'
 import { studentsPath } from '../planner/pages'
@@ -13,6 +14,8 @@ import { Bar, Btn, Chip, Pills, Title } from '../planner/ui'
 import { toLoginCards, usePrintCards } from '../print/printCards'
 import { CodesReady } from './CodesReady'
 import { PrintCardsView } from './PrintCardsView'
+import { RemovedStudents } from './RemovedStudents'
+import { removedLinkText, TOAST_MS, toastText, type ToastKind } from './removeStudents'
 import { StudentLevels } from './StudentLevels'
 import styles from './StudentsWindow.module.css'
 
@@ -24,6 +27,17 @@ const isFilter = (f: string | null): f is StudentFilter => FILTERS.includes(f as
 type PrintFrom = 'list' | 'codes'
 
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/** The dark pill at the bottom (Remove, Restore, Delete forever), for 8 seconds. */
+export interface Toast {
+  /** New for each toast (restarts the 8 seconds). */
+  key: number
+  text: string
+  /** ✓ in front (not for a server message). */
+  check: boolean
+  /** Undo restores this Student (only after Remove). */
+  undo?: Student
+}
 
 interface StudentsWindowProps {
   /** true while it folds and lifts away. */
@@ -60,6 +74,10 @@ export function StudentsWindow({ closing, initialFilter, initialStudent, onClose
   // it. Open → is only while the window is open: it opens on the list next time.
   const [openStudent, setOpenStudent] = useState<string | null>(initialStudent)
   const [pickedRound, setPickedRound] = useState<string | null>(null)
+  // The Removed view (the "Removed (N)" link), and the toast after Remove / Restore / Delete forever.
+  const [showRemoved, setShowRemoved] = useState(false)
+  const [toast, setToast] = useState<Toast | null>(null)
+  const { restore } = useStudentRemoval()
   const toggleCode = (id: string) =>
     setShownCodes((before) => {
       const next = new Set(before)
@@ -94,17 +112,61 @@ export function StudentsWindow({ closing, initialFilter, initialStudent, onClose
     }
   }, [])
 
-  // Esc closes the round detail first, then the window.
+  // The toast goes away after 8 seconds (a new one starts the 8 seconds again).
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), TOAST_MS)
+    return () => window.clearTimeout(timer)
+  }, [toast])
+
+  /** Focus (and on a phone, scroll to) something in the window once React has drawn it. */
+  const focusLater = (selector: string) =>
+    requestAnimationFrame(() => sheetRef.current?.querySelector<HTMLElement>(selector)?.focus())
+
+  const say = (kind: ToastKind, s: Student, undo = false) => {
+    setToast({ key: Date.now(), text: toastText(kind, s.schoolId), check: kind !== 'deleted', undo: undo ? s : undefined })
+  }
+
+  /** After Remove: "✓ 2026-0177 removed" with Undo (focus on Undo: the row is gone). */
+  const onRemoved = (s: Student) => {
+    say('removed', s, true)
+    focusLater('[data-toast-undo]')
+  }
+
+  /** Undo, or Restore in the Removed view. A full section: the server's message, no Undo. */
+  const onRestore = async (s: Student) => {
+    try {
+      await restore(s.id)
+      say('restored', s)
+      // Undo: focus is back on their row's ⋯ (when it is on this page).
+      focusLater(`[data-more-id="${CSS.escape(s.id)}"]`)
+    } catch (err) {
+      setToast({ key: Date.now(), text: errorMessage(err), check: false })
+    }
+  }
+
+  const onDeleted = (s: Student) => say('deleted', s)
+
+  /** ← My Students from Removed: focus on the "Removed (N)" link (or the window). */
+  const backFromRemoved = () => {
+    setShowRemoved(false)
+    requestAnimationFrame(() =>
+      (sheetRef.current?.querySelector<HTMLElement>('[data-removed-link]') ?? sheetRef.current)?.focus({ preventScroll: true }),
+    )
+  }
+
+  // Esc closes the round detail first, then the Removed view, then the window.
   useEffect(() => {
     if (closing) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (pickedRound) setPickedRound(null)
+      else if (showRemoved) backFromRemoved()
       else onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [closing, onClose, pickedRound])
+  })
 
   /** ← My Students: back to the list (same page and filter), focus on that row's Open. */
   const backFromStudent = () => {
@@ -149,6 +211,16 @@ export function StudentsWindow({ closing, initialFilter, initialStudent, onClose
       onBackFromStudent={backFromStudent}
       pickedRound={pickedRound}
       onPickRound={setPickedRound}
+      showRemoved={showRemoved}
+      onShowRemoved={() => {
+        setShowRemoved(true)
+        requestAnimationFrame(() => sheetRef.current?.querySelector<HTMLElement>('[data-removed-title]')?.focus({ preventScroll: true }))
+      }}
+      onBackFromRemoved={backFromRemoved}
+      toast={toast}
+      onRemoved={onRemoved}
+      onRestore={onRestore}
+      onDeleted={onDeleted}
     />
   )
 
@@ -225,6 +297,17 @@ interface SheetContentProps {
   /** The round picked on the Student's page (its detail shows). */
   pickedRound: string | null
   onPickRound: (roundId: string | null) => void
+  /** The Removed view (inside the window, like the Student's page). */
+  showRemoved: boolean
+  onShowRemoved: () => void
+  onBackFromRemoved: () => void
+  toast: Toast | null
+  /** After a Remove that worked (the toast with Undo). */
+  onRemoved: (s: Student) => void
+  /** Undo, or Restore in the Removed view. */
+  onRestore: (s: Student) => void
+  /** After a Delete forever that worked. */
+  onDeleted: (s: Student) => void
 }
 
 const matches = (s: Student, f: StudentFilter) =>
@@ -277,11 +360,18 @@ function SheetContent({
   onBackFromStudent,
   pickedRound,
   onPickRound,
+  showRemoved,
+  onShowRemoved,
+  onBackFromRemoved,
+  toast,
+  onRemoved,
+  onRestore,
+  onDeleted,
 }: SheetContentProps) {
   const { students, loading, error, retry } = useStudentsLoad()
   const { active, loading: sectionsLoading, error: sectionsError, retry: retrySections } = useSection()
   const { justAdded, clear: backToList } = useJustAdded()
-  const { newSection, addStudent, newCode } = usePlannerActions()
+  const { newSection, addStudent, newCode, removeStudent, deleteStudent } = usePlannerActions()
   const teacher = useTeacher()
   const print = usePrintCards()
   const searchId = useId()
@@ -357,9 +447,37 @@ function SheetContent({
     )
   }
 
+  // Removed (the "Removed (N)" link): inside the same window, like the Student's page.
+  if (showRemoved) {
+    return (
+      <RemovedStudents
+        titleId={titleId}
+        sectionName={sectionName}
+        onBack={onBackFromRemoved}
+        onRestore={onRestore}
+        onDelete={(s) => deleteStudent(s, onDeleted)}
+        toast={<ToastPill toast={toast} onUndo={onRestore} />}
+      />
+    )
+  }
+
   if (loading || error) return <LoadNote titleId={titleId} sub={sectionName} error={error} onRetry={retry} />
 
   const sub = `${sectionName} · ${students.length} of ${MAX_STUDENTS_PER_SECTION} students`
+
+  // Bottom right: the toast, then the quiet "Removed (N)" link (hidden at 0).
+  const removedText = removedLinkText(active.removedCount)
+  const footEnd = (
+    <span className={styles.footEnd}>
+      <ToastPill toast={toast} onUndo={onRestore} />
+      {removedText && (
+        <button type="button" className={styles.removedLink} data-removed-link onClick={onShowRemoved}>
+          <UserMinus size={18} strokeWidth={2.2} aria-hidden="true" />
+          {removedText}
+        </button>
+      )}
+    </span>
+  )
 
   if (students.length === 0) {
     return (
@@ -381,6 +499,7 @@ function SheetContent({
             Add students
           </Btn>
         </div>
+        <div className={`${styles.foot} ${styles.footRight}`}>{footEnd}</div>
       </div>
     )
   }
@@ -458,6 +577,9 @@ function SheetContent({
             <th scope="col">
               <span className="visually-hidden">Actions</span>
             </th>
+            <th scope="col">
+              <span className="visually-hidden">More</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -470,11 +592,12 @@ function SheetContent({
               onNewCode={() => newCode(s)}
               onCard={() => printOne(s)}
               onOpen={() => onOpenStudent(s)}
+              onRemove={() => removeStudent(s, onRemoved)}
             />
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={7} className={styles.noMatch}>
+              <td colSpan={8} className={styles.noMatch}>
                 No students match. Try another School ID.
               </td>
             </tr>
@@ -503,8 +626,120 @@ function SheetContent({
             ))}
           </nav>
         )}
+        {footEnd}
       </div>
     </div>
+  )
+}
+
+/** "✓ 2026-0177 removed  [Undo]": a dark pill, read out (role="status"). Nothing when there is no toast. */
+function ToastPill({ toast, onUndo }: { toast: Toast | null; onUndo: (s: Student) => void }) {
+  return (
+    <span role="status" className={styles.toastSlot}>
+      {toast && (
+        <span key={toast.key} className={styles.toast}>
+          {toast.check && <Check size={18} strokeWidth={3} aria-hidden="true" />}
+          <span className={styles.toastText}>{toast.text}</span>
+          {toast.undo && (
+            <button type="button" className={styles.undo} data-toast-undo onClick={() => toast.undo && onUndo(toast.undo)}>
+              Undo
+            </button>
+          )}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/**
+ * ⋯ at the end of a row: a small menu with "Remove from section". A real menu:
+ * arrow keys move, Enter picks, Esc or a click outside closes it (focus back on ⋯).
+ * Opens under ⋯ on a laptop, above it on a phone (the list scrolls inside the window).
+ */
+function RowMenu({ studentId, schoolId, onRemove }: { studentId: string; schoolId: string; onRemove: () => void }) {
+  const [open, setOpen] = useState(false)
+  const menuId = useId()
+  const wrapRef = useRef<HTMLSpanElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const items = () => [...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
+
+  // Open: focus the first item. A click outside closes it.
+  useEffect(() => {
+    if (!open) return
+    items()[0]?.focus({ preventScroll: true })
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [open])
+
+  const close = () => {
+    setOpen(false)
+    buttonRef.current?.focus({ preventScroll: true })
+  }
+
+  const onMenuKey = (e: ReactKeyboardEvent) => {
+    const list = items()
+    const at = list.indexOf(document.activeElement as HTMLElement)
+    if (e.key === 'Escape') {
+      // Only the menu closes, not the window.
+      e.stopPropagation()
+      e.nativeEvent.stopImmediatePropagation()
+      close()
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      const step = e.key === 'ArrowDown' ? 1 : -1
+      list[(at + step + list.length) % list.length]?.focus({ preventScroll: true })
+    } else if (e.key === 'Home' || e.key === 'End') {
+      e.preventDefault()
+      list[e.key === 'Home' ? 0 : list.length - 1]?.focus({ preventScroll: true })
+    } else if (e.key === 'Tab') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <span ref={wrapRef} className={styles.more}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className={open ? `${styles.moreButton} ${styles.moreOpen}` : styles.moreButton}
+        aria-label={`More for ${schoolId}`}
+        data-more-id={studentId}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault()
+            setOpen(true)
+          }
+        }}
+      >
+        <MoreHorizontal size={22} strokeWidth={2.6} aria-hidden="true" />
+      </button>
+      {open && (
+        <div ref={menuRef} id={menuId} className={styles.menu} role="menu" aria-label={`More for ${schoolId}`} onKeyDown={onMenuKey}>
+          <button
+            type="button"
+            role="menuitem"
+            className={styles.menuItem}
+            onClick={() => {
+              // Focus back on ⋯ first: the popup gives it back there when it closes.
+              close()
+              onRemove()
+            }}
+          >
+            <UserMinus size={20} strokeWidth={2.2} aria-hidden="true" />
+            Remove from section
+          </button>
+        </div>
+      )}
+    </span>
   )
 }
 
@@ -532,9 +767,12 @@ interface StudentRowProps {
   onCard: () => void
   /** Opens the Student's page (their levels). */
   onOpen: () => void
+  /** The Remove this Student? popup (from the ⋯ menu). */
+  onRemove: () => void
 }
 
-function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen }: StudentRowProps) {
+function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen, onRemove }: StudentRowProps) {
+  const codeSpansStreak = usePhoneSideways() && !s.registered
   return (
     <tr className={styles.row}>
       <th scope="row" className={styles.who}>
@@ -558,7 +796,9 @@ function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen }: S
         )}
       </td>
       <td>{s.lastPlayed ?? <Dash />}</td>
-      <td>
+      {/* Phone: the narrower Mastery column can't hold Code + the big Show pill, so a
+          Not-yet row's code also takes the Streak column (they have no streak yet). */}
+      <td colSpan={codeSpansStreak ? 2 : undefined}>
         {s.registered ? (
           <MasteryCellView s={s} />
         ) : (
@@ -586,17 +826,19 @@ function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen }: S
           </span>
         )}
       </td>
-      <td>
-        {s.registered && s.streak !== undefined ? (
-          <span className={styles.streak}>
-            <Flame size={17} aria-hidden="true" />
-            <strong>{s.streak}</strong>
-            <span className="visually-hidden"> day streak</span>
-          </span>
-        ) : (
-          <Dash />
-        )}
-      </td>
+      {!codeSpansStreak && (
+        <td>
+          {s.registered && s.streak !== undefined ? (
+            <span className={styles.streak}>
+              <Flame size={17} aria-hidden="true" />
+              <strong>{s.streak}</strong>
+              <span className="visually-hidden"> day streak</span>
+            </span>
+          ) : (
+            <Dash />
+          )}
+        </td>
+      )}
       <td>
         <span className={styles.actions}>
           {s.registered ? (
@@ -623,6 +865,9 @@ function StudentRow({ s, codeShown, onToggleCode, onNewCode, onCard, onOpen }: S
             </Btn>
           )}
         </span>
+      </td>
+      <td className={styles.moreCell}>
+        <RowMenu studentId={s.id} schoolId={s.schoolId} onRemove={onRemove} />
       </td>
     </tr>
   )

@@ -1,8 +1,16 @@
 // `npm run test-students`: checks the School ID cleaner, the one-time code maker, "New code",
 // the 45-Students rule, the Student login rules and tokens, the Admin totals, and prints
 // PASS or FAIL for each. Codes made here are random test values; they are never printed.
+//
+// When DATABASE_URL is set (backend/.env), it also walks through Remove, Restore and
+// Delete forever on the real database with throwaway Teachers, a section and Students
+// (names start with "zz-test-", School IDs start with 98). It ALWAYS deletes what it made
+// at the end, even when a check fails. Never prints a token, a School ID, a code or an id.
 import fs from "node:fs";
 import path from "node:path";
+import type { AddressInfo } from "node:net";
+import { randomBytes, randomInt } from "node:crypto";
+import dotenv from "dotenv";
 import type { Request, RequestHandler, Response } from "express";
 import { ADMIN_STATS_KEYS, readAdminStats } from "../admin/adminStats";
 import { requireAdmin } from "../auth/requireAdmin";
@@ -19,6 +27,8 @@ import { makeOneTimeCode, makeUniqueCodes, showOneTimeCode } from "../sections/o
 import { planAdd } from "../sections/planAdd";
 import { cleanSchoolId, showSchoolId } from "../sections/schoolId";
 import { studentLogin, type StudentLoginRow, type StudentLoginStore } from "../students/studentLogin";
+
+dotenv.config({ path: path.resolve(__dirname, "../../.env"), quiet: true });
 
 let failures = 0;
 function check(name: string, ok: boolean, detail = ""): void {
@@ -95,6 +105,12 @@ async function main() {
   check("ALREADY_IN_SECTION for 2026-0144", reasons["2026-0144"] === "ALREADY_IN_SECTION");
   check("IN_ANOTHER_SECTION for 2026-0150", reasons["2026-0150"] === "IN_ANOTHER_SECTION");
 
+  // Removed Students: in this section → REMOVED_IN_SECTION; in another section → still IN_ANOTHER_SECTION.
+  const removedPlan = planAdd(["2026-0144", "2026-0150"], 0, owners, "sec-a", new Set(["20260144", "20260150"]));
+  const removedReasons = Object.fromEntries(removedPlan.skipped.map((s) => [s.schoolId, s.reason]));
+  check("REMOVED_IN_SECTION for a removed Student of this section", removedReasons["2026-0144"] === "REMOVED_IN_SECTION");
+  check("a removed Student of another section is still IN_ANOTHER_SECTION", removedReasons["2026-0150"] === "IN_ANOTHER_SECTION");
+
   // ---------- New code ----------
   const now = new Date("2026-11-23T08:00:00Z");
   const changes = newCodeChanges("730264", now);
@@ -128,6 +144,7 @@ async function main() {
   await tokenChecks();
   await adminStatsChecks();
   sameAsFrontendChecks();
+  await removeWalkthrough();
 
   console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
   process.exitCode = failures === 0 ? 0 : 1;
@@ -311,6 +328,289 @@ function sameAsFrontendChecks() {
     }
     const block = new RegExp(`const ${key}: CustomizeItem\\[\\] = \\[([\\s\\S]*?)\\n\\]`).exec(customize)?.[1] ?? "";
     check(`same as frontend: look ${key}`, same(ids(block), LOOK_ITEMS[key]));
+  }
+}
+
+// ---------- Remove, Restore and Delete forever (database walkthrough) ----------
+
+type Reply = { status: number; body: Record<string, any> };
+
+async function removeWalkthrough() {
+  if (!process.env.DATABASE_URL) {
+    console.log("SKIP  remove walkthrough (DATABASE_URL is not set)");
+    return;
+  }
+  // Loaded only now: these need the database settings (env.ts stops without them).
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const { prisma } = require("../db/prisma") as typeof import("../db/prisma");
+  const { app } = require("../app") as typeof import("../app");
+  const { kickStudent } = require("../lobby/lobbyKick") as typeof import("../lobby/lobbyKick");
+  const { sectionProgress } = require("../store/reportStore") as typeof import("../store/reportStore");
+
+  const tag = `zz-test-${randomBytes(4).toString("hex")}`;
+  const made: { teacherIds: string[]; sectionId?: string; lessonId?: string } = { teacherIds: [] };
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise<void>((resolve) => server.once("listening", () => resolve()));
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const call = async (method: string, url: string, token: string | null, body?: unknown): Promise<Reply> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(base + url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+    return { status: res.status, body: (await res.json().catch(() => ({}))) as Record<string, any> };
+  };
+  const errorOf = (r: Reply) => `${r.status} ${r.body?.error?.code ?? r.body?.code ?? ""}`.trim();
+  const codeOf = (r: Reply): string => r.body?.error?.code ?? r.body?.code ?? "";
+
+  try {
+    // Two Teachers: T owns the section, other tries to touch T's Student.
+    const teacher = await prisma.teacher.create({
+      data: { email: `${tag}@kiddex.test`, name: `${tag}-teacher`, passwordHash: "not-a-hash" },
+    });
+    made.teacherIds.push(teacher.id);
+    const other = await prisma.teacher.create({
+      data: { email: `${tag}-2@kiddex.test`, name: `${tag}-teacher-2`, passwordHash: "not-a-hash" },
+    });
+    made.teacherIds.push(other.id);
+    const tToken = makeTeacherToken(teacher);
+    const oToken = makeTeacherToken(other);
+    const section = await prisma.section.create({
+      data: { teacherId: teacher.id, grade: 4, name: tag, nameKey: tag, color: "yellow", icon: "flower" },
+    });
+    made.sectionId = section.id;
+
+    // School IDs 98xxxxxx: A (has a PIN code and a round), B (never made a PIN code), fillers.
+    const start = randomInt(0, 900_000);
+    const sid = (n: number) => `98${String((start + n) % 1_000_000).padStart(6, "0")}`;
+    const shown = (n: number) => showSchoolId(sid(n));
+    const a = await prisma.student.create({
+      data: {
+        schoolId: sid(0),
+        sectionId: section.id,
+        pinHash: await hashPassword("1234"),
+        registeredAt: new Date(),
+        buddy: BUDDY_IDS[0],
+        buddyName: "Mochi",
+        xp: 120,
+        stars: 4,
+      },
+    });
+    const bCode = makeOneTimeCode();
+    const b = await prisma.student.create({
+      data: { schoolId: sid(1), sectionId: section.id, oneTimeCode: bCode, codeMadeAt: new Date() },
+    });
+
+    // A round for A, with answers and a topic level, so Delete forever really deletes something.
+    const lesson = await prisma.lesson.create({
+      data: {
+        ownerId: teacher.id,
+        topic: `${tag}-Fractions`,
+        subject: "Math",
+        grade: 4,
+        games: ["quiz-show"],
+        fileName: `${tag}-lesson.pdf`,
+        fileType: "pdf",
+        sizeBytes: 1,
+        unitLabel: "page",
+        unitCount: 1,
+        unitCountIsEstimate: false,
+        wordCount: 100,
+        textLevel: "ok",
+        units: [],
+        status: "approved",
+        approvedAt: new Date(),
+      },
+    });
+    made.lessonId = lesson.id;
+    const now = new Date();
+    const round = await prisma.gameRound.create({
+      data: {
+        clientRoundId: `${tag}-round`,
+        studentId: a.id,
+        lessonId: lesson.id,
+        game: "quiz-show",
+        topic: "Fractions",
+        startLevel: "easy",
+        endLevel: "easy",
+        change: "keep",
+        reason: "1 of 2 right (50%)",
+        right: 1,
+        helpedRight: 0,
+        total: 2,
+        helpsUsed: 0,
+        xp: 10,
+        stars: 1,
+        starsEarned: 1,
+        countsForMission: false,
+        startedAt: new Date(now.getTime() - 60_000),
+        endedAt: now,
+        answers: {
+          create: [
+            { position: 0, level: "easy", right: true, tries: 1, ms: 1000, helped: false },
+            { position: 1, level: "easy", right: false, tries: 2, ms: 2000, helped: false },
+          ],
+        },
+      },
+    });
+    await prisma.topicLevel.create({ data: { studentId: a.id, topicKey: "fractions", topic: "Fractions" } });
+
+    // A logs in; the token works.
+    const loginA = await call("POST", "/api/auth/student/login", null, { schoolId: shown(0), pin: "1234" });
+    const aToken: string = loginA.body.token ?? "";
+    check("remove: before, A logs in with the PIN code", loginA.status === 200 && !!aToken, errorOf(loginA));
+    const sectionsBefore = (await call("GET", "/api/sections", tToken)).body as unknown as Record<string, any>[];
+    const before = sectionsBefore.find((s) => s.id === section.id);
+    const progressBefore = await sectionProgress(teacher.id, section.id);
+
+    // Another Teacher can't touch A.
+    const oRemove = await call("POST", `/api/students/${a.id}/remove`, oToken);
+    const oRestore = await call("POST", `/api/students/${a.id}/restore`, oToken);
+    const oDelete = await call("DELETE", `/api/students/${a.id}`, oToken, { schoolId: shown(0) });
+    check(
+      "another Teacher: remove, restore and delete → 404 STUDENT_NOT_FOUND",
+      [oRemove, oRestore, oDelete].every((r) => r.status === 404 && codeOf(r) === "STUDENT_NOT_FOUND"),
+      [oRemove, oRestore, oDelete].map(errorOf).join(", "),
+    );
+    const oRemoved = await call("GET", `/api/sections/${section.id}/removed`, oToken);
+    check("another Teacher: the removed list → 404 SECTION_NOT_FOUND", oRemoved.status === 404, errorOf(oRemoved));
+    check("another Teacher: A is still active", (await prisma.student.findUnique({ where: { id: a.id } }))?.removedAt === null);
+
+    // Delete forever needs Remove first.
+    const notRemoved = await call("DELETE", `/api/students/${a.id}`, tToken, { schoolId: shown(0) });
+    check("delete: an active Student → 409 NOT_REMOVED", notRemoved.status === 409 && codeOf(notRemoved) === "NOT_REMOVED", errorOf(notRemoved));
+
+    // Remove A (twice: the same answer).
+    const versionBefore = (await prisma.student.findUniqueOrThrow({ where: { id: a.id } })).tokenVersion;
+    const removed1 = await call("POST", `/api/students/${a.id}/remove`, tToken);
+    const removed2 = await call("POST", `/api/students/${a.id}/remove`, tToken);
+    check("remove: answers { ok: true }", removed1.status === 200 && removed1.body.ok === true, errorOf(removed1));
+    check("remove: tapping twice answers the same", removed2.status === 200 && removed2.body.ok === true, errorOf(removed2));
+    const aRow = await prisma.student.findUniqueOrThrow({ where: { id: a.id } });
+    check("remove: removedAt is set and tokenVersion went up once", aRow.removedAt !== null && aRow.tokenVersion === versionBefore + 1);
+    check(
+      "remove: nothing else changes (PIN code, buddy, XP, stars, rounds kept)",
+      aRow.pinHash !== null && aRow.buddyName === "Mochi" && aRow.xp === 120 && aRow.stars === 4 &&
+        (await prisma.gameRound.count({ where: { studentId: a.id } })) === 1,
+    );
+    kickStudent(a.id); // The Lobby isn't running here: does nothing, no crash.
+    check("lobby: kickStudent without a running Lobby does nothing", true);
+
+    // A can't log in, and the old token stops working.
+    const failedBefore = aRow.failedLogins;
+    const loginRemoved = await call("POST", "/api/auth/student/login", null, { schoolId: shown(0), pin: "1234" });
+    check("remove: login with the right PIN code → 401 WRONG_LOGIN", loginRemoved.status === 401 && codeOf(loginRemoved) === "WRONG_LOGIN", errorOf(loginRemoved));
+    check(
+      "remove: no wrong try is counted for a removed Student",
+      (await prisma.student.findUniqueOrThrow({ where: { id: a.id } })).failedLogins === failedBefore,
+    );
+    const oldToken = await call("GET", "/api/student/me", aToken);
+    check("remove: an old login token → 401", oldToken.status === 401, errorOf(oldToken));
+    const freshToken = await call("GET", "/api/student/me", makeStudentToken({ id: a.id, tokenVersion: aRow.tokenVersion }));
+    check("remove: even a token with the new tokenVersion → 401 LOGIN_NEEDED", freshToken.status === 401 && codeOf(freshToken) === "LOGIN_NEEDED", errorOf(freshToken));
+
+    // A leaves every list and count.
+    const list = await call("GET", `/api/sections/${section.id}/students`, tToken);
+    check("remove: not in My Students", list.status === 200 && !(list.body as unknown as any[]).some((s) => s.id === a.id));
+    const after = ((await call("GET", "/api/sections", tToken)).body as unknown as Record<string, any>[]).find((s) => s.id === section.id);
+    check(
+      "remove: studentCount and registeredCount go down, removedCount goes up",
+      !!before && !!after && after.studentCount === before.studentCount - 1 && after.registeredCount === before.registeredCount - 1 &&
+        before.removedCount === 0 && after.removedCount === 1,
+      JSON.stringify([before?.studentCount, after?.studentCount, before?.registeredCount, after?.registeredCount, after?.removedCount]),
+    );
+    const progressAfter = await sectionProgress(teacher.id, section.id);
+    check("remove: Progress no longer counts them", progressAfter.registered === progressBefore.registered - 1);
+    const levels = await call("GET", `/api/students/${a.id}/levels`, tToken);
+    check("remove: their Student page → 404", levels.status === 404, errorOf(levels));
+    const removedList = await call("GET", `/api/sections/${section.id}/removed`, tToken);
+    const entry = (removedList.body as unknown as any[]).find?.((s) => s.id === a.id);
+    check(
+      "remove: shown in /removed with School ID, registered, buddy and removedAt",
+      removedList.status === 200 && !!entry && entry.schoolId === shown(0) && entry.registered === true &&
+        entry.buddy === BUDDY_IDS[0] && entry.buddyName === "Mochi" && typeof entry.removedAt === "string" &&
+        Object.keys(entry).sort().join() === "buddy,buddyName,id,registered,removedAt,schoolId",
+      entry ? Object.keys(entry).join() : errorOf(removedList),
+    );
+
+    // Adding A's School ID again in this section → REMOVED_IN_SECTION, no second row.
+    const again = await call("POST", `/api/sections/${section.id}/students`, tToken, { schoolIds: [shown(0)] });
+    check(
+      "add: a removed School ID of this section → REMOVED_IN_SECTION",
+      again.status === 201 && again.body.added?.length === 0 && again.body.skipped?.[0]?.reason === "REMOVED_IN_SECTION",
+      errorOf(again),
+    );
+
+    // Fill the section to 45 active (B + 44), then Remove frees a place.
+    await prisma.student.createMany({
+      data: Array.from({ length: 44 }, (_, i) => ({ schoolId: sid(10 + i), sectionId: section.id })),
+    });
+    const tooMany = await call("POST", `/api/sections/${section.id}/students`, tToken, { schoolIds: [shown(60)] });
+    check("full: 45 active (+1 removed) → adding one more is SECTION_FULL", tooMany.status === 409 && codeOf(tooMany) === "SECTION_FULL", errorOf(tooMany));
+    const restoreFull = await call("POST", `/api/students/${a.id}/restore`, tToken);
+    check(
+      "restore: into a full section → 409 SECTION_FULL with the message",
+      restoreFull.status === 409 && codeOf(restoreFull) === "SECTION_FULL" &&
+        JSON.stringify(restoreFull.body).includes("This section already has 45 Students. Remove someone first."),
+      errorOf(restoreFull),
+    );
+    await call("POST", `/api/students/${b.id}/remove`, tToken);
+    const fits = await call("POST", `/api/sections/${section.id}/students`, tToken, { schoolIds: [shown(60)] });
+    check("full: Remove frees a place (one more can be added)", fits.status === 201 && fits.body.added?.length === 1, errorOf(fits));
+
+    // Make room, then Restore A: the old PIN code works again.
+    await prisma.student.deleteMany({ where: { schoolId: { in: [sid(10), sid(11)] } } });
+    const restored = await call("POST", `/api/students/${a.id}/restore`, tToken);
+    check(
+      "restore: answers the Student (StudentView)",
+      restored.status === 200 && restored.body.student?.id === a.id && restored.body.student?.registered === true &&
+        restored.body.student?.lastPlayedAt !== null,
+      errorOf(restored),
+    );
+    const restoredAgain = await call("POST", `/api/students/${a.id}/restore`, tToken);
+    check("restore: a Student who isn't removed → OK, nothing changes", restoredAgain.status === 200 && restoredAgain.body.student?.id === a.id, errorOf(restoredAgain));
+    const loginBack = await call("POST", "/api/auth/student/login", null, { schoolId: shown(0), pin: "1234" });
+    check("restore: login with the old PIN code works again", loginBack.status === 200 && !!loginBack.body.token, errorOf(loginBack));
+
+    // Restore B (never made a PIN code): their old one-time code works again.
+    const restoredB = await call("POST", `/api/students/${b.id}/restore`, tToken);
+    const codeBack = await call("POST", "/api/auth/student/check-code", null, { schoolId: shown(1), code: bCode });
+    check("restore: no PIN code yet → the old one-time code works again", restoredB.status === 200 && codeBack.status === 200, `${errorOf(restoredB)}, ${errorOf(codeBack)}`);
+
+    // Delete forever: Remove, then type the School ID.
+    await call("POST", `/api/students/${a.id}/remove`, tToken);
+    const wrongId = await call("DELETE", `/api/students/${a.id}`, tToken, { schoolId: shown(1) });
+    check("delete: a wrong School ID → 400 SCHOOL_ID_MISMATCH", wrongId.status === 400 && codeOf(wrongId) === "SCHOOL_ID_MISMATCH", errorOf(wrongId));
+    check("delete: after a wrong School ID the Student is still there", (await prisma.student.count({ where: { id: a.id } })) === 1);
+    const deleted = await call("DELETE", `/api/students/${a.id}`, tToken, { schoolId: sid(0) }); // no dash: the same School ID
+    check("delete: the School ID without a dash matches → { ok: true }", deleted.status === 200 && deleted.body.ok === true, errorOf(deleted));
+    const [rowsLeft, roundsLeft, answersLeft, levelsLeft] = await Promise.all([
+      prisma.student.count({ where: { id: a.id } }),
+      prisma.gameRound.count({ where: { studentId: a.id } }),
+      prisma.roundAnswer.count({ where: { roundId: round.id } }),
+      prisma.topicLevel.count({ where: { studentId: a.id } }),
+    ]);
+    check(
+      "delete: no Student row, and no GameRound, RoundAnswer or TopicLevel left",
+      rowsLeft === 0 && roundsLeft === 0 && answersLeft === 0 && levelsLeft === 0,
+      JSON.stringify([rowsLeft, roundsLeft, answersLeft, levelsLeft]),
+    );
+    const gone = await call("POST", `/api/students/${a.id}/restore`, tToken);
+    check("delete: the deleted Student is not found any more → 404", gone.status === 404, errorOf(gone));
+  } catch (err) {
+    check("remove walkthrough ran without a crash", false, err instanceof Error ? err.name : "error");
+  } finally {
+    // Always clean up, even when a check failed.
+    try {
+      if (made.sectionId) await prisma.student.deleteMany({ where: { sectionId: made.sectionId } });
+      if (made.lessonId) await prisma.lesson.deleteMany({ where: { id: made.lessonId } });
+      if (made.sectionId) await prisma.section.deleteMany({ where: { id: made.sectionId } });
+      if (made.teacherIds.length) await prisma.teacher.deleteMany({ where: { id: { in: made.teacherIds } } });
+      const left = await prisma.teacher.count({ where: { email: { startsWith: tag } } });
+      check("clean-up: everything made by the walkthrough is deleted", left === 0);
+    } catch {
+      check("clean-up: everything made by the walkthrough is deleted", false, "look for rows starting with zz-test- in Prisma Studio");
+    }
+    server.close();
+    await prisma.$disconnect();
   }
 }
 

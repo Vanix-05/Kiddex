@@ -15,8 +15,23 @@ export interface ServerSection {
   name: string
   color: string
   icon: string
+  /** Active Students (removed ones are not counted). */
   studentCount: number
   registeredCount: number
+  /** Removed Students, for the "Removed (N)" link. */
+  removedCount: number
+}
+
+/** One row of GET /api/sections/:id/removed (newest removed first). */
+export interface ServerRemovedStudent {
+  id: string
+  /** Shown form, e.g. "2026-0177". */
+  schoolId: string
+  registered: boolean
+  buddy: string | null
+  buddyName: string | null
+  /** When they were removed (ISO). */
+  removedAt: string
 }
 
 export interface ServerStudent {
@@ -171,7 +186,13 @@ export interface SectionProgress {
   neverPlayed: { studentId: string; schoolId: string; registeredAt: string | null }[]
 }
 
-export type SkipReason = 'BAD_FORMAT' | 'DUPLICATE_IN_LIST' | 'ALREADY_IN_SECTION' | 'IN_ANOTHER_SECTION'
+export type SkipReason =
+  | 'BAD_FORMAT'
+  | 'DUPLICATE_IN_LIST'
+  | 'ALREADY_IN_SECTION'
+  | 'IN_ANOTHER_SECTION'
+  /** Removed from this same section: Restore them instead. */
+  | 'REMOVED_IN_SECTION'
 
 /** The answer of POST /api/sections/:id/students. */
 export interface AddStudentsAnswer {
@@ -218,6 +239,16 @@ export const sectionsApi = {
   /** A new one-time code (lost card or forgotten PIN code). Their buddy and progress are kept. */
   newCode: (studentId: string) =>
     api<{ student: ServerStudent }>(`/api/students/${enc(studentId)}/new-code`, { method: 'POST' }).then((a) => a.student),
+  /** Remove: they can't log in and leave every list; nothing is deleted. */
+  remove: (studentId: string) => api<{ ok: true }>(`/api/students/${enc(studentId)}/remove`, { method: 'POST' }),
+  /** Restore a removed Student (409 SECTION_FULL when the section has 45). */
+  restore: (studentId: string) =>
+    api<{ student: ServerStudent }>(`/api/students/${enc(studentId)}/restore`, { method: 'POST' }).then((a) => a.student),
+  /** Delete forever (removed Students only). The typed School ID must match theirs. */
+  deleteForever: (studentId: string, schoolId: string) =>
+    api<{ ok: true }>(`/api/students/${enc(studentId)}`, { method: 'DELETE', body: { schoolId } }),
+  /** The section's removed Students, newest removed first. */
+  removed: (sectionId: string) => api<ServerRemovedStudent[]>(`/api/sections/${enc(sectionId)}/removed`),
   /** A Student's level per topic and why (newest played topic first). */
   levels: (studentId: string) => api<StudentLevelsAnswer>(`/api/students/${enc(studentId)}/levels`),
   /** The section's mastery, study days and review packs (Home and Progress). */
@@ -229,6 +260,7 @@ export const sectionKeys = {
   list: ['sections'] as const,
   students: (sectionId: string) => ['sections', sectionId, 'students'] as const,
   assignments: (sectionId: string) => ['sections', sectionId, 'assignments'] as const,
+  removed: (sectionId: string) => ['sections', sectionId, 'removed'] as const,
   studentLevels: (studentId: string) => ['teacher', 'student-levels', studentId] as const,
   progress: (sectionId: string) => ['teacher', 'section-progress', sectionId] as const,
 }

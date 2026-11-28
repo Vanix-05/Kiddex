@@ -7,7 +7,9 @@ import { prisma } from "../db/prisma";
 import type { Prisma } from "../generated/prisma/client";
 import { needsHelp, overallMastery } from "../games/mastery";
 import { phDay, shownStreak } from "../games/streak";
+import { kickStudent } from "../lobby/lobbyKick";
 import { AppError } from "../middleware/AppError";
+import { MAX_STUDENTS_PER_SECTION } from "../sections/limits";
 import { newCodeChanges } from "../sections/newCode";
 import { makeUniqueCodes, showOneTimeCode } from "../sections/oneTimeCode";
 import { planAdd, type Skipped } from "../sections/planAdd";
@@ -28,8 +30,12 @@ export interface SectionView {
   name: string;
   color: string;
   icon: string;
+  /** Active Students (removed ones are not counted). */
   studentCount: number;
+  /** Active Students who made their PIN code. */
   registeredCount: number;
+  /** Removed Students, for the "Removed (N)" link. */
+  removedCount: number;
 }
 
 export interface StudentView {
@@ -113,19 +119,25 @@ export async function db<T>(work: () => Promise<T>): Promise<T> {
 
 export function listSections(teacherId: string): Promise<SectionView[]> {
   return db(async () => {
-    const [sections, registered] = await Promise.all([
+    const [sections, registered, removed] = await Promise.all([
       prisma.section.findMany({
         where: { teacherId },
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        include: { _count: { select: { students: true } } },
+        include: { _count: { select: { students: { where: { removedAt: null } } } } },
       }),
       prisma.student.groupBy({
         by: ["sectionId"],
-        where: { section: { teacherId }, pinHash: { not: null } },
+        where: { section: { teacherId }, removedAt: null, pinHash: { not: null } },
+        _count: { _all: true },
+      }),
+      prisma.student.groupBy({
+        by: ["sectionId"],
+        where: { section: { teacherId }, removedAt: { not: null } },
         _count: { _all: true },
       }),
     ]);
     const registeredBySection = new Map(registered.map((r) => [r.sectionId, r._count._all]));
+    const removedBySection = new Map(removed.map((r) => [r.sectionId, r._count._all]));
     return sections.map((s) => ({
       id: s.id,
       grade: s.grade,
@@ -134,6 +146,7 @@ export function listSections(teacherId: string): Promise<SectionView[]> {
       icon: s.icon,
       studentCount: s._count.students,
       registeredCount: registeredBySection.get(s.id) ?? 0,
+      removedCount: removedBySection.get(s.id) ?? 0,
     }));
   });
 }
@@ -148,7 +161,7 @@ export async function createSection(teacherId: string, grade: number, name: stri
       const count = await prisma.section.count({ where: { teacherId } });
       const look = SECTION_LOOKS[count % SECTION_LOOKS.length];
       const s = await prisma.section.create({ data: { teacherId, grade, name, nameKey, ...look } });
-      return { id: s.id, grade, name, color: s.color, icon: s.icon, studentCount: 0, registeredCount: 0 };
+      return { id: s.id, grade, name, color: s.color, icon: s.icon, studentCount: 0, registeredCount: 0, removedCount: 0 };
     });
   } catch (err) {
     // Two quick clicks: the database's unique rule catches the second one.
@@ -158,7 +171,7 @@ export async function createSection(teacherId: string, grade: number, name: stri
 }
 
 /**
- * The section's Students, in School ID order, with when each last played and their
+ * The section's active Students (never the removed ones), in School ID order, with when each last played and their
  * mastery. One query for the section + Students, then the rounds + answers of the
  * whole section at once (reportStore.loadRounds).
  */
@@ -166,7 +179,10 @@ export function listStudents(teacherId: string, sectionId: string): Promise<Stud
   return db(async () => {
     const section = await prisma.section.findFirst({
       where: { id: sectionId, teacherId },
-      select: { id: true, students: { orderBy: { schoolId: "asc" }, select: STUDENT_COLUMNS } },
+      select: {
+        id: true,
+        students: { where: { removedAt: null }, orderBy: { schoolId: "asc" }, select: STUDENT_COLUMNS },
+      },
     });
     if (!section) throw sectionErrors.sectionNotFound();
     const rows = section.students;
@@ -217,14 +233,14 @@ export async function addStudents(teacherId: string, sectionId: string, schoolId
  * A new one-time code for one of my Students (lost card or forgotten PIN code).
  * The PIN code is removed and any open Student login ends; registeredAt, the
  * buddy, the setup and all progress are kept (see newCodeChanges).
- * Another Teacher's Student → 404 STUDENT_NOT_FOUND.
+ * Another Teacher's Student, or a removed one (Restore them first) → 404 STUDENT_NOT_FOUND.
  */
 export async function makeNewCode(teacherId: string, studentId: string): Promise<StudentView> {
   for (let attempt = 1; ; attempt++) {
     try {
       return await db(async () => {
         const own = await prisma.student.findFirst({
-          where: { id: studentId, section: { teacherId } },
+          where: { id: studentId, section: { teacherId }, removedAt: null },
           select: { id: true },
         });
         if (!own) throw sectionErrors.studentNotFound();
@@ -258,6 +274,132 @@ export async function makeNewCode(teacherId: string, studentId: string): Promise
   }
 }
 
+// ---------- Remove, Restore and Delete forever ----------
+
+/** One of my Students (removed or not), or 404 STUDENT_NOT_FOUND. */
+async function ownStudent(teacherId: string, studentId: string) {
+  const own = await prisma.student.findFirst({
+    where: { id: studentId, section: { teacherId } },
+    select: { id: true, schoolId: true, sectionId: true, removedAt: true },
+  });
+  if (!own) throw sectionErrors.studentNotFound();
+  return own;
+}
+
+/**
+ * Remove: the Student can't log in and leaves every list and count, but NOTHING is
+ * deleted (PIN code, one-time code, buddy, setup, XP, stars, streak and rounds stay).
+ * removedAt and tokenVersion + 1 in one update, so any open login ends right away.
+ * Already removed → the same answer again (safe to tap twice). Also leaves the live Lobby.
+ */
+export function removeStudent(teacherId: string, studentId: string): Promise<void> {
+  return db(async () => {
+    const own = await ownStudent(teacherId, studentId);
+    if (own.removedAt === null) {
+      // Only while still active, so two quick taps change it once.
+      await prisma.student.updateMany({
+        where: { id: own.id, removedAt: null },
+        data: { removedAt: new Date(), tokenVersion: { increment: 1 } },
+      });
+    }
+    kickStudent(own.id);
+  });
+}
+
+/**
+ * Restore: removedAt back to null. They log in with their old PIN code (or their old
+ * one-time code if they never made one). The section row is locked first (like
+ * addOnce), so two Restores can't go over 45 together. Not removed → nothing changes.
+ * Full (45 active) → 409 SECTION_FULL.
+ */
+export function restoreStudent(teacherId: string, studentId: string): Promise<StudentView> {
+  return db(async () => {
+    const own = await ownStudent(teacherId, studentId);
+    const row = await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "Section" WHERE "id" = ${own.sectionId} FOR UPDATE`;
+        const now = await tx.student.findUnique({ where: { id: own.id }, select: { removedAt: true } });
+        if (!now) throw sectionErrors.studentNotFound();
+        if (now.removedAt !== null) {
+          const active = await tx.student.count({ where: { sectionId: own.sectionId, removedAt: null } });
+          if (active >= MAX_STUDENTS_PER_SECTION) throw sectionErrors.sectionFullForRestore();
+          return tx.student.update({ where: { id: own.id }, data: { removedAt: null }, select: STUDENT_COLUMNS });
+        }
+        return tx.student.findUniqueOrThrow({ where: { id: own.id }, select: STUDENT_COLUMNS });
+      },
+      { maxWait: 10_000, timeout: 20_000 },
+    );
+    // Their progress was kept, so Last played comes back too.
+    const last = await prisma.gameRound.findFirst({
+      where: { studentId: own.id },
+      orderBy: { endedAt: "desc" },
+      select: { endedAt: true },
+    });
+    return studentView(row, last?.endedAt ?? null);
+  });
+}
+
+/** Prisma's "the row to change was not there". */
+const isRecordMissing = (err: unknown) => (err as { code?: unknown })?.code === "P2025";
+
+/**
+ * Delete forever: only a removed Student (else 409 NOT_REMOVED), and only when the typed
+ * School ID matches theirs (2026-0177 = 20260177; else 400 SCHOOL_ID_MISMATCH). Deleting
+ * the row deletes their rounds, answers and topic levels too (onDelete: Cascade).
+ */
+export function deleteStudent(teacherId: string, studentId: string, typedSchoolId: string): Promise<void> {
+  return db(async () => {
+    const own = await ownStudent(teacherId, studentId);
+    if (own.removedAt === null) throw sectionErrors.notRemoved();
+    const typed = cleanSchoolId(typedSchoolId);
+    if (typed === null || typed !== cleanSchoolId(own.schoolId)) throw sectionErrors.schoolIdMismatch();
+    try {
+      // Still removed at this moment: a Restore in between wins.
+      await prisma.student.delete({ where: { id: own.id, removedAt: { not: null } }, select: { id: true } });
+    } catch (err) {
+      if (!isRecordMissing(err)) throw err;
+      const still = await prisma.student.findUnique({ where: { id: own.id }, select: { id: true } });
+      if (still) throw sectionErrors.notRemoved();
+      // Already deleted by another tap: done.
+    }
+  });
+}
+
+export interface RemovedStudentView {
+  id: string;
+  /** "2026-0177" */
+  schoolId: string;
+  registered: boolean;
+  buddy: string | null;
+  buddyName: string | null;
+  removedAt: string;
+}
+
+/** The section's removed Students, newest removed first. Another Teacher's section → 404 SECTION_NOT_FOUND. */
+export function listRemoved(teacherId: string, sectionId: string): Promise<RemovedStudentView[]> {
+  return db(async () => {
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, teacherId },
+      select: {
+        students: {
+          where: { removedAt: { not: null } },
+          orderBy: [{ removedAt: "desc" }, { schoolId: "asc" }],
+          select: { id: true, schoolId: true, pinHash: true, buddy: true, buddyName: true, removedAt: true },
+        },
+      },
+    });
+    if (!section) throw sectionErrors.sectionNotFound();
+    return section.students.map((s) => ({
+      id: s.id,
+      schoolId: showSchoolId(s.schoolId),
+      registered: s.pinHash !== null,
+      buddy: s.buddy,
+      buddyName: s.buddyName,
+      removedAt: s.removedAt!.toISOString(),
+    }));
+  });
+}
+
 function addOnce(teacherId: string, sectionId: string, schoolIds: string[]): Promise<AddAnswer> {
   return prisma.$transaction(
     async (tx) => {
@@ -266,13 +408,21 @@ function addOnce(teacherId: string, sectionId: string, schoolIds: string[]): Pro
         SELECT "id" FROM "Section" WHERE "id" = ${sectionId} AND "teacherId" = ${teacherId} FOR UPDATE`;
       if (locked.length === 0) throw sectionErrors.sectionNotFound();
 
-      const studentCount = await tx.student.count({ where: { sectionId } });
+      // Removed Students don't take a place.
+      const studentCount = await tx.student.count({ where: { sectionId, removedAt: null } });
       const cleanIds = [...new Set(schoolIds.map(cleanSchoolId).filter((id): id is string => id !== null))];
       const existing = cleanIds.length
-        ? await tx.student.findMany({ where: { schoolId: { in: cleanIds } }, select: { schoolId: true, sectionId: true } })
+        ? await tx.student.findMany({
+            where: { schoolId: { in: cleanIds } },
+            select: { schoolId: true, sectionId: true, removedAt: true },
+          })
         : [];
       const owners = new Map(existing.map((s) => [s.schoolId, s.sectionId]));
-      const plan = planAdd(schoolIds, studentCount, owners, sectionId);
+      // Removed in this same section: the Teacher should Restore them (REMOVED_IN_SECTION).
+      const removedHere = new Set(
+        existing.filter((s) => s.sectionId === sectionId && s.removedAt !== null).map((s) => s.schoolId),
+      );
+      const plan = planAdd(schoolIds, studentCount, owners, sectionId, removedHere);
       if (plan.full) throw sectionErrors.sectionFull(plan.placesLeft);
       if (plan.good.length === 0) return { added: [], skipped: plan.skipped };
 

@@ -9,9 +9,14 @@ import { Popup } from './Dialogs'
 import dialogs from './dialogs.module.css'
 import styles from './newCode.module.css'
 
-/** The Student in a pill: buddy head (or an empty circle), School ID, "Mochi · Registered". */
-function StudentPill({ student }: { student: Student }) {
-  const detail = [student.buddyName, student.registered ? 'Registered' : 'Not yet'].filter(Boolean).join(' · ')
+/**
+ * The Student in a pill: buddy head (or an empty circle), School ID, "Mochi · Registered".
+ * `short` (a phone held sideways): only the buddy's name, or "Not yet".
+ */
+export function StudentPill({ student, short = false }: { student: Student; short?: boolean }) {
+  const detail = short
+    ? (student.buddyName ?? 'Not yet')
+    : [student.buddyName, student.registered ? 'Registered' : 'Not yet'].filter(Boolean).join(' · ')
   return (
     <div className={styles.pill}>
       {student.buddy ? (

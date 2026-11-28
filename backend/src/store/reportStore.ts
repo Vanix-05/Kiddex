@@ -253,8 +253,8 @@ export function sectionProgress(teacherId: string, sectionId: string, now = new 
         id: true,
         students: {
           // Registered = made a PIN code at least once, or has a saved round. A Student
-          // waiting to make a new PIN code after "New code" still counts.
-          where: { OR: [{ registeredAt: { not: null } }, { gameRounds: { some: {} } }] },
+          // waiting to make a new PIN code after "New code" still counts. Removed Students never count.
+          where: { removedAt: null, OR: [{ registeredAt: { not: null } }, { gameRounds: { some: {} } }] },
           orderBy: { schoolId: "asc" },
           select: { id: true, schoolId: true, buddy: true, buddyName: true, registeredAt: true },
         },

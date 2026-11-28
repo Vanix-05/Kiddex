@@ -19,22 +19,25 @@ const LOGIN_FIELDS = {
 
 /** The login's store, on the real database (a waking database gets one more try). */
 export const studentLoginStore: StudentLoginStore = {
-  find: (schoolId) => fromDb(() => prisma.student.findUnique({ where: { schoolId }, select: LOGIN_FIELDS })),
+  // A removed Student is not found: the same WRONG_LOGIN as an unknown School ID, and
+  // no wrong try is counted. They are never told they were removed.
+  find: (schoolId) =>
+    fromDb(() => prisma.student.findUnique({ where: { schoolId, removedAt: null }, select: LOGIN_FIELDS })),
   update: async (id, changes) => {
     await fromDb(() => prisma.student.update({ where: { id }, data: changes, select: { id: true } }));
   },
   useCode: async (id, code, changes) => {
     // Not tried twice: it saves a new PIN code hash.
-    const { count } = await fromDb(() => prisma.student.updateMany({ where: { id, oneTimeCode: code }, data: changes }), {
+    const { count } = await fromDb(() => prisma.student.updateMany({ where: { id, oneTimeCode: code, removedAt: null }, data: changes }), {
       retry: false,
     });
     return count === 1;
   },
 };
 
-/** For requireStudent: is the Student still there, with this tokenVersion? */
+/** For requireStudent: is the Student still there, not removed, with this tokenVersion? */
 export const findStudentForCheck = (id: string) =>
-  fromDb(() => prisma.student.findUnique({ where: { id }, select: { id: true, tokenVersion: true } }));
+  fromDb(() => prisma.student.findUnique({ where: { id, removedAt: null }, select: { id: true, tokenVersion: true } }));
 
 /** What the Student app gets about the logged-in Student (GET /api/student/me and the login answers). */
 export interface StudentProfile {

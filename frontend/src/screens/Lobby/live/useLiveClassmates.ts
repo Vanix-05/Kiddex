@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { getToken } from '../../../session/authToken'
+import { studentApi } from '../../../session/studentApi'
 import { API_URL } from '../../../teacher/api/client'
 import type { CastMember, LobbyGame, FloorSpot } from '../game/LobbyGame'
 import type { Classmate } from '../lobbyData'
@@ -131,6 +132,10 @@ export function useLiveClassmates(who: LiveWho | null, game: LobbyGame | null) {
     socket.on('replaced', () => {
       removeAll()
       setStatus('elsewhere')
+      // "replaced" is also sent when the Teacher removes this Student. One quick check:
+      // if the login has ended, the 401 sends them to the login screen (api() does that);
+      // if it's really another tab, nothing changes.
+      if (role === 'student') studentApi.me().catch(() => undefined)
     })
 
     return () => {

@@ -3,7 +3,13 @@
 import { MAX_STUDENTS_PER_SECTION } from "./limits";
 import { cleanSchoolId, showSchoolId } from "./schoolId";
 
-export type SkipReason = "BAD_FORMAT" | "DUPLICATE_IN_LIST" | "ALREADY_IN_SECTION" | "IN_ANOTHER_SECTION";
+export type SkipReason =
+  | "BAD_FORMAT"
+  | "DUPLICATE_IN_LIST"
+  | "ALREADY_IN_SECTION"
+  | "IN_ANOTHER_SECTION"
+  // A removed Student of this same section: the Teacher should Restore them instead.
+  | "REMOVED_IN_SECTION";
 
 export interface Skipped {
   /** The shown form ("2026-0144"), or what was sent when it is not a School ID. */
@@ -23,15 +29,17 @@ export interface AddPlan {
 
 /**
  * @param sent         what the Teacher sent
- * @param studentCount Students already in the section
+ * @param studentCount ACTIVE Students already in the section (removed ones don't take a place)
  * @param owners       for School IDs already saved anywhere: clean id → its section id
  * @param sectionId    the section being added to
+ * @param removedHere  clean School IDs of the removed Students in THIS section
  */
 export function planAdd(
   sent: string[],
   studentCount: number,
   owners: Map<string, string>,
   sectionId: string,
+  removedHere: ReadonlySet<string> = new Set(),
 ): AddPlan {
   const good: string[] = [];
   const skipped: Skipped[] = [];
@@ -49,8 +57,9 @@ export function planAdd(
     }
     seen.add(clean);
     const owner = owners.get(clean);
-    if (owner === sectionId) skipped.push({ schoolId: shown, reason: "ALREADY_IN_SECTION" });
-    // Another section, maybe another Teacher's: never say whose.
+    if (owner === sectionId && removedHere.has(clean)) skipped.push({ schoolId: shown, reason: "REMOVED_IN_SECTION" });
+    else if (owner === sectionId) skipped.push({ schoolId: shown, reason: "ALREADY_IN_SECTION" });
+    // Another section, maybe another Teacher's (removed there or not): never say whose.
     else if (owner !== undefined) skipped.push({ schoolId: shown, reason: "IN_ANOTHER_SECTION" });
     else good.push(clean);
   }

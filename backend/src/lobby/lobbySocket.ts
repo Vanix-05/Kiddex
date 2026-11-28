@@ -21,6 +21,7 @@ import { accountTables } from "../auth/accounts";
 import { env } from "../config/env";
 import { prisma } from "../db/prisma";
 import { levelFromXp } from "../games/rewards";
+import { setLobbyServer, studentRoomOf } from "./lobbyKick";
 import { LobbyRooms, readEmote, readSpot } from "./lobbyRooms";
 
 /** The connect answers the page understands (Socket.IO "connect_error" message). */
@@ -40,8 +41,9 @@ async function whoIs(auth: unknown): Promise<Who> {
 
   const student = readStudentToken(token);
   if (student) {
+    // A removed Student is refused like an ended login.
     const row = await prisma.student.findUnique({
-      where: { id: student.accountId },
+      where: { id: student.accountId, removedAt: null },
       select: { id: true, tokenVersion: true, sectionId: true, avatar: true, buddy: true, buddyName: true, look: true, xp: true },
     });
     if (!row || row.tokenVersion !== student.tokenVersion) throw refuse("LOGIN_NEEDED");
@@ -75,6 +77,8 @@ export function attachLobby(httpServer: HttpServer, rooms = new LobbyRooms()): S
     // The messages are tiny: refuse anything big.
     maxHttpBufferSize: 10_000,
   });
+  // So the Remove address can take a Student out right away (lobbyKick.ts).
+  setLobbyServer(io);
 
   io.use(async (socket, next) => {
     try {
@@ -99,6 +103,7 @@ export function attachLobby(httpServer: HttpServer, rooms = new LobbyRooms()): S
     }
 
     const { studentId, sectionId } = who;
+    void socket.join(studentRoomOf(studentId));
     const { player, others, replaced } = rooms.join(sectionId, studentId, socket.id, who.look);
     if (replaced) {
       socket.to(room).except(replaced.connectionId).emit("leave", replaced.pid);

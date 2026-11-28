@@ -73,9 +73,10 @@ adminRouter.get("/api/admin/stats", requireAdmin, async (_req, res) => {
       teachers: () => prisma.teacher.count(),
       activeTeachers: () => prisma.teacher.count({ where: { active: true } }),
       sections: () => prisma.section.count(),
-      students: () => prisma.student.count(),
-      // Students who finished making their PIN code.
-      registeredStudents: () => prisma.student.count({ where: { pinHash: { not: null } } }),
+      // Active Students only: removed ones don't count.
+      students: () => prisma.student.count({ where: { removedAt: null } }),
+      // Active Students who finished making their PIN code.
+      registeredStudents: () => prisma.student.count({ where: { removedAt: null, pinHash: { not: null } } }),
       lessons: () => prisma.lesson.count(),
       approvedLessons: () => prisma.lesson.count({ where: { status: "approved" } }),
     }),

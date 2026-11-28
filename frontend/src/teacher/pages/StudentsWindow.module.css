@@ -356,10 +356,10 @@
   color: var(--color-text-muted);
 }
 
-/* Column widths (stage px) from the reference (1-my-students); the actions
-   column takes the rest. */
+/* Column widths (stage px) from the reference (1-my-students, then 1-menu for
+   the ⋯ column); the actions column takes the rest. */
 .table thead th:nth-child(1) {
-  width: 196px;
+  width: 170px;
   padding-left: 10px;
 }
 .table thead th:nth-child(2) {
@@ -369,13 +369,16 @@
   width: 150px;
 }
 .table thead th:nth-child(4) {
-  width: 120px;
+  width: 110px;
 }
 .table thead th:nth-child(5) {
-  width: 230px;
+  width: 215px;
 }
 .table thead th:nth-child(6) {
   width: 64px;
+}
+.table thead th:nth-child(8) {
+  width: 50px;
 }
 
 .row {
@@ -586,8 +589,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 18px;
-  padding-right: 4px;
+  gap: 14px;
+  padding-right: 0;
 }
 
 /* New code: a quiet grey link next to the orange Open. */
@@ -764,8 +767,200 @@
   user-select: none;
 }
 
+/* ---------- ⋯ and its menu (1-menu) ---------- */
+
+.moreCell {
+  text-align: right !important;
+}
+
+.more {
+  position: relative;
+  display: inline-flex;
+}
+
+.moreButton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.moreButton:hover {
+  background: var(--color-neutral-bg);
+  color: var(--color-planner-ink);
+}
+
+/* While the menu is open: the orange ring. */
+.moreOpen,
+.moreOpen:hover {
+  border-color: var(--color-button-bg);
+  background: var(--color-warn-bg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-button-bg) 35%, transparent);
+  color: var(--color-planner-ink);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 6;
+  padding: 6px;
+  border: 2.5px solid var(--color-card-border);
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 8px 18px rgba(60, 40, 25, 0.22);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-story-cover) 9%, white);
+  font: 600 16px/1 var(--font-display);
+  white-space: nowrap;
+  color: var(--color-story-cover);
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: color-mix(in srgb, var(--color-story-cover) 16%, white);
+}
+
+/* ---------- The foot's right end: toast and "Removed (N)" (3-after) ---------- */
+
+.footEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+/* No students left: only the right end. */
+.footRight {
+  justify-content: flex-end;
+}
+
+.removedLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: 600 16px/1 var(--font-display);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.removedLink:hover {
+  color: var(--color-planner-ink);
+}
+
+.toastSlot {
+  display: inline-flex;
+}
+
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 5px 0 16px;
+  border-radius: var(--radius-pill);
+  background: var(--color-planner-ink);
+  font: 600 16px/1 var(--font-display);
+  white-space: nowrap;
+  color: var(--color-text-on-dark);
+  animation: toastIn 200ms ease-out both;
+}
+
+/* No Undo: even padding. */
+.toast:not(:has(.undo)) {
+  padding-right: 16px;
+}
+
+.toastText {
+  font-variant-numeric: tabular-nums;
+}
+
+.undo {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-button-bg);
+  font: 600 15px/1 var(--font-display);
+  color: var(--color-button-text);
+  cursor: pointer;
+}
+
+.undo:hover {
+  background: var(--color-button-bg-hover);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+/* ---------- Removed (4-removed) ---------- */
+
+.removedTitle {
+  outline: none;
+}
+
+.removedTable thead th:nth-child(1) {
+  width: 180px;
+}
+.removedTable thead th:nth-child(2) {
+  width: 140px;
+}
+.removedTable thead th:nth-child(3) {
+  width: 150px;
+}
+.removedTable thead th:nth-child(4) {
+  width: auto;
+}
+
+.removedTable .row {
+  height: 52px;
+}
+
+.whoRemoved {
+  color: var(--color-text-muted);
+}
+
+.avatarFaded {
+  filter: grayscale(0.7);
+  opacity: 0.75;
+}
+
+.restoreButton {
+  height: 38px;
+  font-size: 16px;
+}
+
+.deleteLink,
+.deleteLink:hover:not(:disabled) {
+  color: var(--color-danger-text);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .closePop {
+  .closePop,
+  .toast {
     animation: none;
   }
 }
@@ -821,5 +1016,81 @@
   .next {
     align-self: stretch;
     width: auto;
+  }
+
+  /* Room for the bigger ⋯ (7-phone-menu): Buddy and Mastery give some width,
+     and the mastery bar gets shorter, so the streak never touches New code. */
+  .table thead th:nth-child(2) {
+    width: 110px;
+  }
+  .table thead th:nth-child(5) {
+    width: 175px;
+  }
+  .table thead th:nth-child(8) {
+    width: 83px;
+  }
+
+  .masteryBar {
+    width: 80px;
+  }
+
+  /* Tap sizes: 67 design px (44px or more on the screen). */
+  .moreButton {
+    width: 67px;
+    height: 67px;
+    border-radius: 14px;
+  }
+
+  .moreButton svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Above ⋯, so the scrolling list never cuts it off. */
+  .menu {
+    top: auto;
+    bottom: calc(100% + 6px);
+  }
+
+  .menuItem {
+    min-height: 67px;
+    padding: 0 22px;
+    font-size: 20px;
+  }
+
+  .menuItem svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .removedLink {
+    min-height: 67px;
+    font-size: 18px;
+  }
+
+  .toast {
+    height: 75px;
+    padding-left: 22px;
+    font-size: 19px;
+  }
+
+  .undo {
+    min-height: 67px;
+    padding: 0 22px;
+    font-size: 19px;
+  }
+
+  .restoreButton,
+  .deleteLink {
+    min-height: 67px;
+  }
+
+  /* Removed: ← My Students stays clear of ✕. */
+  .removedHead {
+    padding-right: 72px;
+  }
+
+  .removedTable .row {
+    height: 72px;
   }
 }

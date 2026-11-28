@@ -3,7 +3,11 @@
 //   POST /api/sections                         { grade, name } → 201 { section }
 //   GET  /api/sections/:sectionId/students     the section's Students, School ID order
 //   POST /api/sections/:sectionId/students     { schoolIds } → 201 { added, skipped }
+//   GET  /api/sections/:sectionId/removed      the section's removed Students, newest removed first
 //   POST /api/students/:studentId/new-code     a new one-time code → { student }
+//   POST /api/students/:studentId/remove       Remove (can't log in, nothing deleted) → { ok: true }
+//   POST /api/students/:studentId/restore      Restore → { student }
+//   DELETE /api/students/:studentId            { schoolId } Delete forever (removed Students only) → { ok: true }
 //   GET  /api/students/:studentId/levels       the Student's level per topic and why (step 8), and mastery (step 9)
 //   GET  /api/sections/:sectionId/progress     the section's mastery, study days and review packs (step 9)
 // A Teacher only ever sees their own: another Teacher's section is 404 SECTION_NOT_FOUND.
@@ -15,7 +19,17 @@ import { MAX_GRADE, MAX_SECTION_NAME, MAX_STUDENTS_PER_SECTION, MIN_GRADE } from
 import { sectionErrors } from "../sections/sectionErrors";
 import { studentLevels } from "../store/levelStore";
 import { sectionProgress } from "../store/reportStore";
-import { addStudents, createSection, listSections, listStudents, makeNewCode } from "../store/sectionStore";
+import {
+  addStudents,
+  createSection,
+  deleteStudent,
+  listRemoved,
+  listSections,
+  listStudents,
+  makeNewCode,
+  removeStudent,
+  restoreStudent,
+} from "../store/sectionStore";
 
 export const sectionsRouter = Router();
 
@@ -38,6 +52,11 @@ const AddStudentsSchema = z.object({
     })
     .min(1, "Please add at least one School ID.")
     .max(MAX_STUDENTS_PER_SECTION, `Please add at most ${MAX_STUDENTS_PER_SECTION} School IDs at a time.`),
+});
+
+const schoolIdMessage = "Please type the Student’s School ID.";
+const DeleteStudentSchema = z.object({
+  schoolId: z.string({ error: schoolIdMessage }).max(40, "A School ID is too long."),
 });
 
 function parse<T>(schema: z.ZodType<T>, body: unknown): T {
@@ -74,6 +93,31 @@ sectionsRouter.post("/api/students/:studentId/new-code", async (req, res) => {
   const student = await makeNewCode(currentTeacherId(req), req.params.studentId);
   console.log("[students] new login code made");
   res.json({ student });
+});
+
+// Remove / Restore / Delete forever. Another Teacher's Student: 404 STUDENT_NOT_FOUND.
+// Never logs the School ID or the id.
+sectionsRouter.post("/api/students/:studentId/remove", async (req, res) => {
+  await removeStudent(currentTeacherId(req), req.params.studentId);
+  console.log("[students] student removed");
+  res.json({ ok: true });
+});
+
+sectionsRouter.post("/api/students/:studentId/restore", async (req, res) => {
+  const student = await restoreStudent(currentTeacherId(req), req.params.studentId);
+  console.log("[students] student restored");
+  res.json({ student });
+});
+
+sectionsRouter.delete("/api/students/:studentId", async (req, res) => {
+  const { schoolId } = parse(DeleteStudentSchema, req.body);
+  await deleteStudent(currentTeacherId(req), req.params.studentId, schoolId);
+  console.log("[students] student deleted forever");
+  res.json({ ok: true });
+});
+
+sectionsRouter.get("/api/sections/:sectionId/removed", async (req, res) => {
+  res.json(await listRemoved(currentTeacherId(req), req.params.sectionId));
 });
 
 // The Student's levels per topic, worked out by fixed rules (not AI). Only right / helped

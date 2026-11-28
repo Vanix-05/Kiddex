@@ -80,12 +80,12 @@ export interface StudentLevels {
  * One query for the Student, then together: their topic levels, all their rounds,
  * their rounds + answers for mastery (reportStore.loadRounds) and the section's
  * review packs.
- * A Student who isn't in one of this Teacher's sections → 404 STUDENT_NOT_FOUND.
+ * A Student who isn't in one of this Teacher's sections, or was removed → 404 STUDENT_NOT_FOUND.
  */
 export function studentLevels(teacherId: string, studentId: string, now = new Date()): Promise<StudentLevels> {
   return db(async () => {
     const student = await prisma.student.findFirst({
-      where: { id: studentId, section: { teacherId } },
+      where: { id: studentId, section: { teacherId }, removedAt: null },
       select: {
         id: true,
         schoolId: true,
